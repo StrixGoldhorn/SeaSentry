@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # backend/app/modules/scrapers/__init__.py
 from .base import AbstractScraper, VesselRecord
 from .registry import ScraperRegistry
@@ -11,7 +10,3 @@ __all__ = [
     "VesselRecord",
     "ScraperRegistry"
 ]
-=======
-# backend/app/scrapers/__init__.py
-# placeholder for initialising scraper related items
->>>>>>> dev
