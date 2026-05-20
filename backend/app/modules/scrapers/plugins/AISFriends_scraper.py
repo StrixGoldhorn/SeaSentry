@@ -21,7 +21,7 @@ class AISFriendsScraper(AbstractScraper):
         Args:
             coords (Dict[str, float]): A dict containing the queried coords.
         '''
-        req_url = f"{self.base_url}?lon_min={coords['long_min']}&lat_min={coords['lat_min']}&lon_max={coords['long_max']}&lat_max={coords['lat_max']}&zoom=10"
+        req_url = f"{self.base_url}?lon_min={coords['long_min']}&lat_min={coords['lat_min']}&lon_max={coords['long_max']}&lat_max={coords['lat_max']}&zoom=13"
         r = requests.get(req_url, timeout=30)
         r.raise_for_status()
         return r.json()
@@ -43,7 +43,7 @@ class AISFriendsScraper(AbstractScraper):
             output.append({
                 "mmsi": vessel["mmsi"],
                 "imo": vessel["imo"],
-                "ship_name": vessel["name"],
+                "ship_name": vessel["name_ais"],
                 # ship_type = item.get("ship_type"),
                 "flag": vessel["flag"],
                 "length_meters": vessel["length"],
