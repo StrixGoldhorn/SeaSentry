@@ -42,15 +42,11 @@ class AbstractScraper(ABC):
         records = []
         for item in parsed:
             try:
-                # Example: handle timezone, type casting, missing fields
-                ts = item.get("timestamp")
-                if isinstance(ts, str):
-                    ts = datetime.fromisoformat(ts.replace("Z", "+00:00"))
 
                 records.append(ScrapedVesselRecord(
-                    mmsi = str(item.get("mmsi", "")).zfill(9),
-                    imo = str(item.get("imo", "")).zfill(7),
-                    ship_name = item.get("name"),
+                    mmsi = str(item.get("mmsi") if item.get("mmsi") is not None else 0).zfill(9),
+                    imo = str(item.get("imo") if item.get("imo") is not None else 0).zfill(7),
+                    ship_name = item.get("ship_name"),
                     ship_type = item.get("ship_type"),
                     flag = item.get("flag"),
                     length_meters = item.get("length_meters"),
@@ -58,7 +54,7 @@ class AbstractScraper(ABC):
 
                     lat = item.get("lat"),
                     lon = item.get("lon"),
-                    timestamp = ts or datetime.now(timezone.utc),
+                    timestamp = item.get("timestamp") or datetime.now(timezone.utc),
                     speed_knots = item.get("speed_knots"),
                     course_deg = item.get("course_deg"),
                     heading_deg = item.get("heading_deg"),
@@ -89,6 +85,7 @@ class AbstractScraper(ABC):
             logger.info("[%s] Normalisation successful", self.name)
 
             logger.info("[%s] Successfully processed %d records.", self.name, len(normalised))
+
             return normalised
 
         except Exception as e:
