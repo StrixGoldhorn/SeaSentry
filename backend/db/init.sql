@@ -124,7 +124,6 @@ CREATE TABLE IF NOT EXISTS vessel_location (
 	vessel_location_heading_deg REAL,
 	vessel_location_rate_of_turn_deg_per_sec REAL,
 	vessel_location_nav_status SMALLINT  CHECK (vessel_location_nav_status BETWEEN 0 AND 15), -- as defined by AIS standards
-	vessel_location_vessel_reference INT,
 	
 	vessel_location_vessel_data_id INT NOT NULL,
 	CONSTRAINT fk_vessel_location_vessel_data_id FOREIGN KEY (vessel_location_vessel_data_id)
