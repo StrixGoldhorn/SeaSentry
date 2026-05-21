@@ -11,7 +11,7 @@ class ScrapedVesselRecord:
 
     lat: float
     lon: float
-    timestamp: datetime # = field(default_factory=lambda: datetime.now(timezone.utc))
+    timestamp: datetime # Convert to Python's datetime before storing here!!!
     source: str
     raw: str
 
@@ -22,6 +22,37 @@ class ScrapedVesselRecord:
     flag: Optional[str] = None
     length_meters: Optional[int] = None
     beam_meters: Optional[int] = None
+
+    speed_knots: Optional[float] = None
+    course_deg: Optional[float] = None
+    heading_deg: Optional[float] = None
+    rate_of_turn_deg_per_sec: Optional[float] = None
+    nav_status: Optional[int] = None
+
+@dataclass
+class IngestVesselData:
+    '''
+    Standardized schema for all vessel data.
+    '''
+    mmsi: Optional[str] = None
+    imo: Optional[str] = None
+    ship_name: Optional[str] = None
+    ship_type: Optional[str] = None
+    flag: Optional[str] = None
+    length_meters: Optional[int] = None
+    beam_meters: Optional[int] = None
+
+
+@dataclass
+class IngestVesselLocation:
+    '''
+    Standardized schema for all vessel location.
+    '''
+    lat: float
+    lon: float
+    timestamp: datetime # Convert to Python's datetime before storing here!!!
+    source: str
+    raw: str
 
     speed_knots: Optional[float] = None
     course_deg: Optional[float] = None
