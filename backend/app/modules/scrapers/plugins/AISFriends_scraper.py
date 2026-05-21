@@ -2,6 +2,8 @@
 
 from ..registry import ScraperRegistry
 from ..base import AbstractScraper
+
+from datetime import datetime, timezone
 import requests
 
 @ScraperRegistry.register
@@ -51,7 +53,7 @@ class AISFriendsScraper(AbstractScraper):
 
                 "lat": vessel["latitude"],
                 "lon": vessel["longitude"],
-                "timestamp": vessel["timestamp_of_position"],
+                "timestamp": datetime.fromtimestamp(vessel["timestamp_of_position"], tz=timezone.utc),
                 "speed_knots": vessel["speed_over_ground"],
                 "course_deg": vessel["course_over_ground"] % 360,
                 "heading_deg": vessel["true_heading"] % 360,
