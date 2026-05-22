@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, Text, Boolean, ForeignKey, DateTime
+from sqlalchemy import Column, Integer, Text, ForeignKey, DateTime
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import relationship
 from app.core.database import DBConn
@@ -14,7 +14,7 @@ class AuditLog(Base):
     audit_log_event_desc = Column(JSONB, nullable=True)
 
     def __repr__(self):
-        return f"<IngestionAudit(id: {self.data_ingestion_audit_log_id}, raw_id: {self.data_ingestion_audit_log_raw_data_id})>"
+        return f"<AuditLog(id: {self.audit_log_id})>"
     
 class DataIngestionAuditLog(Base):
     __tablename__ = 'data_ingestion_audit_log'
@@ -27,4 +27,4 @@ class DataIngestionAuditLog(Base):
     raw_data = relationship("RawData", back_populates="ingestion_audit")
 
     def __repr__(self):
-        return f"<IngestionAudit(id: {self.data_ingestion_audit_log_id}, raw_id: {self.data_ingestion_audit_log_raw_data_id})>"
+        return f"<DataIngestionAuditLog(id: {self.data_ingestion_audit_log_id}, raw_id: {self.data_ingestion_audit_log_raw_data_id})>"
