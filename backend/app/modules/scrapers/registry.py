@@ -84,6 +84,4 @@ class ScraperRegistry:
         cls_obj = cls.get(name)
 
         instance = cls_obj()
-        if hasattr(instance, "config"):
-            instance.config.update(config_overrides)
         return instance

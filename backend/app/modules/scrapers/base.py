@@ -1,10 +1,12 @@
 # backend/app/modules/scrapers/base.py
 
+import logging
 from abc import ABC, abstractmethod
 from datetime import datetime, timezone
 from typing import List, Dict, Any
+
 from app.core.schemas import ScrapedVesselRecord
-import logging
+from app.ingest.ingest import ScraperToIngest
 
 logger = logging.getLogger(__name__)
 
@@ -85,6 +87,9 @@ class AbstractScraper(ABC):
             logger.info("[%s] Normalisation successful", self.name)
 
             logger.info("[%s] Successfully processed %d records.", self.name, len(normalised))
+
+            for rec in normalised:
+                ScraperToIngest.processVesselRecord(rec)
 
             return normalised
 

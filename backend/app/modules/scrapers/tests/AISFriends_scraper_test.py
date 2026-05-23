@@ -24,17 +24,17 @@ class TestWithScraperBase:
     '''
     # Generic test area, usually populated with vessels.
     _predefined_coords = {
-        "long_min": 103.73087988413246,
-        "long_max": 103.80327261350078,
-        "lat_min": 1.2449465271603373,
-        "lat_max": 1.297176477747911
+        "long_min": 103.82335160632802,
+        "long_max": 103.85594676548685,
+        "lat_min": 1.2535264424975803,
+        "lat_max": 1.266477533544827
     }
 
     def test_live_scraper_returns_valid_records(self, scraper_name="AISFriends_Scraper"):
         '''
         Scrape site once, test records
         '''
-        # Instantiate via registry (injects config if scraper supports it)
+        # Instantiate via registry
         try:
             scraper = ScraperRegistry.instantiate(scraper_name)
         except ValueError as e:
@@ -51,7 +51,7 @@ class TestWithScraperBase:
         if len(records) == 0:
             pytest.skip("Live API returned empty dataset (maintenance/rate limit).")
 
-        assert len(records) >= 5, "Expected at least 5 records from a live maritime feed"
+        assert len(records) >= 5, "Expected at least 5 record from a live maritime feed"
 
         # Schema & domain validation
         for rec in records:
@@ -122,6 +122,31 @@ class TestWithScraperBase:
 
         logger.info("%s Tests successful", type(self).__name__)
 
+    def test_live_scraper_inserts_vessel_data_to_db(self, scraper_name="AISFriends_Scraper"):
+        '''
+        Scrape site once, insert vessel data into db
+        '''
+        from app.ingest.ingest import ScraperToIngest
+        # Instantiate via registry (injects config if scraper supports it)
+        try:
+            scraper = ScraperRegistry.instantiate(scraper_name)
+        except ValueError as e:
+            pytest.skip(f"Scraper '{scraper_name}' not registered. Error: {e}")
+
+        # Run live scrape with retry protection
+        try:
+            records = scraper.run(TestWithScraperBase._predefined_coords)
+        except (RequestException, Timeout) as e:
+            pytest.fail(f"Live network request failed after retries: {e}")
+
+        # Basic shape assertions
+        assert isinstance(records, list), "Scraper must return a list"
+
+        # Schema & domain validation
+        for rec in records:
+            ScraperToIngest.processVesselRecord(rec)
+
 if __name__ == "__main__":
     a = TestWithScraperBase()
-    a.test_live_scraper_returns_valid_records()
+    # a.test_live_scraper_returns_valid_records()
+    a.test_live_scraper_inserts_vessel_data_to_db()
