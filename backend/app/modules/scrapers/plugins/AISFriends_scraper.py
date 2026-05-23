@@ -24,7 +24,11 @@ class AISFriendsScraper(AbstractScraper):
             coords (Dict[str, float]): A dict containing the queried coords.
         '''
         req_url = f"{self.base_url}?lon_min={coords['long_min']}&lat_min={coords['lat_min']}&lon_max={coords['long_max']}&lat_max={coords['lat_max']}&zoom=13"
-        r = requests.get(req_url, timeout=30)
+        headers = {
+            "Referer": "https://www.aisfriends.com/",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/119.36 (KHTML, like Gecko) Chrome/59.0.3071.115 Safari/537.36"
+        }
+        r = requests.get(req_url, headers = headers, timeout = 30)
         r.raise_for_status()
         return r.json()
 
