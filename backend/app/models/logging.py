@@ -1,15 +1,19 @@
-from sqlalchemy import Column, Integer, Text, ForeignKey, DateTime
+# backend/app/models/logging.py
+
+from sqlalchemy import Column, Integer, Text, ForeignKey, DateTime, Enum
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import relationship
 from app.core.database import DBConn
 
 Base = DBConn.Base
+log_severity = Enum('INFO', 'WARN', 'ERROR', 'CRITICAL')
 
 class AuditLog(Base):
     __tablename__ = 'audit_log'
     audit_log_id = Column(Integer, primary_key=True)
     audit_log_timestamp = Column(DateTime(timezone=True))
     audit_log_event_type = Column(Text, nullable=True)
+    audit_log_severity = Column(log_severity, nullable=True)
     audit_log_triggered_by = Column(Text, nullable=True)
     audit_log_event_desc = Column(JSONB, nullable=True)
 

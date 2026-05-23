@@ -1,3 +1,5 @@
+# backend/app/models/alert.py
+
 from sqlalchemy import Column, Integer, Text, Boolean, ForeignKey, DateTime
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import relationship

@@ -1,4 +1,6 @@
-from sqlalchemy import Column, Integer, String, Text, ForeignKey, Enum, CheckConstraint, DateTime
+# backend/app/models/source.py
+
+from sqlalchemy import Column, Integer, Text, ForeignKey, Enum, DateTime
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import relationship
 from app.core.database import DBConn

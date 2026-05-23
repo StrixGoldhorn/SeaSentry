@@ -8,7 +8,7 @@ Base = DBConn.Base
 
 class VesselData(Base):
     __tablename__ = 'vessel_data'
-    
+
     vessel_data_id = Column(Integer, primary_key=True)
     vessel_data_mmsi = Column(String(9))
     vessel_data_imo = Column(String(7))

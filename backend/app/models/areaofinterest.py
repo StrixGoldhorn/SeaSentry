@@ -1,3 +1,5 @@
+# backend/app/models/areaofinterest.py
+
 from sqlalchemy import Column, Integer, Text, DateTime
 from geoalchemy2 import Geometry
 from app.core.database import DBConn
