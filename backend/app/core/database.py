@@ -9,7 +9,6 @@ import logging
 from app.core.config import Settings
 
 logger = logging.getLogger(__name__)
-logging.basicConfig(level=logging.DEBUG)
 
 class DBConn():
     '''
