@@ -5,6 +5,7 @@ from app.core.schemas import IngestVesselData, IngestVesselLocation, ScrapedVess
 from app.models.vessel import VesselData, VesselLocation
 from app.models.source import DataSource, RawData
 from app.core.database import DBConn
+from app.utils.audit_log_helpers import write_audit_log, write_data_ingestion_audit_log
 
 from sqlalchemy import func
 
@@ -294,11 +295,13 @@ class IngestToDB:
                 session.add(rawdata)
                 session.commit() # Commit and get PK
                 DBConn.close_session()
+                write_data_ingestion_audit_log(rawdata.raw_data_id, __name__, {})
                 return rawdata.raw_data_id
 
             else:
-                # Raw data already exists
+                # Raw data already exists)
                 session.flush() # Flush and get PK
+                write_data_ingestion_audit_log(existing.raw_data_id, __name__, {})
                 return existing.raw_data_id
 
         except Exception as e:

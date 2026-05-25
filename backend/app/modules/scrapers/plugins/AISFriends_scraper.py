@@ -1,7 +1,8 @@
 # backend/app/modules/scrapers/plugins/AISFriends_scraper.py
 
-from ..registry import ScraperRegistry
-from ..base import AbstractScraper
+from app.modules.scrapers.registry import ScraperRegistry
+from app.modules.scrapers import AbstractScraper
+from app.utils.audit_log_helpers import write_audit_log
 
 from datetime import datetime, timezone
 import requests
@@ -29,7 +30,10 @@ class AISFriendsScraper(AbstractScraper):
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/119.36 (KHTML, like Gecko) Chrome/59.0.3071.115 Safari/537.36"
         }
         r = requests.get(req_url, headers = headers, timeout = 30)
-        r.raise_for_status()
+        try:
+            r.raise_for_status()
+        except requests.RequestException as e:
+            write_audit_log("Error when scraping bounding box", __name__, {"scraper": self.name, "bbox": coords, "timestamp": datetime.now(), "error": e})
         return r.json()
 
     def parse_data(self, raw):
