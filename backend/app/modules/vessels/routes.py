@@ -103,7 +103,7 @@ def get_vessel_history():
             },
             "count": len(data),
             "data": data
-        })
+        }), 200
 
     except Exception as e:
         logger.error("Error in get_vessel_history: %s", e, exc_info=Settings.EXEC_INFO_API)

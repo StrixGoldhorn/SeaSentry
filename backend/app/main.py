@@ -8,6 +8,7 @@ import time
 
 from flask import Flask
 from app.modules.vessels.routes import vessels_bp
+from app.modules.aois.routes import aois_bp
 from app.core.database import DBConn
 from app.modules.scrapers.scrape import run_all_scrapers
 from app.core.config import Settings
@@ -23,6 +24,7 @@ def create_app():
     app = Flask(__name__)
 
     app.register_blueprint(vessels_bp)
+    app.register_blueprint(aois_bp)
 
     @app.teardown_appcontext
     def teardown_session(exception = None):

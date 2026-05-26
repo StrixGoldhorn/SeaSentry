@@ -30,3 +30,5 @@ class Settings():
             "interval_seconds": 300
         }
     }
+
+    EXEC_INFO_API: bool = os.getenv("EXEC_INFO_API")
