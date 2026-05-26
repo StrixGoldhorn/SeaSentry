@@ -4,17 +4,21 @@ services:
     image: postgis/postgis:16-3.4
     container_name: seasentry-db
 
-    environment:
-      POSTGRES_DB: ${POSTGRES_DB}
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    env_file:
+        - .env.docker
 
     ports:
-      - "${POSTGRES_PORT}:5432"
+      - "5432:5432"
 
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./backend/db/init.sql:/docker-entrypoint-initdb.d/init.sql
+
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
     restart: unless-stopped
 
@@ -31,7 +35,8 @@ services:
       - "5000:5000"
 
     depends_on:
-      - db
+      db:
+        condition: service_healthy
 
     volumes:
       - ./backend:/app

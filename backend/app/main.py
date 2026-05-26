@@ -72,8 +72,8 @@ def main():
     app.run(host="0.0.0.0", port = 5000, debug = False, threaded = True, use_reloader=False)
 
 if __name__ == "__main__":
-    # time.sleep(10)
+    time.sleep(10)#TODO: Fix hardcoded wait
     _scraper_started = False
-    # DBG_INSERT_DEFAULT()
+    DBG_INSERT_DEFAULT()
     # time.sleep(5)
     main()
