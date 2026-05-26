@@ -25,7 +25,7 @@ services:
     container_name: seasentry-backend
 
     env_file:
-      - .dockerenv
+      - .env.docker
 
     ports:
       - "5000:5000"
