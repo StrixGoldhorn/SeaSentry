@@ -1,0 +1,8 @@
+Flask
+requests
+sqlalchemy
+psycopg2
+geoalchemy2
+geoalchemy2[shapely]
+
+load_dotenv

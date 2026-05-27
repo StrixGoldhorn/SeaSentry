@@ -21,3 +21,26 @@ We aim to provide a plugin based system for data sources, to allow users to add 
 - Backend + Web Server + API Server: Flask
 - Frontend: HTML, React.js, Tailwind CSS, Leaflet.js 
 - Version Control: Git + GitHub
+
+## How to run
+
+Start up Docker Desktop
+
+Set up your `.env.docker` and `.env.local` file, you may refer to the `.env.docker` file included in the repo (it is stripped of sensitive data)
+```
+DATABASE_URL = postgresql://postgres:postgres@abcd:1234/seasentry
+
+POSTGIS_ENABLED = true
+
+POSTGRES_USER = qwerty
+POSTGRES_PASSWORD = asdfg
+POSTGRES_DB = qazwsx
+POSTGRES_HOST = edcrfv
+POSTGRES_PORT = 1234
+
+EXEC_INFO_API = true
+```
+
+In the SeaSentry folder, run `docker compose up --build`
+
+To stop, run `docker compose down`

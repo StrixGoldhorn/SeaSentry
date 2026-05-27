@@ -8,6 +8,7 @@ import time
 
 from flask import Flask
 from app.modules.vessels.routes import vessels_bp
+from app.modules.aois.routes import aois_bp
 from app.core.database import DBConn
 from app.modules.scrapers.scrape import run_all_scrapers
 from app.core.config import Settings
@@ -23,6 +24,7 @@ def create_app():
     app = Flask(__name__)
 
     app.register_blueprint(vessels_bp)
+    app.register_blueprint(aois_bp)
 
     @app.teardown_appcontext
     def teardown_session(exception = None):
@@ -70,8 +72,8 @@ def main():
     app.run(host="0.0.0.0", port = 5000, debug = False, threaded = True, use_reloader=False)
 
 if __name__ == "__main__":
-    # time.sleep(10)
+    time.sleep(10)#TODO: Fix hardcoded wait
     _scraper_started = False
-    # DBG_INSERT_DEFAULT()
+    DBG_INSERT_DEFAULT()
     # time.sleep(5)
     main()
