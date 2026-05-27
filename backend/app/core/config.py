@@ -3,8 +3,15 @@
 import os
 from dotenv import load_dotenv
 
+
+
 class Settings():
-    load_dotenv()
+    ENV = os.getenv("ENV", "local")
+    if ENV == "docker":
+        load_dotenv("../.env.docker")
+    else:
+        load_dotenv("../.env.local")
+
     # Scraper
     SCRAPE_RESET_TIMER_SECONDS: int = os.getenv("SCRAPE_RESET_TIMER_SECONDS")
 
@@ -23,3 +30,5 @@ class Settings():
             "interval_seconds": 300
         }
     }
+
+    EXEC_INFO_API: bool = os.getenv("EXEC_INFO_API")

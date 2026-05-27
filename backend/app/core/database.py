@@ -2,8 +2,10 @@
 
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker, scoped_session, declarative_base
+from sqlalchemy.exc import OperationalError
 from typing import Optional
 import os
+import time
 import logging
 
 from app.core.config import Settings
@@ -32,8 +34,22 @@ class DBConn():
         Initialize database connection and session factory.
         Should be called once during application startup.
         '''
+        _TRIES = 10
+        _TIMEWAIT = 5
+        for attempt in range(_TRIES):
+            try:
+                engine = create_engine(Settings.DATABASE_URL)
+                with engine.connect() as connection:
+                    print("Successfully connected to the database!")
+                    cls.ENGINE = engine 
+                    break
+            except OperationalError:
+                print(f"Database not ready yet... trying again in 5 seconds (Attempt {attempt + 1}/{_TRIES})")
+                time.sleep(_TIMEWAIT)
+        else:
+            raise RuntimeError("Could not connect to the database.")
         
-        cls.ENGINE = create_engine(Settings.DATABASE_URL)
+        # cls.ENGINE = create_engine(Settings.DATABASE_URL)
 
         cls.SESSION_FACTORY = sessionmaker(
             bind=cls.ENGINE,
