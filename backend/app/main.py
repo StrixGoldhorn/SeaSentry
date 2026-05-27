@@ -27,7 +27,7 @@ def create_app():
     app.register_blueprint(vessels_bp)
     app.register_blueprint(aois_bp)
 
-    CORS(app, resources={r"/api/*": {"origins": "http://localhost:3000"}})
+    CORS(app, resources={r"/api/*": {"origins": ["http://localhost:3000", "http://127.0.0.1:3000"]}})
 
     @app.teardown_appcontext
     def teardown_session(exception = None):
@@ -77,6 +77,9 @@ def main():
 if __name__ == "__main__":
     time.sleep(10)#TODO: Fix hardcoded wait
     _scraper_started = False
-    # DBG_INSERT_DEFAULT()
+    try:
+        DBG_INSERT_DEFAULT()
+    except:
+        pass
     # time.sleep(5)
     main()
