@@ -7,6 +7,7 @@ import logging
 import time
 
 from flask import Flask
+from flask_cors import CORS
 from app.modules.vessels.routes import vessels_bp
 from app.modules.aois.routes import aois_bp
 from app.core.database import DBConn
@@ -25,6 +26,8 @@ def create_app():
 
     app.register_blueprint(vessels_bp)
     app.register_blueprint(aois_bp)
+
+    CORS(app, resources={r"/api/*": {"origins": "http://localhost:3000"}})
 
     @app.teardown_appcontext
     def teardown_session(exception = None):
@@ -74,6 +77,6 @@ def main():
 if __name__ == "__main__":
     time.sleep(10)#TODO: Fix hardcoded wait
     _scraper_started = False
-    DBG_INSERT_DEFAULT()
+    # DBG_INSERT_DEFAULT()
     # time.sleep(5)
     main()
