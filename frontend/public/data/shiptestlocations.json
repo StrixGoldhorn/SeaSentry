@@ -2,9 +2,9 @@
     "count": 10,
     "data": [
         {
-            "course_deg": 237.0,
+            "course_deg": null,
             "flag": "SG",
-            "heading_deg": 244.0,
+            "heading_deg": null,
             "imo": "9869605",
             "latitude": 1.260632,
             "location_id": 34,
