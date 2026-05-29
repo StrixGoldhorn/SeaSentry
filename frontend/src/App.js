@@ -34,7 +34,7 @@ function App() {
           setShipData(fetchdata);
         }
       })
-    })
+    }, [])
 
 
 
