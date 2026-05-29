@@ -11,7 +11,7 @@ const customIcon = new Icon({
 
 const lineIcon = new Icon({
   iconUrl: LineIcon,
-  iconSize: [20, 80]
+  iconSize: [20, 50]
 })
 
 function shipDegCheck(deg) {

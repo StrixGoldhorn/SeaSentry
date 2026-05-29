@@ -5,11 +5,11 @@ export function rectangleOverlay (bbox) {
     
     
     const rectOptions = {
-        color: 'blue',
+        color: 'green',
         weight: 3,
-        opacity: 0.7,
-        fillColor: 'blue',
-        fillOpacity: 0.05
+        opacity: 0.3,
+        fillColor: 'green',
+        fillOpacity: 0.03
     }
 
     const rectBounds = [
