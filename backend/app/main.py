@@ -16,7 +16,7 @@ from app.core.config import Settings
 
 from app.utils.geo_helpers import DBG_INSERT_DEFAULT
 
-logging.basicConfig(level=logging.DEBUG) # NOTE: PLEASE ONLY CONTROL LOGGER LEVEL FROM HERE
+logging.basicConfig(level=logging.INFO) # NOTE: PLEASE ONLY CONTROL LOGGER LEVEL FROM HERE
 logger = logging.getLogger(__name__)
 
 _scraper_started = False
