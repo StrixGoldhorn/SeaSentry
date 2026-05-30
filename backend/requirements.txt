@@ -1,0 +1,9 @@
+Flask
+requests
+sqlalchemy
+psycopg2
+geoalchemy2
+geoalchemy2[shapely]
+flask-cors
+
+load_dotenv
