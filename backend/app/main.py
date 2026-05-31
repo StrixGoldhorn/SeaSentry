@@ -16,7 +16,7 @@ from app.core.config import Settings
 
 from app.utils.geo_helpers import DBG_INSERT_DEFAULT
 
-logging.basicConfig(level=logging.DEBUG) # NOTE: PLEASE ONLY CONTROL LOGGER LEVEL FROM HERE
+logging.basicConfig(level=logging.INFO) # NOTE: PLEASE ONLY CONTROL LOGGER LEVEL FROM HERE
 logger = logging.getLogger(__name__)
 
 _scraper_started = False
@@ -75,11 +75,10 @@ def main():
     app.run(host="0.0.0.0", port = 5000, debug = False, threaded = True, use_reloader=False)
 
 if __name__ == "__main__":
-    time.sleep(10)#TODO: Fix hardcoded wait
+    # time.sleep(5)
     _scraper_started = False
     try:
         DBG_INSERT_DEFAULT()
     except:
         pass
-    # time.sleep(5)
     main()
