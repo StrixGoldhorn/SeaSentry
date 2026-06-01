@@ -16,6 +16,16 @@ CREATE TABLE IF NOT EXISTS area_of_interest (
 	area_of_interest_polygon GEOMETRY(POLYGON, 4326) NOT NULL
 );
 
+-- Create table for geofences
+CREATE TABLE IF NOT EXISTS geofence (
+	geofence_id SERIAL PRIMARY KEY,
+	geofence_timestamp TIMESTAMPTZ DEFAULT NOW(),
+
+	geofence_name TEXT UNIQUE NOT NULL,
+	geofence_description TEXT,
+	geofence_polygon GEOMETRY(POLYGON, 4326) NOT NULL
+);
+
 -- Create table for vessels of interest
 -- mmsi and imo whacky behaviour, so no foriegn key to vessel_data
 CREATE TABLE IF NOT EXISTS vessel_of_interest(
