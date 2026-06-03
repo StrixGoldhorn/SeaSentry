@@ -1,7 +1,7 @@
-# backend/app/modules/scrapers/tests/AISFriends_scraper_test.py
+# backend/app/modules/scrapers/tests/aprs_scraper_test.py
 
 '''
-Unit + Integration tests for AISFriends_scraper.py
+Unit + Integration tests for aprs_scraper.py
 '''
 
 import pytest
@@ -19,7 +19,7 @@ logging.basicConfig(level=logging.DEBUG)
 class TestWithScraperBase:
     '''
     Class to do integration testing
-    for backend/app/modules/scrapers/plugins/AISFriends_scraper.py
+    for backend/app/modules/scrapers/plugins/aprs_scraper.py
     with backend/app/modules/scrapers/base.py
     '''
     # Generic test area, usually populated with vessels.
@@ -30,7 +30,7 @@ class TestWithScraperBase:
         "lat_max": 1.266477533544827
     }
 
-    def test_live_scraper_returns_valid_records(self, scraper_name="AISFriends_Scraper"):
+    def test_live_scraper_returns_valid_records(self, scraper_name="aprs_Scraper"):
         '''
         Scrape site once, test records
         '''
@@ -118,10 +118,10 @@ class TestWithScraperBase:
 
             # timestamp
             assert rec.timestamp is not None, "Timestamp must not be none, raw: {rec.raw}"
-            
+
         logger.info("%s Tests successful", type(self).__name__)
 
-    def test_live_scraper_inserts_vessel_data_to_db(self, scraper_name="AISFriends_Scraper"):
+    def test_live_scraper_inserts_vessel_data_to_db(self, scraper_name="aprs_Scraper"):
         '''
         Scrape site once, insert vessel data into db
         '''
@@ -144,8 +144,10 @@ class TestWithScraperBase:
         # Schema & domain validation
         for rec in records:
             ScraperToIngest.processVesselRecord(rec)
+        
+        logger.info("%s Tests successful", type(self).__name__)
 
 if __name__ == "__main__":
     a = TestWithScraperBase()
-    # a.test_live_scraper_returns_valid_records()
-    a.test_live_scraper_inserts_vessel_data_to_db()
+    a.test_live_scraper_returns_valid_records()
+    # a.test_live_scraper_inserts_vessel_data_to_db()
