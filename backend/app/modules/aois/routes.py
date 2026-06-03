@@ -2,13 +2,11 @@
 # for api routes relating to aoi queries
 
 from flask import Blueprint, request, jsonify
-from datetime import datetime, timedelta, timezone
-from sqlalchemy import func
-from geoalchemy2.shape import to_shape
+from json import JSONDecodeError
 from app.core.database import DBConn
 from app.models.areaofinterest import AreaOfInterest
 from app.core.config import Settings
-from app.utils.geo_helpers import add_rectangle_aoi_to_db, get_all_aois, get_aoi_polygon_corners
+from app.utils.aoi_helpers import add_rectangle_aoi_to_db, get_all_aois, get_aoi_polygon_vertices, add_polygon_aoi_to_db
 from app.utils.audit_log_helpers import write_audit_log
 import logging
 
@@ -19,7 +17,7 @@ aois_bp = Blueprint('aois', __name__, url_prefix='/api/v1/aois')
 def add_aoi_box():
     '''
     POST /api/v1/aois/add/box
-    Query vessel positions within a bounding box
+    Adds specified bounding box.
     
     Query Params:
     - lat_min, lat_max, long_min, long_max: float (bounding box)
@@ -45,8 +43,8 @@ def add_aoi_box():
 
         def check_if_name_exists(name):
             query = session.query(AreaOfInterest).filter(AreaOfInterest.area_of_interest_name == name)
-            res = query.all()
-            if len(res) != 0: return True
+            res = query.first()
+            if res is not None: return True
             return False
         
         if check_if_name_exists(name):
@@ -77,10 +75,90 @@ def add_aoi_box():
         if session:
             DBConn.close_session()
 
+@aois_bp.route('/add/polygon', methods=['POST'])
+def add_aoi_polygon():
+    '''
+    POST /api/v1/aois/add/polygon
+    Adds specified bounding polygon.
+    
+    Query Params:
+    - coords: [[long1, lat1], [long2, lat2], [long3, lat3], ..., [long1, lat1]] (polygon bounding AOI. last coords should be same as first coords. else it will automatically close the loop, which may lead to unexpected behaviours.)
+    - name: str (name of AOI)
+    - desc: str (description of AOI)
+    '''
+
+    session = DBConn.get_session()
+    try:
+        name = str(request.form.get("name"))
+        if name is None:
+            return jsonify({"error": "Name of AOI expected."}), 400
+        
+        desc = str(request.form.get("desc"))
+
+        coords_raw = request.form.get("coords")
+        if coords_raw is None:
+            return jsonify({"error": "Array of [long, lat] expected."}), 400
+        
+        try:
+            import json
+            coords_list = json.loads(coords_raw)
+            
+            if not isinstance(coords_list, list) or len(coords_list) < 3:
+                raise ValueError("Polygon must have at least 3 points.")
+
+            shapely_coords = [(float(c[0]), float(c[1])) for c in coords_list]
+            
+            # Check if polygon is closed (first point == last point)
+            if shapely_coords[0] != shapely_coords[-1]:
+                shapely_coords.append(shapely_coords[0]) # Close the loop
+        except (JSONDecodeError, IndexError, TypeError, ValueError):
+            return jsonify({"error": "Invalid coordinates format. Array of [long, lat] expected."}), 400
+
+        def check_if_name_exists(name):
+            query = session.query(AreaOfInterest).filter(AreaOfInterest.area_of_interest_name == name)
+            res = query.first()
+            if res is not None: return True
+            return False
+        
+        if check_if_name_exists(name):
+            return jsonify({"error": f"AOI with name '{name}' already exists."}), 403
+
+        try:
+            from shapely.geometry import Polygon
+            from geoalchemy2.shape import from_shape
+            
+            poly = Polygon(shapely_coords)
+            
+            if not poly.is_valid:
+                return jsonify({"error": "Invalid polygon geometry (self-intersecting or degenerate)."}), 400
+
+            geom_wkb = from_shape(poly, srid=4326)
+
+            area_of_interest_id = add_polygon_aoi_to_db(name, geom_wkb, desc)
+            
+            return jsonify({
+                "status": "success",
+                "area_of_interest_id": area_of_interest_id
+            }), 201
+        
+        except Exception as e:
+            logger.error("Error while adding polygon to DB: %s", e, exc_info=True)
+            write_audit_log("Error adding polygon AOI", __name__, {"name": name, "info": str(e)}, "ERROR")
+            return jsonify({"error": "Internal server error", "details": str(e)}), 500
+
+    except Exception as e:
+        logger.error("Error in add_aoi_polygon: %s", e, exc_info=Settings.EXEC_INFO_API)
+        write_audit_log("Error in add_aoi_polygon", __name__, {"client-form": str(request.form), "info": str(e)}, "ERROR")
+        return jsonify({"error": "Internal server error", "details": str(e)}), 500
+
+    finally:
+        if session:
+            DBConn.close_session()
+
 @aois_bp.route('/get/all', methods=['GET'])
 def get_all_aois_web():
     '''
-    POST /api/v1/aois/get/all
+    GET /api/v1/aois/get/all
     Query for all AOIs
     '''
 
@@ -93,7 +171,7 @@ def get_all_aois_web():
                 "area_of_interest_timestamp": aoi.area_of_interest_timestamp,
                 "area_of_interest_name": aoi.area_of_interest_name,
                 "area_of_interest_description": aoi.area_of_interest_description,
-                "area_of_interest_polygon": get_aoi_polygon_corners(aoi),
+                "area_of_interest_polygon": get_aoi_polygon_vertices(aoi),
             })
         return jsonify({
             "status": "success",

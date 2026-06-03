@@ -1,7 +1,6 @@
 # backend/app/utils/audit_log_helpers.py
 
 import logging
-from typing import Optional
 from datetime import datetime
 
 from app.core.database import DBConn
@@ -56,7 +55,7 @@ def write_data_ingestion_audit_log(raw_data_id: int, triggered_by: str, event_de
         session.commit()
         logger.debug("Added data_ingest_audit_log id: %d", log.data_ingestion_audit_log_id)
         return log.data_ingestion_audit_log_id
-    
+
     except Exception as e:
         session.rollback()
         logger.error("Failed to add data_ingest_audit_log: %s", e, exc_info=True)

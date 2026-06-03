@@ -1,22 +1,26 @@
 # backend/app/modules/scrapers/scrape.py
 
 import logging
+import random
 from threading import Event, Thread
 from typing import Dict, List
 from datetime import datetime
 from requests.exceptions import RequestException, Timeout
 
 from app.modules.scrapers.registry import ScraperRegistry
-from app.utils.geo_helpers import get_all_aois, get_aoi_polygon_corners
+from app.utils.aoi_helpers import get_all_aois, get_aoi_polygon_corners
 from app.utils.audit_log_helpers import write_audit_log
 
 logger = logging.getLogger(__name__)
 
-def run_single_scraper(scraper_name: str, stop_event: Event, interval_seconds: int,  scraper_config: dict = None):
+def run_single_scraper(scraper_name: str, stop_event: Event, interval_seconds,  scraper_config: dict = None):
+
     logger.info("[%s] Thread started. Interval: %ss", scraper_name, interval_seconds)
 
     while not stop_event.is_set():
         aoi_list = get_all_aois()
+
+        random.shuffle(aoi_list)
 
         for aoi in aoi_list:
             try:
@@ -39,10 +43,15 @@ def run_single_scraper(scraper_name: str, stop_event: Event, interval_seconds: i
                 logger.error("[%s] Unexpected error: %s", scraper_name, e, exc_info=True)
                 write_audit_log("Unexpected error", __name__, {"Scraper name": scraper_name, "AOI": aoi.area_of_interest_name, "Info": str(e)}, "ERROR")
 
-            logger.info("[%s] [%s] Pausing for %ss.", scraper_name, datetime.now().isoformat(), interval_seconds)
+            if isinstance(interval_seconds, (list, tuple)) and len(interval_seconds) == 2:
+                wait_time = random.randint(interval_seconds[0], interval_seconds[1])
+            else:
+                wait_time = int(interval_seconds)
+
+            logger.info("[%s] [%s] Pausing for %ss.", scraper_name, datetime.now().isoformat(), wait_time)
 
             # Wait for interval or shutdown signal
-            stop_event.wait(interval_seconds)
+            stop_event.wait(wait_time)
 
     logger.info("[%s] Thread shutting down.", scraper_name)
 

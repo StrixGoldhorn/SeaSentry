@@ -43,8 +43,8 @@ def add_geofence_box():
 
         def check_if_name_exists(name):
             query = session.query(Geofence).filter(Geofence.geofence_name == name)
-            res = query.all()
-            if len(res) != 0: return True
+            res = query.first()
+            if res is not None: return True
             return False
         
         if check_if_name_exists(name):
