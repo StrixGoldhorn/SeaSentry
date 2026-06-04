@@ -175,7 +175,11 @@ CREATE TABLE IF NOT EXISTS alert_history (
 	alert_history_read BOOLEAN NOT NULL,
 	alert_history_read_at TIMESTAMPTZ,
 	
+	alert_history_context JSONB NOT NULL,
+
 	alert_history_alert_rule_id INT NOT NULL,
 	CONSTRAINT fk_alert_history_alert_rule_id FOREIGN KEY (alert_history_alert_rule_id)
 	REFERENCES alert_rule(alert_rule_id)
 );
+
+CREATE INDEX alert_history_context_index ON alert_history USING gin (alert_history_context);

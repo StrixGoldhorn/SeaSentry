@@ -13,7 +13,7 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --upgrade pip
 RUN pip install -r requirements.txt
-RUN playwright install --with-deps
+RUN playwright install chrome
 COPY . .
 
 # flask env
