@@ -1,4 +1,7 @@
 # backend/app/modules/scrapers/plugins/AISFriends_scraper.py
+'''
+Scrape AISFriends
+'''
 
 from app.modules.scrapers.registry import ScraperRegistry
 from app.modules.scrapers import AbstractScraper

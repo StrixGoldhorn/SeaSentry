@@ -1,4 +1,7 @@
 # backend/app/modules/scrapers/plugins/aprs_scraper.py
+'''
+Scrape aprs.fi
+'''
 
 from app.modules.scrapers.registry import ScraperRegistry
 from app.modules.scrapers import AbstractScraper
@@ -21,6 +24,9 @@ logger = logging.getLogger(__name__)
 def apply_stealth(page): Stealth().apply_stealth_sync(page)
 
 class Playwright_aprs():
+    '''
+    Class to use Playwright browser to scrape
+    '''
     def __init__(self):
         # Secure temporary directory for WAF cookies
         self.temp_profile = tempfile.mkdtemp(prefix="seasentry_")
@@ -30,6 +36,9 @@ class Playwright_aprs():
         self._is_running = False
 
     def start(self):
+        '''
+        Start browser, get waf token
+        '''
         if self._is_running:
             return
 
@@ -64,7 +73,7 @@ class Playwright_aprs():
         """
         if not self._is_running:
             self.start()
-            
+
         base_url = "https://aprs.fi/xml2"
         req_url = f"{base_url}?box={coords['lat_min']}%2C{coords['long_min']}%2C{coords['lat_max']}%2C{coords['long_max']}&timerange={timerange}&tail={tail}"
 
@@ -102,9 +111,14 @@ class Playwright_aprs():
             return ""
 
     def cleanup(self):
+        '''
+        Clean up and close stuff
+        '''
         try:
-            if self.context: self.context.close()
-            if self.pw: self.pw.stop()
+            if self.context:
+                self.context.close()
+            if self.pw:
+                self.pw.stop()
         except Exception:
             pass
 
@@ -164,7 +178,7 @@ class aprsScraper(AbstractScraper):
                     "nav_status": vessel.get("navstat", None),
                     "rawout": str(vessel)
                 }
-    
+
         output = []
 
         if not data or data == "":

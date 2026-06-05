@@ -1,4 +1,7 @@
 # backend/app/ingest/validation.py
+'''
+Perform validation checks
+'''
 
 from app.core.schemas import IngestVesselData, IngestVesselLocation
 from app.utils.audit_log_helpers import write_audit_log, write_data_ingestion_audit_log
@@ -12,6 +15,9 @@ class IngestValidation:
 
     @classmethod
     def ValidateVesselData(cls, vdata: IngestVesselData) -> IngestVesselData:
+        '''
+        Validate data in vessel data
+        '''
         # TODO: Finish implementation
         def basic_validate_MMSI(mmsi: str) -> str:
             if len(mmsi) != 9:
@@ -60,6 +66,9 @@ class IngestValidation:
 
     @classmethod
     def ValidateVesselLocation(cls, vloc: IngestVesselLocation) -> IngestVesselLocation:
+        '''
+        Validate data in vessel location
+        '''
         # TODO: Finish implementation
         def basic_validate_coords(lat: float, lon: float) -> Tuple[int, int]:
             if not -90 <= lat <= 90:

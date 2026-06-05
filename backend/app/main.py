@@ -113,6 +113,11 @@ def main():
 if __name__ == "__main__":
     _scraper_started = False
     try:
+        DBConn.run_init_sql()
+    except:
+        pass
+
+    try:
         DBG_INSERT_DEFAULT_AOI()
         DBG_INSERT_DEFAULT_GEOFENCE()
     except:
