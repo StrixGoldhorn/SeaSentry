@@ -10,8 +10,12 @@ from app.core.database import DBConn
 from app.utils.audit_log_helpers import write_audit_log, write_data_ingestion_audit_log
 from app.core.exceptions import DataValidationError
 
+from app.modules.alerts.engine import process_alerts_for_vessel
+
 from datetime import datetime
 from typing import Tuple, Any
+
+import threading
 import logging
 
 logger = logging.getLogger(__name__)
@@ -53,7 +57,9 @@ class ScraperToIngest():
         data_source_id = IngestToDB.InsertDataSource(source)
         raw_data_id = IngestToDB.InsertRawData(raw, data_source_id)
         if vessel_data_id is not None:
-            IngestToDB.InsertVesselLocation(vloc, vessel_data_id, raw_data_id)
+            vessel_location_id = IngestToDB.InsertVesselLocation(vloc, vessel_data_id, raw_data_id)
+
+        cls.check_alerts(vessel_data_id, vessel_location_id)
 
     @classmethod
     def splitData(cls, scraped:ScrapedVesselRecord) -> Tuple[IngestVesselData, IngestVesselLocation]:
@@ -85,6 +91,21 @@ class ScraperToIngest():
         )
 
         return (vdata, vloc)
+
+    @classmethod
+    def check_alerts(cls, vessel_data_id: int, vessel_location_id: int):
+        '''
+        Trigger alert evaluation in background
+        '''
+        alert_thread = threading.Thread(
+            target=process_alerts_for_vessel,
+            args=(vessel_data_id, vessel_location_id),
+            daemon=True
+        )
+        alert_thread.start()
+
+
+
 
 class IngestToDB:
     '''
