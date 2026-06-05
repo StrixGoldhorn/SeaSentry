@@ -89,7 +89,10 @@ class AbstractScraper(ABC):
             logger.info("[%s] Successfully processed %d records.", self.name, len(normalised))
 
             for rec in normalised:
-                ScraperToIngest.processVesselRecord(rec)
+                try:
+                    ScraperToIngest.processVesselRecord(rec)
+                except:
+                    pass # So that we can process the remaining vessels
 
             return normalised
 
