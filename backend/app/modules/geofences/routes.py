@@ -1,28 +1,28 @@
-# backend/app/modules/aois/routes.py
-# for api routes relating to aoi queries
+# backend/app/modules/geofences/routes.py
+# for api routes relating to geofence queries
 
 from flask import Blueprint, request, jsonify
 from json import JSONDecodeError
 from app.core.database import DBConn
-from app.models.areaofinterest import AreaOfInterest
+from app.models.geofence import Geofence
 from app.core.config import Settings
-from app.utils.aoi_helpers import add_rectangle_aoi_to_db, get_all_aois, get_aoi_polygon_vertices, add_polygon_aoi_to_db
+from app.utils.geofence_helpers import add_rectangle_geofence_to_db, get_all_geofences, get_geofence_polygon_vertices, add_polygon_geofence_to_db
 from app.utils.audit_log_helpers import write_audit_log
 import logging
 
 logger = logging.getLogger(__name__)
-aois_bp = Blueprint('aois', __name__, url_prefix='/api/v1/aois')
+geofences_bp = Blueprint('geofences', __name__, url_prefix='/api/v1/geofences')
 
-@aois_bp.route('/add/box', methods=['POST'])
-def add_aoi_box():
+@geofences_bp.route('/add/box', methods=['POST'])
+def add_geofence_box():
     '''
-    POST /api/v1/aois/add/box
+    POST /api/v1/geofences/add/box
     Adds specified bounding box.
     
     Query Params:
     - lat_min, lat_max, long_min, long_max: float (bounding box)
-    - name: str (name of AOI)
-    - desc: str (description of AOI)
+    - name: str (name of geofence)
+    - desc: str (description of geofence)
     '''
 
     session = DBConn.get_session()
@@ -37,29 +37,29 @@ def add_aoi_box():
 
         name = str(request.form.get("name"))
         if name is None:
-            return jsonify({"error": "Name of AOI expected."}), 400
+            return jsonify({"error": "Name of geofence expected."}), 400
         
         desc = str(request.form.get("desc"))
 
         def check_if_name_exists(name):
-            query = session.query(AreaOfInterest).filter(AreaOfInterest.area_of_interest_name == name)
+            query = session.query(Geofence).filter(Geofence.geofence_name == name)
             res = query.first()
             if res is not None: return True
             return False
         
         if check_if_name_exists(name):
-            return jsonify({"error": f"AOI with name '{name}' already exists."}), 403
+            return jsonify({"error": f"Geofence with name '{name}' already exists."}), 403
 
         try:
-            aoi_id = add_rectangle_aoi_to_db(name, bbox["long_min"], bbox["long_max"], bbox["lat_min"], bbox["lat_max"], desc)
+            geofence_id = add_rectangle_geofence_to_db(name, bbox["long_min"], bbox["long_max"], bbox["lat_min"], bbox["lat_max"], desc)
             return jsonify({
                 "status": "success",
-                "aoi_id": aoi_id
+                "geofence_id": geofence_id
             }), 201
         
         except Exception as e:
-            logger.error("Error while adding to DB in add_aoi_box: %s", e, exc_info=Settings.EXEC_INFO_API)
-            write_audit_log("Error while adding to DB in add_aoi_box", __name__, {"client-form": str(request.form), "info": str(e)}, "ERROR")
+            logger.error("Error while adding to DB in add_geofence_box: %s", e, exc_info=Settings.EXEC_INFO_API)
+            write_audit_log("Error while adding to DB in add_geofence_box", __name__, {"client-form": str(request.form), "info": str(e)}, "ERROR")
             return jsonify({"error": "Internal server error", "details": str(e)}), 500
         
         finally:
@@ -67,31 +67,31 @@ def add_aoi_box():
                 DBConn.close_session()
 
     except Exception as e:
-        logger.error("Error in add_aoi_box: %s", e, exc_info=Settings.EXEC_INFO_API)
-        write_audit_log("Error in add_aoi_box", __name__, {"client-form": str(request.form), "info": str(e)}, "ERROR")
+        logger.error("Error in add_geofence_box: %s", e, exc_info=Settings.EXEC_INFO_API)
+        write_audit_log("Error in add_geofence_box", __name__, {"client-form": str(request.form), "info": str(e)}, "ERROR")
         return jsonify({"error": "Internal server error", "details": str(e)}), 500
 
     finally:
         if session:
             DBConn.close_session()
 
-@aois_bp.route('/add/polygon', methods=['POST'])
-def add_aoi_polygon():
+@geofences_bp.route('/add/polygon', methods=['POST'])
+def add_geofence_polygon():
     '''
-    POST /api/v1/aois/add/polygon
+    POST /api/v1/geofences/add/polygon
     Adds specified bounding polygon.
     
     Query Params:
-    - coords: [[long1, lat1], [long2, lat2], [long3, lat3], ..., [long1, lat1]] (polygon bounding AOI. last coords should be same as first coords. else it will automatically close the loop, which may lead to unexpected behaviours.)
-    - name: str (name of AOI)
-    - desc: str (description of AOI)
+    - coords: [[long1, lat1], [long2, lat2], [long3, lat3], ..., [long1, lat1]] (polygon bounding geofence. last coords should be same as first coords. else it will automatically close the loop, which may lead to unexpected behaviours.)
+    - name: str (name of geofence)
+    - desc: str (description of geofence)
     '''
 
     session = DBConn.get_session()
     try:
         name = str(request.form.get("name"))
         if name is None:
-            return jsonify({"error": "Name of AOI expected."}), 400
+            return jsonify({"error": "Name of geofence expected."}), 400
         
         desc = str(request.form.get("desc"))
 
@@ -115,13 +115,13 @@ def add_aoi_polygon():
             return jsonify({"error": "Invalid coordinates format. Array of [long, lat] expected."}), 400
 
         def check_if_name_exists(name):
-            query = session.query(AreaOfInterest).filter(AreaOfInterest.area_of_interest_name == name)
+            query = session.query(Geofence).filter(Geofence.geofence_name == name)
             res = query.first()
             if res is not None: return True
             return False
         
         if check_if_name_exists(name):
-            return jsonify({"error": f"AOI with name '{name}' already exists."}), 403
+            return jsonify({"error": f"Geofence with name '{name}' already exists."}), 403
 
         try:
             from shapely.geometry import Polygon
@@ -134,44 +134,44 @@ def add_aoi_polygon():
 
             geom_wkb = from_shape(poly, srid=4326)
 
-            area_of_interest_id = add_polygon_aoi_to_db(name, geom_wkb, desc)
+            geofence_id = add_polygon_geofence_to_db(name, geom_wkb, desc)
             
             return jsonify({
                 "status": "success",
-                "area_of_interest_id": area_of_interest_id
+                "geofence_id": geofence_id
             }), 201
         
         except Exception as e:
             logger.error("Error while adding polygon to DB: %s", e, exc_info=True)
-            write_audit_log("Error adding polygon AOI", __name__, {"name": name, "info": str(e)}, "ERROR")
+            write_audit_log("Error adding polygon geofence", __name__, {"name": name, "info": str(e)}, "ERROR")
             return jsonify({"error": "Internal server error", "details": str(e)}), 500
 
     except Exception as e:
-        logger.error("Error in add_aoi_polygon: %s", e, exc_info=Settings.EXEC_INFO_API)
-        write_audit_log("Error in add_aoi_polygon", __name__, {"client-form": str(request.form), "info": str(e)}, "ERROR")
+        logger.error("Error in add_geofence_polygon: %s", e, exc_info=Settings.EXEC_INFO_API)
+        write_audit_log("Error in add_geofence_polygon", __name__, {"client-form": str(request.form), "info": str(e)}, "ERROR")
         return jsonify({"error": "Internal server error", "details": str(e)}), 500
 
     finally:
         if session:
             DBConn.close_session()
 
-@aois_bp.route('/get/all', methods=['GET'])
-def get_all_aois_web():
+@geofences_bp.route('/get/all', methods=['GET'])
+def get_all_geofences_web():
     '''
-    GET /api/v1/aois/get/all
-    Query for all AOIs
+    GET /api/v1/geofences/get/all
+    Query for all geofences
     '''
 
     try:
         data = []
-        all_aois = get_all_aois()
-        for aoi in all_aois:
+        all_geofences = get_all_geofences()
+        for geofence in all_geofences:
             data.append({
-                "area_of_interest_id": aoi.area_of_interest_id,
-                "area_of_interest_timestamp": aoi.area_of_interest_timestamp,
-                "area_of_interest_name": aoi.area_of_interest_name,
-                "area_of_interest_description": aoi.area_of_interest_description,
-                "area_of_interest_polygon": get_aoi_polygon_vertices(aoi),
+                "geofence_id": geofence.geofence_id,
+                "geofence_timestamp": geofence.geofence_timestamp,
+                "geofence_name": geofence.geofence_name,
+                "geofence_description": geofence.geofence_description,
+                "geofence_polygon": get_geofence_polygon_vertices(geofence),
             })
         return jsonify({
             "status": "success",
@@ -180,6 +180,6 @@ def get_all_aois_web():
         }), 200
 
     except Exception as e:
-        logger.error("Error in get_all_aois_web: %s", e, exc_info=Settings.EXEC_INFO_API)
-        write_audit_log("Error in get_all_aois_web", __name__, {"info": str(e)}, "ERROR")
+        logger.error("Error in get_all_geofences_web: %s", e, exc_info=Settings.EXEC_INFO_API)
+        write_audit_log("Error in get_all_geofences_web", __name__, {"info": str(e)}, "ERROR")
         return jsonify({"error": "Internal server error", "details": str(e)}), 500

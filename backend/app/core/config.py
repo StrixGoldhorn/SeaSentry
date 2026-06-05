@@ -1,11 +1,30 @@
 # backend/app/core/config.py
 
+'''
+Global settings
+'''
+
 import os
 from dotenv import load_dotenv
 
-
-
 class Settings():
+    '''
+    Global settings
+    '''
+
+    SCRAPER_CONFIGS: dict = {
+        "AISFriends_Scraper": {
+            "enabled": True,
+            # "enabled": False,
+            "interval_seconds": (300, 600)
+        }, 
+        "aprs_Scraper": {
+            # "enabled": True,
+            "enabled": False,
+            "interval_seconds": (600, 1800)
+        }
+    }
+
     ENV = os.getenv("ENV", "local")
     if ENV == "docker":
         load_dotenv("../.env.docker")
@@ -23,12 +42,5 @@ class Settings():
     POSTGRES_PORT: str = os.getenv("POSTGRES_PORT")
 
     DATABASE_URL = f"postgresql://{POSTGRES_USER}:{POSTGRES_PASSWORD}@{POSTGRES_HOST}:{POSTGRES_PORT}/{POSTGRES_DB}"
-
-    SCRAPER_CONFIGS: dict = {
-        "AISFriends_Scraper": {
-            "enabled": True,
-            "interval_seconds": 300
-        }
-    }
 
     EXEC_INFO_API: bool = os.getenv("EXEC_INFO_API")

@@ -4,7 +4,7 @@
 Unit tests for database.py
 """
 
-from ..database import DBConn
+from app.core.database import DBConn
 from sqlalchemy import text
 from sqlalchemy.orm import scoped_session
 

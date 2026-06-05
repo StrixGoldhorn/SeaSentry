@@ -5,5 +5,7 @@ psycopg2
 geoalchemy2
 geoalchemy2[shapely]
 flask-cors
-
+playwright
+playwright-stealth
+apscheduler
 load_dotenv

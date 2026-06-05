@@ -1,4 +1,4 @@
-# backend/app/utils/geo_helper.py
+# backend/app/utils/aoi_helpers.py
 
 import logging
 from typing import List, Optional
@@ -47,6 +47,23 @@ def get_aoi_polygon_corners(aoi: AreaOfInterest) -> dict:
                 "lat_min": lat_min,
                 "lat_max": lat_max
             }
+
+def get_aoi_polygon_vertices(aoi: AreaOfInterest) -> list:
+    '''
+    Returns all vertices of the AOI polygon
+    '''
+    if not aoi.area_of_interest_polygon:
+        raise ValueError("AOI instance has no polygon data loaded.")
+
+    geom = to_shape(aoi.area_of_interest_polygon)
+
+    coords = list(geom.exterior.coords)
+
+    # Remove last index (same as first)
+    if coords and coords[0] == coords[-1]:
+        coords = coords[:-1]
+
+    return [[long, lat] for long, lat in coords]
 
 def add_rectangle_aoi_to_db(
         name: str,
@@ -100,14 +117,35 @@ def add_rectangle_aoi_to_db(
     finally:
         DBConn.close_session()
 
-def DBG_INSERT_DEFAULT():
+def add_polygon_aoi_to_db(name: str, geometry_wkb, description: str = "") -> int:
+    """
+    Inserts a new AOI with a pre-built geometry object.
+    """
+    session = DBConn.get_session()
+    try:
+        aoi = AreaOfInterest(
+            area_of_interest_name=name,
+            area_of_interest_description=description,
+            area_of_interest_timestamp=datetime.now(),
+            area_of_interest_polygon=geometry_wkb
+        )
+        session.add(aoi)
+        session.commit()
+        return aoi.area_of_interest_id
+    except Exception as e:
+        session.rollback()
+        raise e
+    finally:
+        DBConn.close_session()
+
+def DBG_INSERT_DEFAULT_AOI():
     logging.warning("ADDING DEFAULT AOI TO DB-------------------------------------")
     add_rectangle_aoi_to_db(
-    "Default Brani",
-    103.82335160632802,
-    103.85594676548685,
-    1.2535264424975803,
-    1.266477533544827
+        "Default Brani",
+        103.82335160632802,
+        103.85594676548685,
+        1.2535264424975803,
+        1.266477533544827
     )
 
 if __name__ == "__main__":
@@ -117,7 +155,7 @@ if __name__ == "__main__":
     #     "lat_min": 1.2535264424975803,
     #     "lat_max": 1.266477533544827
     # }
-    ADD_DEFAULT = True
+    ADD_DEFAULT = False
     if ADD_DEFAULT:
         import time
         time.sleep(15)

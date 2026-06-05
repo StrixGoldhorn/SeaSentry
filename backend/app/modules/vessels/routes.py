@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 vessels_bp = Blueprint('vessels', __name__, url_prefix='/api/v1/vessels')
 
 @vessels_bp.route('/bbox', methods=['GET'])
-def get_vessel_history():
+def get_vessels_in_bbox():
     '''
     GET /api/v1/vessels/bbox
     Query vessel positions within a bounding box
@@ -27,7 +27,6 @@ def get_vessel_history():
 
     session = DBConn.get_session()
     try:
-        time_within = int(request.args.get('time_within', default = 60 * 60 * 24))
 
         bbox_params = ["lat_min", "lat_max", "long_min", "long_max"]
         bbox_values = [request.args.get(p, type=float) for p in bbox_params]
@@ -37,19 +36,22 @@ def get_vessel_history():
         if has_bbox is False:
             return jsonify({"error": "Bounding box expected."}), 400
 
-        limit = min(int(request.args.get("limit", default = 50)), 1000)
+        try:
+            limit = min(int(request.args.get("limit", default = 50)), 1000)
+        except (ValueError, TypeError):
+            return jsonify({"error": "Invalid limit format. Must be an integer."}), 400
 
         query = session.query(VesselLocation, VesselData).join(
             VesselData,
             VesselLocation.vessel_location_vessel_data_id == VesselData.vessel_data_id,
         )
 
-        if time_within:
-            try:
-                time_lower_bound = datetime.now(timezone.utc) - timedelta(seconds = time_within)
-                query = query.filter(VesselLocation.vessel_location_timestamp >= time_lower_bound)
-            except ValueError:
-                return jsonify({"error": "Invalid time_within format. Ensure it is in seconds."}), 400
+        try:
+            time_within = int(request.args.get('time_within', default = 60 * 60 * 24))
+            time_lower_bound = datetime.now(timezone.utc) - timedelta(seconds = time_within)
+            query = query.filter(VesselLocation.vessel_location_timestamp >= time_lower_bound)
+        except ValueError:
+            return jsonify({"error": "Invalid time_within format. Ensure it is in seconds."}), 400
 
         envelope = func.ST_MakeEnvelope(
             bbox["long_min"], bbox["lat_min"],
@@ -106,7 +108,7 @@ def get_vessel_history():
         }), 200
 
     except Exception as e:
-        logger.error("Error in get_vessel_history: %s", e, exc_info=Settings.EXEC_INFO_API)
+        logger.error("Error in get_vessels_in_bbox: %s", e, exc_info=Settings.EXEC_INFO_API)
         return jsonify({"error": "Internal server error", "details": str(e)}), 500
 
     finally:

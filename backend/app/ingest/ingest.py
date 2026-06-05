@@ -2,14 +2,20 @@
 # placeholder for input -> validation -> normalization -> insert to DB
 
 from app.core.schemas import IngestVesselData, IngestVesselLocation, ScrapedVesselRecord
+from app.ingest.validation import IngestValidation
+from app.ingest.normalisation import IngestNormalisation
 from app.models.vessel import VesselData, VesselLocation
 from app.models.source import DataSource, RawData
 from app.core.database import DBConn
 from app.utils.audit_log_helpers import write_audit_log, write_data_ingestion_audit_log
+from app.core.exceptions import DataValidationError
 
-from sqlalchemy import func
+from app.modules.alerts.engine import process_alerts_for_vessel
 
+from datetime import datetime
 from typing import Tuple, Any
+
+import threading
 import logging
 
 logger = logging.getLogger(__name__)
@@ -18,7 +24,7 @@ class ScraperToIngest():
     '''
     Class for scrapers to use to hand over data for ingestion.
     '''
-    
+
     @classmethod
     def processVesselRecord(cls, scraped:ScrapedVesselRecord):
         vdata, vloc = cls.splitData(scraped)
@@ -28,6 +34,15 @@ class ScraperToIngest():
         # validation
         vdata = IngestValidation.ValidateVesselData(vdata)
         vloc = IngestValidation.ValidateVesselLocation(vloc)
+        try:
+            vdata = IngestValidation.ValidateVesselData(vdata)
+            vloc = IngestValidation.ValidateVesselLocation(vloc)
+        except DataValidationError as e:
+            # Skip this log if either fails validation
+            # Add to log
+            write_audit_log("DataValidationError", __name__, {"error": e, "raw": scraped.raw, "source": scraped.source}, "ERROR")
+            #TODO: Alert user
+            return e
 
         # normalisation
         vdata = IngestNormalisation.NormaliseVesselData(vdata)
@@ -42,7 +57,9 @@ class ScraperToIngest():
         data_source_id = IngestToDB.InsertDataSource(source)
         raw_data_id = IngestToDB.InsertRawData(raw, data_source_id)
         if vessel_data_id is not None:
-            IngestToDB.InsertVesselLocation(vloc, vessel_data_id, raw_data_id)
+            vessel_location_id = IngestToDB.InsertVesselLocation(vloc, vessel_data_id, raw_data_id)
+
+        cls.check_alerts(vessel_data_id, vessel_location_id)
 
     @classmethod
     def splitData(cls, scraped:ScrapedVesselRecord) -> Tuple[IngestVesselData, IngestVesselLocation]:
@@ -75,86 +92,18 @@ class ScraperToIngest():
 
         return (vdata, vloc)
 
-
-
-class IngestValidation:
-    '''
-    Class to handle validation checks on ingested data.
-    '''
-
     @classmethod
-    def ValidateVesselData(cls, vdata: IngestVesselData) -> IngestVesselData:
-        # TODO: Actually implement
-        return vdata
+    def check_alerts(cls, vessel_data_id: int, vessel_location_id: int):
+        '''
+        Trigger alert evaluation in background
+        '''
+        alert_thread = threading.Thread(
+            target=process_alerts_for_vessel,
+            args=(vessel_data_id, vessel_location_id),
+            daemon=True
+        )
+        alert_thread.start()
 
-    @classmethod
-    def ValidateVesselLocation(cls, vloc: IngestVesselLocation) -> IngestVesselLocation:
-        # TODO: Actually implement
-        return vloc
-
-
-
-class IngestNormalisation:
-    '''
-    Class to handle normalisation of ingested data to prepare for insertion.
-    ie convert from IngestVesselData to VesselData
-    '''
-
-    @classmethod
-    def NormaliseVesselData(cls, vdata: IngestVesselData) -> VesselData:
-        try:
-            vesselData = VesselData()
-            if vdata.mmsi is not None and vdata.mmsi != "000000000":
-                vesselData.vessel_data_mmsi = vdata.mmsi
-            if vdata.imo is not None and vdata.imo != "0000000":
-                vesselData.vessel_data_imo = vdata.imo
-            if vdata.ship_name is not None:
-                vesselData.vessel_data_ship_name = vdata.ship_name
-            if vdata.ship_type is not None:
-                vesselData.vessel_data_ship_type = vdata.ship_type
-            if vdata.flag is not None:
-                vesselData.vessel_data_flag = vdata.flag
-            if vdata.length_meters is not None:
-                vesselData.vessel_data_length_meters = vdata.length_meters
-            if vdata.beam_meters is not None:
-                vesselData.vessel_data_beam_meters = vdata.beam_meters
-
-        except Exception as e:
-            # TODO: Add exception handling
-            pass
-
-        return vesselData
-
-    @classmethod
-    def NormaliseVesselLocation(cls, vloc: IngestVesselLocation) -> VesselLocation:
-        try:
-            vesselLoc = VesselLocation()
-
-            if vloc.lat  is not None and vloc.lon is not None:
-                # NOTE: I don't want to mess with raw text in "user" input, don't know what funny ways people can sqli this
-                vesselLoc.vessel_location_coords = func.ST_SetSRID(
-                    func.ST_MakePoint(vloc.lon, vloc.lat),
-                    4326
-                )
-
-            if vloc.timestamp is not None:
-                vesselLoc.vessel_location_timestamp = vloc.timestamp
-            if vloc.speed_knots is not None:
-                vesselLoc.vessel_location_speed_knots = vloc.speed_knots
-            if vloc.course_deg is not None:
-                vesselLoc.vessel_location_course_deg = vloc.course_deg
-            if vloc.heading_deg is not None:
-                vesselLoc.vessel_location_heading_deg = vloc.heading_deg
-            if vloc.rate_of_turn_deg_per_sec is not None:
-                vesselLoc.vessel_location_rate_of_turn_deg_per_sec = vloc.rate_of_turn_deg_per_sec
-            if vloc.nav_status is not None:
-                vesselLoc.vessel_location_nav_status = vloc.nav_status
-
-        except Exception as e:
-            # TODO: Add exception handling
-            pass
-
-        return vesselLoc
 
 
 
@@ -179,7 +128,7 @@ class IngestToDB:
             logger.warning("Error while attempting to insert vessel data, %s, with error %s", str(vdata), str(e))
             # TODO: Add exception handling
             return None
-        
+
     @classmethod
     def upsert_vessel_data(cls, vdata: VesselData) -> int:
         '''
@@ -220,16 +169,16 @@ class IngestToDB:
                 existing.vessel_data_length_meters = vdata.vessel_data_length_meters
             if existing.vessel_data_beam_meters is None:
                 existing.vessel_data_beam_meters = vdata.vessel_data_beam_meters
-            
+
             # TODO: This can be a conflict we handle later.
             # For now, we will take it as IMO is more important
             if mmsi and imo and existing.vessel_data_imo != imo and existing.vessel_data_mmsi != mmsi:
                 logger.warning("MMSI and IMO conflict. Using IMO match.")
-            
+
             session.commit() # Commit and get PK
             DBConn.close_session()
             return existing.vessel_data_id
-            
+
         else:
             session.add(vdata)
             session.commit() # Commit and get PK
@@ -246,13 +195,13 @@ class IngestToDB:
         session = DBConn.get_session()
 
         try:
-            
+
             datasource = DataSource(
                 data_source_name = data_source_name
             )
 
             existing = session.query(DataSource).filter(DataSource.data_source_name == data_source_name).first()
-            
+
             if existing is None:
                 session.add(datasource)
                 session.commit() # Commit and get PK
@@ -268,7 +217,7 @@ class IngestToDB:
             logger.warning("Error while attempting to insert data source, %s, with error %s", data_source_name, str(e))
             # TODO: Add exception handling
             return None
-        
+
         finally:
             DBConn.close_session()
 
@@ -285,6 +234,7 @@ class IngestToDB:
             temp = {"data": str(raw_data)}
             rawdata = RawData(
                 raw_data_payload = temp, # Placeholder. TODO: Actually convert to JSON-style before writing to DB
+                raw_data_timestamp = datetime.now(),
                 raw_data_data_source_id = data_source_id
             )
 
@@ -307,10 +257,10 @@ class IngestToDB:
             logger.warning("Error while attempting to insert raw data, %s, with error %s", str(raw_data), str(e))
             # TODO: Add exception handling
             return None
-        
+
         finally:
             DBConn.close_session()
-        
+
 
     @classmethod
     def InsertVesselLocation(cls, vloc: VesselLocation, vessel_data_id: int, raw_data_id: int) -> int:
@@ -348,4 +298,3 @@ class IngestToDB:
 
         finally:
             DBConn.close_session()
-        
