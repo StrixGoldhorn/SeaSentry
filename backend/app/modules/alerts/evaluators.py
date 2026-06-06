@@ -109,7 +109,6 @@ def evaluate_geofence_exit_rule(rule: Dict[str, Any], vessel_data_id: int, vesse
                 return
 
             # Vessel previous was inside and is currently outside.
-            logger.info(vdata.vessel_data_ship_name, "is exiting geofence!")
             context = build_geofence_context(vessel_mmsi, geofence_id, 'exit')
 
             details = {
@@ -118,7 +117,7 @@ def evaluate_geofence_exit_rule(rule: Dict[str, Any], vessel_data_id: int, vesse
                 "event": "exit"
             }
 
-            alert_id = check_and_record_alert(session, rule['alert_rule_id'], context, details)
+            alert_id = check_and_record_alert(session, rule['alert_rule_id'], context)
             if alert_id:
                 logger.info(f"Alert {alert_id}: Vessel {vessel_mmsi} exited geofence {geofence.geofence_name}")
     finally:

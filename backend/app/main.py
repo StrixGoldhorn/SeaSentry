@@ -23,6 +23,7 @@ from app.core.config import Settings
 from app.utils.aoi_helpers import DBG_INSERT_DEFAULT_AOI
 from app.utils.geofence_helpers import DBG_INSERT_DEFAULT_GEOFENCE
 from app.utils.cleaner import clear_data_ingestion_audit_log_thirty_days
+from app.modules.alerts.engine import check_all_vessels
 
 logging.basicConfig(level=logging.DEBUG) # NOTE: PLEASE ONLY CONTROL LOGGER LEVEL FROM HERE
 logger = logging.getLogger(__name__)
@@ -35,6 +36,18 @@ def schedules(scheduler):
         func = clear_data_ingestion_audit_log_thirty_days,
         trigger = IntervalTrigger(hours=24),
         id = "clear_data_ingestion_audit_log_thirty_day",
+        max_instances = 1,
+        coalesce = True,
+        replace_existing = True,
+        misfire_grace_time = 300
+    )
+
+    check_all_vessels(30)
+    scheduler.add_job(
+        func = check_all_vessels,
+        args=[Settings.ALERT_CHECK_MINUTES,],
+        trigger = IntervalTrigger(minutes=Settings.ALERT_CHECK_MINUTES),
+        id = f"check_all_vessels_{Settings.ALERT_CHECK_MINUTES}",
         max_instances = 1,
         coalesce = True,
         replace_existing = True,
@@ -112,10 +125,10 @@ def main():
 
 if __name__ == "__main__":
     _scraper_started = False
-    try:
-        DBConn.run_init_sql()
-    except:
-        pass
+    # try:
+    #     DBConn.run_init_sql()
+    # except:
+    #     pass
 
     try:
         DBG_INSERT_DEFAULT_AOI()

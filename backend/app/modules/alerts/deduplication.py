@@ -61,7 +61,7 @@ def record_alert(session: Session, rule_id: int, context: Dict[str, Any]) -> int
 
     return new_alert.alert_history_id
 
-def check_and_record_alert(session: Session, rule_id: int, context: Dict[str, Any]) -> Optional[int]:
+def check_and_record_alert(session, rule_id: int, context: Dict[str, Any]) -> Optional[int]:
     '''
     Check for if alert is duplicate, and records alert if unique.
     
@@ -69,14 +69,13 @@ def check_and_record_alert(session: Session, rule_id: int, context: Dict[str, An
         session: SQLAlchemy session
         rule_id: The alert rule ID
         context: The alert context dictionary
-        details: Additional details about the alert
     
     Returns:
         Alert ID if recorded, None if duplicate
     '''
-    
+
     if is_duplicate_alert(session, rule_id, context):
-        logger.debug(f"alert is duplicate! context: {context}")
+        logger.debug(f"Alert is duplicate! context: {context}")
         return None
 
     return record_alert(session, rule_id, context)

@@ -25,6 +25,10 @@ class Settings():
         }
     }
 
+    # Alerts
+    ALERT_CHECK_MINUTES: int = 1
+
+    # env
     ENV = os.getenv("ENV", "local")
     if ENV == "docker":
         load_dotenv("../.env.docker")
