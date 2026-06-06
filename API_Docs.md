@@ -16,6 +16,10 @@ Fields are compulsory unless otherwise stated
     - [GET `/api/v1/geofences/get/all`](#get-apiv1geofencesgetall)
     - [POST `/api/v1/geofences/add/box`](#post-apiv1geofencesaddbox)
     - [POST `/api/v1/geofences/add/polygon`](#post-apiv1geofencesaddpolygon)
+  - [Alerts](#alerts)
+    - [GET `/api/v1/alerts/history/all`](#get-apiv1alertshistoryall)
+    - [GET `/api/v1/alerts/history/unread`](#get-apiv1alertshistoryunread)
+    - [POST `/api/v1/alerts/rule/add/geofence`](#post-apiv1alertsruleaddgeofence)
 
 
 
@@ -69,6 +73,8 @@ Returns:
 
 - 400 if missing fields
 
+- 403 if name already exsts
+
 - 500 if internal server error
 
 Query Params:
@@ -89,12 +95,16 @@ Returns:
 
 - 400 if missing fields
 
+- 403 if name already exsts
+
 - 500 if internal server error
 
 Query Params:
 
 - coords: [[long1, lat1], [long2, lat2], [long3, lat3], ..., [long1, lat1]] (polygon bounding fence. last coords should be same as first coords. else it will automatically close the loop, which may lead to unexpected behaviours.)
+
 - name: str (name of AOI)
+
 - desc: str (optional, description of AOI)
 
 
@@ -121,6 +131,8 @@ Returns:
 
 - 400 if missing fields
 
+- 403 if name already exsts
+
 - 500 if internal server error
 
 Query Params:
@@ -141,10 +153,68 @@ Returns:
 
 - 400 if missing fields
 
+- 403 if name already exsts
+- 
 - 500 if internal server error
 
 Query Params:
 
 - coords: [[long1, lat1], [long2, lat2], [long3, lat3], ..., [long1, lat1]] (polygon bounding fence. last coords should be same as first coords. else it will automatically close the loop, which may lead to unexpected behaviours.)
+
 - name: str (name of geofence)
+
 - desc: str (optional, description of geofence)
+
+## Alerts
+
+### GET `/api/v1/alerts/history/all`
+
+Summary: Returns history of all alerts, both read and unread
+
+Returns:
+
+- 200 with JSON with history of all alerts
+
+- 500 if internal server error
+
+### GET `/api/v1/alerts/history/unread`
+
+Summary: Returns history of all unread alerts
+
+Returns:
+
+- 200 with JSON with history of all unread alerts
+
+- 500 if internal server error
+
+### POST `/api/v1/alerts/rule/add/geofence`
+
+Summary: Adds specified bounding polygon.
+
+Returns:
+
+- 201 if successfully added
+
+- 400 if missing fields
+
+- 403 if name already exsts
+
+- 500 if internal server error
+
+Query Params:
+
+- name: str (name of rule)
+
+- desc: str (description of rule)
+
+- geofence_id: int (id of geofence for this rule)
+
+- trigger_on_enter: boolean (true for trigger on entry)
+
+- trigger_on_exit: boolean (true for trigger on exit)
+
+Note:
+
+- If the field for `trigger_on_enter` and `trigger_on_exit` is anything other than `True`, `true`, or `1`, it will be classified as `False`
+
+- At least one of the following must evaluate to `True`: `trigger_on_enter`, `trigger_on_exit`

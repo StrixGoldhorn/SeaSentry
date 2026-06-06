@@ -38,7 +38,7 @@ def add_aoi_box():
         name = str(request.form.get("name"))
         if name is None:
             return jsonify({"error": "Name of AOI expected."}), 400
-        
+
         desc = str(request.form.get("desc"))
 
         def check_if_name_exists(name):
@@ -46,7 +46,7 @@ def add_aoi_box():
             res = query.first()
             if res is not None: return True
             return False
-        
+
         if check_if_name_exists(name):
             return jsonify({"error": f"AOI with name '{name}' already exists."}), 403
 
@@ -56,12 +56,12 @@ def add_aoi_box():
                 "status": "success",
                 "aoi_id": aoi_id
             }), 201
-        
+
         except Exception as e:
             logger.error("Error while adding to DB in add_aoi_box: %s", e, exc_info=Settings.EXEC_INFO_API)
             write_audit_log("Error while adding to DB in add_aoi_box", __name__, {"client-form": str(request.form), "info": str(e)}, "ERROR")
             return jsonify({"error": "Internal server error", "details": str(e)}), 500
-        
+
         finally:
             if session:
                 DBConn.close_session()
@@ -92,22 +92,22 @@ def add_aoi_polygon():
         name = str(request.form.get("name"))
         if name is None:
             return jsonify({"error": "Name of AOI expected."}), 400
-        
+
         desc = str(request.form.get("desc"))
 
         coords_raw = request.form.get("coords")
         if coords_raw is None:
             return jsonify({"error": "Array of [long, lat] expected."}), 400
-        
+
         try:
             import json
             coords_list = json.loads(coords_raw)
-            
+
             if not isinstance(coords_list, list) or len(coords_list) < 3:
                 raise ValueError("Polygon must have at least 3 points.")
 
             shapely_coords = [(float(c[0]), float(c[1])) for c in coords_list]
-            
+
             # Check if polygon is closed (first point == last point)
             if shapely_coords[0] != shapely_coords[-1]:
                 shapely_coords.append(shapely_coords[0]) # Close the loop
@@ -119,28 +119,28 @@ def add_aoi_polygon():
             res = query.first()
             if res is not None: return True
             return False
-        
+
         if check_if_name_exists(name):
             return jsonify({"error": f"AOI with name '{name}' already exists."}), 403
 
         try:
             from shapely.geometry import Polygon
             from geoalchemy2.shape import from_shape
-            
+
             poly = Polygon(shapely_coords)
-            
+
             if not poly.is_valid:
                 return jsonify({"error": "Invalid polygon geometry (self-intersecting or degenerate)."}), 400
 
             geom_wkb = from_shape(poly, srid=4326)
 
             area_of_interest_id = add_polygon_aoi_to_db(name, geom_wkb, desc)
-            
+
             return jsonify({
                 "status": "success",
                 "area_of_interest_id": area_of_interest_id
             }), 201
-        
+
         except Exception as e:
             logger.error("Error while adding polygon to DB: %s", e, exc_info=True)
             write_audit_log("Error adding polygon AOI", __name__, {"name": name, "info": str(e)}, "ERROR")

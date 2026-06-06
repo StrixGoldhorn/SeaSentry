@@ -38,6 +38,8 @@ def check_all_vessels(n: int):
         results = session.query(VesselLocation.vessel_location_vessel_data_id, VesselLocation.vessel_location_id)\
                         .filter(VesselLocation.vessel_location_timestamp >= threshold_time).all()
 
+        logger.debug("Processing %d records", len(results))
+
         for vessel_data_id, vessel_location_id in results:
             process_alerts_for_vessel(vessel_data_id, vessel_location_id)
 
