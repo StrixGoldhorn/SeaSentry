@@ -1,7 +1,5 @@
-'''
-Deduplication Module for Alert Engine (SQLAlchemy Implementation)
-Prevents duplicate alerts using JSONB containment queries
-'''
+# backend/app/modules/alerts/deduplication.py
+
 from datetime import timedelta, datetime
 from typing import Dict, Any, Optional
 from sqlalchemy.orm import Session
@@ -75,7 +73,8 @@ def check_and_record_alert(session, rule_id: int, context: Dict[str, Any]) -> Op
     '''
 
     if is_duplicate_alert(session, rule_id, context):
-        logger.debug(f"Alert is duplicate! context: {context}")
+        logger.debug("Alert is duplicate! context: %s", str(context))
         return None
 
+    logger.debug("Alert generated, id %d", rule_id)
     return record_alert(session, rule_id, context)

@@ -3,154 +3,106 @@
 Functions to evaluate rules
 '''
 
-from typing import Dict, Any, Optional
-from sqlalchemy.orm import Session
-from sqlalchemy import select, func, text
-from geoalchemy2.functions import ST_Within, ST_DWithin, ST_Distance
+import json
+from sqlalchemy import select
+from geoalchemy2.functions import ST_Within, ST_X, ST_Y
 
 from app.core.database import DBConn
-
 from app.models.alert import AlertRule
 from app.models.vessel import VesselData, VesselLocation
-from app.models.geofence import Geofence
+from app.utils.audit_log_helpers import write_audit_log
 
-from app.modules.alerts.context_builder import build_geofence_context
 from app.modules.alerts.deduplication import check_and_record_alert
+from app.modules.alerts.custom_rules import RuleTreeAdapter, build_sqlalchemy_expression
 
 import logging
 
 logger = logging.getLogger(__name__)
 
-def evaluate_geofence_enter_rule(rule: Dict[str, Any], vessel_data_id: int, vessel_location_id: int):
+def complex_evaluator(vessel_data_id: int, vessel_location_id: int):
     '''
-    Checks whether vessel location is entering any geofenced area.
-    '''
-    session = DBConn.get_session()
+    Evaluates complex custom user rules.
 
-    vdata = session.get(VesselData, vessel_data_id)
-    vloc = session.get(VesselLocation, vessel_location_id)
-
-    geofence_id = rule["alert_rule_params"].get("geofence_id")
-    vessel_mmsi = vdata.vessel_data_mmsi
-    coords_geom = vloc.vessel_location_coords
-
-    if geofence_id is None or coords_geom is None:
-        return
-
-    # Get geofence polygon
-    geofence = session.get(Geofence, geofence_id)
-    if not geofence or geofence.geofence_polygon is None:
-        return
-
-    # Check if vessel within geofence
-    stmt = select(ST_Within(coords_geom, geofence.geofence_polygon))
-    is_inside = session.execute(stmt).scalar()
-
-    if is_inside:
-        prev_loc = session.query(VesselLocation).filter(
-            VesselLocation.vessel_location_vessel_data_id == vdata.vessel_data_id,
-            VesselLocation.vessel_location_id < vloc.vessel_location_id
-        ).order_by(VesselLocation.vessel_location_id.desc()).first()
-
-        if prev_loc:
-            # Check if that previous location is also inside geofence
-            prev_stmt = select(ST_Within(prev_loc.vessel_location_coords, geofence.geofence_polygon))
-            prev_is_inside = session.execute(prev_stmt).scalar()
-
-            if prev_is_inside:
-                return
-
-        context = build_geofence_context(vessel_mmsi, geofence_id, 'enter')
-
-        alert_id = check_and_record_alert(session, rule['alert_rule_id'], context)
-        if alert_id:
-            logger.info(f"Alert {alert_id}: Vessel {vessel_mmsi} entered geofence {geofence.geofence_name}")
-
-def evaluate_geofence_exit_rule(rule: Dict[str, Any], vessel_data_id: int, vessel_location_id: int):
-    '''
-    Checks whether vessel location is exiting any geofenced area.
+    Args:
+        vessel_data_id: vessel data id to query
+        vessel_location_id: vessel location id to query
     '''
     session = DBConn.get_session()
+
+    # logger.debug(f"Evaluating vessel_data_id {vessel_data_id}, vessel_location_id {vessel_location_id}")
     try:
-        vdata = session.get(VesselData, vessel_data_id)
         vloc = session.get(VesselLocation, vessel_location_id)
+        vdata = session.get(VesselData, vessel_data_id)
 
-        geofence_id = rule["alert_rule_params"].get("geofence_id")
-        vessel_mmsi = vdata.vessel_data_mmsi
-        coords_geom = vloc.vessel_location_coords
-
-        if geofence_id is None or coords_geom is None:
+        if not vloc or not vdata:
+            logger.warning("Vessel location %d or data %d not found.", vessel_location_id, vessel_data_id)
             return
 
-        # Get geofence polygon
-        geofence = session.get(Geofence, geofence_id)
-        if not geofence or geofence.geofence_polygon is None:
-            return
+        rules = session.execute(
+            select(AlertRule).where(AlertRule.alert_rule_enabled == True)
+        ).scalars().all()
 
-        # Check if vessel is currently inside the geofence
-        stmt = select(ST_Within(coords_geom, geofence.geofence_polygon))
-        is_inside = session.execute(stmt).scalar()
+        for rule in rules:
+            try:
+                params_to_validate = rule.alert_rule_params
+                if isinstance(params_to_validate, str):
+                    params_to_validate = json.loads(params_to_validate)
 
-        if not is_inside:
-            prev_loc = session.query(VesselLocation).filter(
-                VesselLocation.vessel_location_vessel_data_id == vdata.vessel_data_id,
-                VesselLocation.vessel_location_id < vloc.vessel_location_id
-            ).order_by(VesselLocation.vessel_location_id.desc()).first()
+                parsed_params = RuleTreeAdapter.validate_python(params_to_validate)
 
-            if prev_loc:
-                # Check if previous location is inside the geofence
-                prev_stmt = select(ST_Within(prev_loc.vessel_location_coords, geofence.geofence_polygon))
-                prev_is_inside = session.execute(prev_stmt).scalar()
+                where_expression = build_sqlalchemy_expression(parsed_params)
 
-                # If the previous location was already outside, don't care
-                if not prev_is_inside:
-                    return
-            else:
-                return
+            except Exception as e:
+                logger.error("Validation failed for rule %d with exception %s", rule.alert_rule_id, str(e))
+                write_audit_log(f"Validation failed for rule {rule.alert_rule_id}", __name__, {"rule": str(rule), "info": str(e)}, "ERROR")
+                continue
 
-            # Vessel previous was inside and is currently outside.
-            context = build_geofence_context(vessel_mmsi, geofence_id, 'exit')
+            query = (
+                select(VesselLocation)
+                .where(
+                    VesselLocation.vessel_location_id == vessel_location_id,
+                    where_expression
+                )
+            )
 
-            details = {
-                "vessel_mmsi": vessel_mmsi,
-                "geofence_name": geofence.geofence_name,
-                "event": "exit"
-            }
+            try:
+                result = session.execute(query).scalar_one_or_none()
+            except Exception as e:
+                logger.error("Error executing query for rule %d: %s", rule.alert_rule_id, str(e))
+                write_audit_log(f"Error in complex_evaluator for rule {rule.alert_rule_id}", __name__, {"rule": str(rule), "info": str(e)}, "ERROR")
+                session.rollback()
+                continue
 
-            alert_id = check_and_record_alert(session, rule['alert_rule_id'], context)
-            if alert_id:
-                logger.info(f"Alert {alert_id}: Vessel {vessel_mmsi} exited geofence {geofence.geofence_name}")
+            if result:
+                lat, lon = None, None
+                if vloc.vessel_location_coords is not None:
+                    lat, lon = session.execute(
+                        select(ST_Y(vloc.vessel_location_coords), ST_X(vloc.vessel_location_coords))
+                    ).one()
+
+                context = {
+                    "rule_id": rule.alert_rule_id,
+                    "rule_name": rule.alert_rule_name,
+                    "rule_desc": rule.alert_rule_description,
+                    "matched_vessels": [
+                        {
+                            "mmsi": vdata.vessel_data_mmsi,
+                            "ship_data_id": vdata.vessel_data_id,
+                            "ship_name": vdata.vessel_data_ship_name,
+                            "ship_type": vdata.vessel_data_ship_type,
+                            "speed_knots": vloc.vessel_location_speed_knots,
+                            "lat": lat,
+                            "lon": lon
+                        }
+                    ]
+                }
+
+                check_and_record_alert(session, rule.alert_rule_id, context)
+
+    except Exception as e:
+        logger.error("Fatal error in complex_evaluator: %s", str(e))
+        write_audit_log("Error in complex_evaluator", __name__, {"info": str(e)}, "ERROR")
+        session.rollback()
+
     finally:
         session.close()
-
-def evaluate_rule(vessel_data_id: int, vessel_location_id: int) -> None:
-    '''
-    Get all active rules and routes to corresponding evaluator
-    '''
-    session = DBConn.get_session()
-    active_rules = session.query(AlertRule).filter(AlertRule.alert_rule_enabled == True).all()
-
-    for rule in active_rules:
-        rule_dict = {
-            'alert_rule_id': rule.alert_rule_id,
-            'alert_rule_params': rule.alert_rule_params,
-            'alert_rule_name': rule.alert_rule_name
-        }
-
-        rule_type = rule_dict['alert_rule_params'].get('type')
-
-        try:
-            if rule_type == 'geofence_enter':
-                evaluate_geofence_enter_rule(rule_dict, vessel_data_id, vessel_location_id)
-            elif rule_type == 'geofence_exit':
-                evaluate_geofence_exit_rule(rule_dict, vessel_data_id, vessel_location_id)
-            else:
-                logger.warning(f"Unknown rule type: {rule_type}")
-
-        except Exception as e:
-            logger.error(f"Error evaluating rule {rule_dict['alert_rule_name']}: {e}")
-            session.rollback()
-            continue
-
-        finally:
-            session.close()

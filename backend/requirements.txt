@@ -9,3 +9,4 @@ playwright
 playwright-stealth
 apscheduler
 load_dotenv
+pydantic
