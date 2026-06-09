@@ -118,9 +118,9 @@ def add_rectangle_aoi_to_db(
         DBConn.close_session()
 
 def add_polygon_aoi_to_db(name: str, geometry_wkb, description: str = "") -> int:
-    """
+    '''
     Inserts a new AOI with a pre-built geometry object.
-    """
+    '''
     session = DBConn.get_session()
     try:
         aoi = AreaOfInterest(
@@ -135,6 +135,34 @@ def add_polygon_aoi_to_db(name: str, geometry_wkb, description: str = "") -> int
     except Exception as e:
         session.rollback()
         raise e
+    finally:
+        DBConn.close_session()
+
+def update_aoi_in_db(aoi_id: int, name: str = None, desc: str = None, geometry_wkb = None) -> bool:
+    '''
+    Updates an existing AOI in the database. Supports partial updates.
+    Returns True if successful.
+    '''
+    session = DBConn.get_session()
+    try:
+        aoi = session.query(AreaOfInterest).filter(AreaOfInterest.area_of_interest_id == aoi_id).first()
+        if not aoi:
+            return False
+
+        if name is not None:
+            aoi.area_of_interest_name = name
+        if desc is not None:
+            aoi.area_of_interest_description = desc
+        if geometry_wkb is not None:
+            aoi.area_of_interest_polygon = geometry_wkb
+
+        session.commit()
+        return True
+
+    except Exception as e:
+        session.rollback()
+        logger.error("DB Error in update_aoi_in_db: %s", e)
+        raise
     finally:
         DBConn.close_session()
 

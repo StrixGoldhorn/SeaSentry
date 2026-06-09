@@ -1,12 +1,18 @@
 # backend/app/modules/aois/routes.py
 # for api routes relating to aoi queries
 
+import json
 from flask import Blueprint, request, jsonify
-from json import JSONDecodeError
+
+from shapely.geometry import Polygon, box
+from geoalchemy2.shape import from_shape
+
 from app.core.database import DBConn
 from app.models.areaofinterest import AreaOfInterest
 from app.core.config import Settings
-from app.utils.aoi_helpers import add_rectangle_aoi_to_db, get_all_aois, get_aoi_polygon_vertices, add_polygon_aoi_to_db
+from app.utils.aoi_helpers import (add_rectangle_aoi_to_db, add_polygon_aoi_to_db,
+                                   get_all_aois, get_aoi_polygon_vertices, 
+                                   update_aoi_in_db)
 from app.utils.audit_log_helpers import write_audit_log
 import logging
 
@@ -100,7 +106,6 @@ def add_aoi_polygon():
             return jsonify({"error": "Array of [long, lat] expected."}), 400
 
         try:
-            import json
             coords_list = json.loads(coords_raw)
 
             if not isinstance(coords_list, list) or len(coords_list) < 3:
@@ -111,7 +116,7 @@ def add_aoi_polygon():
             # Check if polygon is closed (first point == last point)
             if shapely_coords[0] != shapely_coords[-1]:
                 shapely_coords.append(shapely_coords[0]) # Close the loop
-        except (JSONDecodeError, IndexError, TypeError, ValueError):
+        except (json.JSONDecodeError, IndexError, TypeError, ValueError):
             return jsonify({"error": "Invalid coordinates format. Array of [long, lat] expected."}), 400
 
         def check_if_name_exists(name):
@@ -182,4 +187,72 @@ def get_all_aois_web():
     except Exception as e:
         logger.error("Error in get_all_aois_web: %s", e, exc_info=Settings.EXEC_INFO_API)
         write_audit_log("Error in get_all_aois_web", __name__, {"info": str(e)}, "ERROR")
+        return jsonify({"error": "Internal server error", "details": str(e)}), 500
+
+@aois_bp.route('/update/<int:aoi_id>', methods=['POST', 'PATCH'])
+def update_aoi_by_id(aoi_id):
+    '''
+    POST/PATCH /api/v1/aois/update/<aoi_id>
+    Updates an existing Area of Interest. Supports partial updates.
+    
+    Query Params (all optional, but at least one required):
+    - name: str (new name of AOI)
+    - desc: str (new description of AOI)
+    - coords: str (JSON array of [[long, lat], ...] for polygon update)
+    - lat_min, lat_max, long_min, long_max: float (for bounding box update)
+    '''
+
+    try:
+        name_raw = request.form.get("name")
+        desc_raw = request.form.get("desc")
+        coords_raw = request.form.get("coords")
+
+        bbox_params = ["lat_min", "lat_max", "long_min", "long_max"]
+        bbox_values = [request.form.get(p, type=float) for p in bbox_params]
+        has_bbox = all(v is not None for v in bbox_values)
+
+        if not name_raw and not desc_raw and not coords_raw and not has_bbox:
+            return jsonify({"error": "Requires at least 1 field to update."}), 400
+
+        if coords_raw is not None and has_bbox:
+            return jsonify({"error": "Provide either 'coords' for a polygon OR bounding box parameters, not both."}), 400
+
+        geom_wkb = None
+        if coords_raw is not None:
+            try:
+                coords_list = json.loads(coords_raw)
+                if not isinstance(coords_list, list) or len(coords_list) < 3:
+                    raise ValueError("Polygon must have at least 3 points.")
+
+                shapely_coords = [(float(c[0]), float(c[1])) for c in coords_list]
+                if shapely_coords[0] != shapely_coords[-1]:
+                    shapely_coords.append(shapely_coords[0])
+
+                poly = Polygon(shapely_coords)
+                if not poly.is_valid:
+                    return jsonify({"error": "Invalid polygon geometry."}), 400
+
+                geom_wkb = from_shape(poly, srid=4326)
+            except (json.JSONDecodeError, IndexError, TypeError, ValueError):
+                return jsonify({"error": "Invalid coordinates format."}), 400
+
+        elif has_bbox:
+            geom_wkb = from_shape(box(bbox_values[2], bbox_values[0], bbox_values[3], bbox_values[1]), srid=4326)
+
+        success = update_aoi_in_db(
+            aoi_id=aoi_id,
+            name=str(name_raw).strip() if name_raw is not None else None,
+            desc=str(desc_raw).strip() if desc_raw is not None else None,
+            geometry_wkb=geom_wkb
+        )
+
+        if not success:
+            return jsonify({"error": f"AOI with ID {aoi_id} not found."}), 404
+
+        write_audit_log("Updated AOI", __name__, {"aoi_id": aoi_id, "client-form": str(request.form)}, "INFO")
+        return jsonify({"status": "success", "aoi_id": aoi_id, "message": "AOI updated successfully."}), 200
+
+    except Exception as e:
+        logger.error("Error in update_aoi: %s", e, exc_info=Settings.EXEC_INFO_API)
+        write_audit_log("Error in update_aoi", __name__, {"aoi_id": aoi_id, "info": str(e)}, "ERROR")
         return jsonify({"error": "Internal server error", "details": str(e)}), 500
