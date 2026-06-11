@@ -14,8 +14,10 @@ logger = logging.getLogger(__name__)
 
 def get_all_aois() -> List[AreaOfInterest]:
     '''
-    Fetches all AOIs from DB.
-    Returns list of AreaOfInterest objects.
+    Fetches all AOIs in database
+
+    Returns:
+        List of AOI objects
     '''
 
     session = DBConn.get_session()
@@ -33,7 +35,13 @@ def get_all_aois() -> List[AreaOfInterest]:
 
 def get_aoi_polygon_corners(aoi: AreaOfInterest) -> dict:
     '''
-    Returns Axis-Aligned Bounding Box of the AOI
+    Returns the coordinates of the bounding box of the AOI
+    
+    Args:
+        aoi: The AOI object of interest
+
+    Returns:
+        Dictionary with bounding box coordinates of the AOI
     '''
     if not aoi.area_of_interest_polygon:
         raise ValueError("AOI instance has no polygon data loaded.")
@@ -51,6 +59,12 @@ def get_aoi_polygon_corners(aoi: AreaOfInterest) -> dict:
 def get_aoi_polygon_vertices(aoi: AreaOfInterest) -> list:
     '''
     Returns all vertices of the AOI polygon
+    
+    Args:
+        aoi: The AOI object of interest
+
+    Returns:
+        List of [longitude, latitude] pairs for each vertice in the AOI polygon
     '''
     if not aoi.area_of_interest_polygon:
         raise ValueError("AOI instance has no polygon data loaded.")
@@ -65,14 +79,17 @@ def get_aoi_polygon_vertices(aoi: AreaOfInterest) -> list:
 
     return [[long, lat] for long, lat in coords]
 
-def add_rectangle_aoi_to_db(
-        name: str,
-        long_min: float, long_max: float, lat_min: float, lat_max: float,
-        desc: Optional[str] = "No desc."
-        ) -> int:
+def add_rectangle_aoi_to_db(name: str, long_min: float, long_max: float, lat_min: float, lat_max: float,desc: str = "") -> int:
     '''
-    Adds the 4 corners to DB.
-    Returns the area_of_interest_id.
+    Inserts new AOI with given name and bounding box
+    
+    Args:
+        name: str, name of new AOI
+        description: str, description of new AOI
+        long_min: float, long_max: float, lat_min: float, lat_max: float, coordinates of the bounding box
+
+    Returns:
+        aoi_id of new AOI
     '''
 
     # In case user does not know min/max
@@ -119,8 +136,17 @@ def add_rectangle_aoi_to_db(
 
 def add_polygon_aoi_to_db(name: str, geometry_wkb, description: str = "") -> int:
     '''
-    Inserts a new AOI with a pre-built geometry object.
+    Inserts new AOI with given name and polygon
+    
+    Args:
+        name: str, name of new AOI
+        description: str, description of new AOI
+        geometry_wkb: geometry of new AOI
+
+    Returns:
+        aoi_id of new AOI
     '''
+
     session = DBConn.get_session()
     try:
         aoi = AreaOfInterest(
@@ -141,8 +167,17 @@ def add_polygon_aoi_to_db(name: str, geometry_wkb, description: str = "") -> int
 def update_aoi_in_db(aoi_id: int, name: str = None, desc: str = None, geometry_wkb = None) -> bool:
     '''
     Updates an existing AOI in the database. Supports partial updates.
-    Returns True if successful.
+    
+    Args:
+        aoi_id: int representing aoi_id to be updated
+        name: str = None, new name of AOI
+        desc: str = None, new description for AOI
+        geometry_wkb = None, new polygon for AOI
+
+    Returns:
+        True if successful
     '''
+
     session = DBConn.get_session()
     try:
         aoi = session.query(AreaOfInterest).filter(AreaOfInterest.area_of_interest_id == aoi_id).first()
@@ -162,6 +197,30 @@ def update_aoi_in_db(aoi_id: int, name: str = None, desc: str = None, geometry_w
     except Exception as e:
         session.rollback()
         logger.error("DB Error in update_aoi_in_db: %s", e)
+        raise
+    finally:
+        DBConn.close_session()
+
+def check_if_aoi_name_exists(name: str):
+    '''
+    Checks if AOI with given name exists
+    
+    Args:
+        name: AOI name to query
+
+    Returns:
+        True if AOI with name already exists, False otherwise
+    '''
+
+    session = DBConn.get_session()
+    try:
+        query = session.query(AreaOfInterest).filter(AreaOfInterest.area_of_interest_name == name)
+        res = query.first()
+        if res is not None: return True
+        return False
+    except Exception as e:
+        session.rollback()
+        logger.error("DB Error in check_if_aoi_name_exists: %s", e)
         raise
     finally:
         DBConn.close_session()

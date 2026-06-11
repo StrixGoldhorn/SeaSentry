@@ -7,12 +7,12 @@ from flask import Blueprint, request, jsonify
 from shapely.geometry import Polygon, box
 from geoalchemy2.shape import from_shape
 
-from app.core.database import DBConn
 from app.models.areaofinterest import AreaOfInterest
 from app.core.config import Settings
 from app.utils.aoi_helpers import (add_rectangle_aoi_to_db, add_polygon_aoi_to_db,
                                    get_all_aois, get_aoi_polygon_vertices, 
-                                   update_aoi_in_db)
+                                   update_aoi_in_db,
+                                   check_if_aoi_name_exists)
 from app.utils.audit_log_helpers import write_audit_log
 import logging
 
@@ -31,7 +31,6 @@ def add_aoi_box():
     - desc: str (description of AOI)
     '''
 
-    session = DBConn.get_session()
     try:
         bbox_params = ["lat_min", "lat_max", "long_min", "long_max"]
         bbox_values = [request.form.get(p, type=float) for p in bbox_params]
@@ -47,13 +46,7 @@ def add_aoi_box():
 
         desc = str(request.form.get("desc"))
 
-        def check_if_name_exists(name):
-            query = session.query(AreaOfInterest).filter(AreaOfInterest.area_of_interest_name == name)
-            res = query.first()
-            if res is not None: return True
-            return False
-
-        if check_if_name_exists(name):
+        if check_if_aoi_name_exists(name):
             return jsonify({"error": f"AOI with name '{name}' already exists."}), 403
 
         try:
@@ -68,18 +61,10 @@ def add_aoi_box():
             write_audit_log("Error while adding to DB in add_aoi_box", __name__, {"client-form": str(request.form), "info": str(e)}, "ERROR")
             return jsonify({"error": "Internal server error", "details": str(e)}), 500
 
-        finally:
-            if session:
-                DBConn.close_session()
-
     except Exception as e:
         logger.error("Error in add_aoi_box: %s", e, exc_info=Settings.EXEC_INFO_API)
         write_audit_log("Error in add_aoi_box", __name__, {"client-form": str(request.form), "info": str(e)}, "ERROR")
         return jsonify({"error": "Internal server error", "details": str(e)}), 500
-
-    finally:
-        if session:
-            DBConn.close_session()
 
 @aois_bp.route('/add/polygon', methods=['POST'])
 def add_aoi_polygon():
@@ -93,7 +78,6 @@ def add_aoi_polygon():
     - desc: str (description of AOI)
     '''
 
-    session = DBConn.get_session()
     try:
         name = str(request.form.get("name"))
         if name is None:
@@ -119,13 +103,7 @@ def add_aoi_polygon():
         except (json.JSONDecodeError, IndexError, TypeError, ValueError):
             return jsonify({"error": "Invalid coordinates format. Array of [long, lat] expected."}), 400
 
-        def check_if_name_exists(name):
-            query = session.query(AreaOfInterest).filter(AreaOfInterest.area_of_interest_name == name)
-            res = query.first()
-            if res is not None: return True
-            return False
-
-        if check_if_name_exists(name):
+        if check_if_aoi_name_exists(name):
             return jsonify({"error": f"AOI with name '{name}' already exists."}), 403
 
         try:
@@ -155,10 +133,6 @@ def add_aoi_polygon():
         logger.error("Error in add_aoi_polygon: %s", e, exc_info=Settings.EXEC_INFO_API)
         write_audit_log("Error in add_aoi_polygon", __name__, {"client-form": str(request.form), "info": str(e)}, "ERROR")
         return jsonify({"error": "Internal server error", "details": str(e)}), 500
-
-    finally:
-        if session:
-            DBConn.close_session()
 
 @aois_bp.route('/get/all', methods=['GET'])
 def get_all_aois_web():
