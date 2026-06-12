@@ -11,6 +11,7 @@ from app.core.config import Settings
 from app.utils.audit_log_helpers import write_audit_log
 from app.utils.alert_helpers import (
     get_all_alert_history, get_all_alert_rule,
+    mark_alert_as_read, mark_alert_as_unread,
     add_alert_rule_to_db
     )
 
@@ -179,6 +180,52 @@ def get_unread_alert_history():
 
     except Exception as e:
         logger.error("Error in get_unread_alert_history: %s", e, exc_info=Settings.EXEC_INFO_API)
+        return jsonify({"error": "Internal server error", "details": str(e)}), 500
+
+@alerts_bp.route('/history/<int:alert_history_id>/mark/read', methods=['POST'])
+def mark_alert_history_read(alert_history_id: int):
+    '''
+    POST /history/<alert_history_id:int>/mark/read
+    Marks alert history with given id as read
+    '''
+    try:
+        success = mark_alert_as_read(alert_history_id)
+
+        if success:
+            return jsonify({
+                "status": "success"
+            }), 200
+        else:
+            return jsonify({
+                "status": "error",
+                "message": f"Alert history with id {alert_history_id} not found"
+            }), 404
+
+    except Exception as e:
+        logger.error("Error in mark_alert_history_read: %s", e, exc_info=Settings.EXEC_INFO_API)
+        return jsonify({"error": "Internal server error", "details": str(e)}), 500
+    
+@alerts_bp.route('/history/<int:alert_history_id>/mark/unread', methods=['POST'])
+def mark_alert_history_unread(alert_history_id: int):
+    '''
+    POST /history/<alert_history_id:int>/mark/unread
+    Marks alert history with given id as unread
+    '''
+    try:
+        success = mark_alert_as_unread(alert_history_id)
+
+        if success:
+            return jsonify({
+                "status": "success"
+            }), 200
+        else:
+            return jsonify({
+                "status": "error",
+                "message": f"Alert history with id {alert_history_id} not found"
+            }), 404
+
+    except Exception as e:
+        logger.error("Error in mark_alert_history_unread: %s", e, exc_info=Settings.EXEC_INFO_API)
         return jsonify({"error": "Internal server error", "details": str(e)}), 500
 
 @alerts_bp.route('/rule/all', methods=['GET'])

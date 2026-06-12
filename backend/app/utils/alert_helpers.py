@@ -95,6 +95,64 @@ def add_alert_rule_to_db(name: str, desc: str, params: Dict) -> int:
     finally:
         DBConn.close_session()
 
+def mark_alert_as_read(alert_id: int):
+    '''
+    Marks alert as read
+    
+    Args:
+        alert_id: id of alert to be marked as read
+    
+    Returns:
+        True if successful
+    '''
+
+    session = DBConn.get_session()
+    try:
+        alert = session.query(AlertHistory).filter(AlertHistory.alert_history_id == alert_id).first()
+        if not alert:
+            return False
+        alert.alert_history_read = True
+        session.commit()
+        logger.info("Marked alert history id %d as read", alert.alert_history_id)
+        return True
+
+    except Exception as e:
+        session.rollback()
+        logger.error("Failed to mark alert history id %d as read: %s", alert_id, str(e), exc_info=True)
+        raise
+
+    finally:
+        DBConn.close_session()
+
+def mark_alert_as_unread(alert_id: int):
+    '''
+    Marks alert as unread
+    
+    Args:
+        alert_id: id of alert to be marked as unread
+    
+    Returns:
+        True if successful
+    '''
+
+    session = DBConn.get_session()
+    try:
+        alert = session.query(AlertHistory).filter(AlertHistory.alert_history_id == alert_id).first()
+        if not alert:
+            return False
+        alert.alert_history_read = False
+        session.commit()
+        logger.info("Marked alert history id %d as unread", alert.alert_history_id)
+        return True
+
+    except Exception as e:
+        session.rollback()
+        logger.error("Failed to mark alert history id %d as unread: %s", alert_id, str(e), exc_info=True)
+        raise
+
+    finally:
+        DBConn.close_session()
+
 # def DBG_INSERT_DEFAULT_AOI():
 #     logging.warning("ADDING DEFAULT AOI TO DB-------------------------------------")
 #     add_rectangle_aoi_to_db(
