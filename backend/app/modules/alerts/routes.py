@@ -2,7 +2,7 @@
 # for api routes relating to alert queries
 
 from flask import Blueprint, request, jsonify
-from json import JSONDecodeError
+import json
 from datetime import datetime
 from app.core.database import DBConn
 from app.models.alert import AlertHistory, AlertRule
@@ -13,6 +13,8 @@ from app.utils.alert_helpers import (
     get_all_alert_history, get_all_alert_rule,
     add_alert_rule_to_db
     )
+
+from app.modules.alerts.custom_rules import RuleTreeAdapter
 
 import logging
 
@@ -116,4 +118,88 @@ def get_all_alert_rule_web():
 
     except Exception as e:
         logger.error("Error in get_all_alert_rule_web: %s", e, exc_info=Settings.EXEC_INFO_API)
+        return jsonify({"error": "Internal server error", "details": str(e)}), 500
+
+@alerts_bp.route('/rule/add/', methods=['POST'])
+def add_alert_rule_web():
+    '''
+    POST /api/v1/alerts/rule/all
+    Adds a new custom alert rule.
+    
+    Expected JSON payload for single rule:
+    {
+        "name": "name of alert",
+        "description": "description of alert",
+        "params": {
+            "field": "speed",
+            "operator": ">",
+            "value": 10.0
+        }
+    }
+
+    Expected JSON payload for multiple/combined rules:
+    {
+        "name": "name of alert",
+        "description": "description of alert",
+        "params": {
+            "rules": [
+                {
+                    "field": "inside_geofence",
+                    "value": true,
+                    "operator": "=",
+                    "valueGeofenceid": 3
+                },
+                {
+                    "field": "enter_geofence",
+                    "value": true,
+                    "operator": "=",
+                    "valueGeofenceid": 3
+                },
+                {
+                    "field": "exit_geofence",
+                    "value": true,
+                    "operator": "=",
+                    "valueGeofenceid": 3
+                }
+            ],
+            "combinator": "or"
+        }
+    }
+    '''
+    data = None
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({"error": "No JSON data provided"}), 400
+
+        rule_name = data.get('name')
+        rule_description = data.get('description', '')
+        rule_params = data.get('params')
+
+        if not rule_name:
+            return jsonify({"error": "Missing required fields: 'name'"}), 400
+
+        if rule_params is None:
+            return jsonify({"error": "Missing required fields: 'params'"}), 400
+
+        try:
+            validated_params = RuleTreeAdapter.validate_python(rule_params)
+            params_for_db = validated_params.model_dump()
+        except Exception as e:
+            logger.error("Validation failed for new rule params: %s", str(e))
+            return jsonify({"error": "Invalid rule parameters", "details": str(e)}), 400
+
+        new_rule_id = add_alert_rule_to_db(rule_name, rule_description, params_for_db)
+
+        return jsonify({
+            "status": "success",
+            "message": "Alert rule created successfully",
+            "alert_rule_id": new_rule_id
+        }), 201
+
+    except json.JSONDecodeError:
+        return jsonify({"error": "Invalid JSON format"}), 400
+    except Exception as e:
+        logger.error("Error in add_alert_rule_web: %s", str(e), exc_info=Settings.EXEC_INFO_API)
+        write_audit_log("Error adding alert rule", __name__, {"info": str(e), "payload": str(data)}, "ERROR")
         return jsonify({"error": "Internal server error", "details": str(e)}), 500
