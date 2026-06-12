@@ -5,9 +5,12 @@ from flask import Blueprint, request, jsonify
 from datetime import datetime, timedelta, timezone
 from sqlalchemy import func
 from geoalchemy2.shape import to_shape
+
+from app.core.config import Settings
 from app.core.database import DBConn
 from app.models.vessel import VesselData, VesselLocation
-from app.core.config import Settings
+from app.utils.vessel_helpers import get_all_vessels_in_bbox
+
 import logging
 
 logger = logging.getLogger(__name__)
@@ -25,7 +28,6 @@ def get_vessels_in_bbox():
     - limit: int (default 50, max 1000)
     '''
 
-    session = DBConn.get_session()
     try:
 
         bbox_params = ["lat_min", "lat_max", "long_min", "long_max"]
@@ -41,15 +43,9 @@ def get_vessels_in_bbox():
         except (ValueError, TypeError):
             return jsonify({"error": "Invalid limit format. Must be an integer."}), 400
 
-        query = session.query(VesselLocation, VesselData).join(
-            VesselData,
-            VesselLocation.vessel_location_vessel_data_id == VesselData.vessel_data_id,
-        )
-
         try:
             time_within = int(request.args.get('time_within', default = 60 * 60 * 24))
             time_lower_bound = datetime.now(timezone.utc) - timedelta(seconds = time_within)
-            query = query.filter(VesselLocation.vessel_location_timestamp >= time_lower_bound)
         except ValueError:
             return jsonify({"error": "Invalid time_within format. Ensure it is in seconds."}), 400
 
@@ -58,20 +54,8 @@ def get_vessels_in_bbox():
             bbox["long_max"], bbox["lat_max"],
             4326
         )
-        query = query.filter(
-            VesselLocation.vessel_location_coords.ST_Within(envelope)
-        )
 
-        query = query.order_by(
-            VesselLocation.vessel_location_vessel_data_id,
-            VesselLocation.vessel_location_timestamp.desc()
-        )
-
-        query = query.distinct(VesselLocation.vessel_location_vessel_data_id)
-
-        query = query.limit(limit)
-
-        results = query.all()
+        results = get_all_vessels_in_bbox(envelope, time_lower_bound, limit)
 
         data = []
         for location, vessel in results:
@@ -110,7 +94,3 @@ def get_vessels_in_bbox():
     except Exception as e:
         logger.error("Error in get_vessels_in_bbox: %s", e, exc_info=Settings.EXEC_INFO_API)
         return jsonify({"error": "Internal server error", "details": str(e)}), 500
-
-    finally:
-        if session:
-            DBConn.close_session()
