@@ -10,7 +10,8 @@ from app.models.alert import AlertRule, AlertHistory
 
 logger = logging.getLogger(__name__)
 
-def get_all_alert_history() -> List[AlertHistory]:
+def get_all_alert_history(start_time: Optional[datetime] = None, end_time: Optional[datetime] = None,
+                          limit: Optional[int] = None, offset: Optional[int] = None, is_read: Optional[bool] = None) -> List[AlertHistory]:
     '''
     Fetches all alert history from DB.
     Returns list of AlertHistory objects.
@@ -19,6 +20,21 @@ def get_all_alert_history() -> List[AlertHistory]:
     session = DBConn.get_session()
     try:
         query = session.query(AlertHistory)
+
+        query = query.order_by(AlertHistory.alert_history_timestamp.desc())
+
+        if start_time:
+            query = query.filter(AlertHistory.alert_history_timestamp >= start_time)
+        if end_time:
+            query = query.filter(AlertHistory.alert_history_timestamp <= end_time)
+        if is_read:
+            query = query.filter(AlertHistory.alert_history_read == is_read)
+
+        if offset is not None:
+            query = query.offset(offset)
+        if limit is not None:
+            query = query.limit(limit)
+
         return query.all()
 
     except Exception as e:

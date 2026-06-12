@@ -26,18 +26,61 @@ def get_all_alert_history_web():
     '''
     GET /api/v1/alerts/history/all
     Returns history of all alerts, both read and unread.
+    
+    Query Parameters (all optional):
+    - start_time: ISO format datetime string (e.g., 2023-10-27T10:00:00)
+    - end_time: ISO format datetime string (e.g., 2023-10-28T10:00:00)
+    - limit: integer, max number of records to return (e.g., 50)
+    - offset: integer, number of records to skip for pagination (e.g., 0)
     '''
-
     try:
-        results = get_all_alert_history()
+        start_time_str = request.args.get('start_time')
+        end_time_str = request.args.get('end_time')
+        limit_str = request.args.get('limit')
+        offset_str = request.args.get('offset')
+
+        start_time = None
+        end_time = None
+        limit = None
+        offset = None
+
+        if start_time_str:
+            try:
+                start_time = datetime.fromisoformat(start_time_str)
+            except ValueError:
+                return jsonify({"error": "Invalid start_time format. Use ISO format (e.g., 2023-10-27T10:00:00)"}), 400
+
+        if end_time_str:
+            try:
+                end_time = datetime.fromisoformat(end_time_str)
+            except ValueError:
+                return jsonify({"error": "Invalid end_time format. Use ISO format (e.g., 2023-10-27T10:00:00)"}), 400
+
+        if limit_str:
+            try:
+                limit = int(limit_str)
+                if limit < 1:
+                    return jsonify({"error": "Limit must be a positive integer"}), 400
+            except ValueError:
+                return jsonify({"error": "Invalid limit format. Must be an integer"}), 400
+
+        if offset_str:
+            try:
+                offset = int(offset_str)
+                if offset < 0:
+                    return jsonify({"error": "Offset must be a non-negative integer"}), 400
+            except ValueError:
+                return jsonify({"error": "Invalid offset format. Must be an integer"}), 400
+
+        results = get_all_alert_history(start_time, end_time, limit, offset)
 
         data = []
         for alert in results:
             data.append({
                 "alert_history_id": alert.alert_history_id,
-                "alert_history_timestamp": alert.alert_history_timestamp,
+                "alert_history_timestamp": alert.alert_history_timestamp.isoformat() if alert.alert_history_timestamp else None,
                 "alert_history_read": alert.alert_history_read,
-                "alert_history_read_at": alert.alert_history_read_at,
+                "alert_history_read_at": alert.alert_history_read_at.isoformat() if alert.alert_history_read_at else None,
                 "alert_history_alert_rule_id": alert.alert_history_alert_rule_id,
                 "alert_history_context": alert.alert_history_context
             })
@@ -45,7 +88,13 @@ def get_all_alert_history_web():
         return jsonify({
             "status": "success",
             "count": len(data),
-            "data": data
+            "data": data,
+            "filters_applied": {
+                "start_time": start_time_str,
+                "end_time": end_time_str,
+                "limit": limit,
+                "offset": offset
+            }
         }), 200
 
     except Exception as e:
@@ -56,21 +105,62 @@ def get_all_alert_history_web():
 def get_unread_alert_history():
     '''
     GET /api/v1/alerts/history/unread
-    Returns all unread alerts.
+    Returns history of all unread alerts.
+    
+    Query Parameters (all optional):
+    - start_time: ISO format datetime string (e.g., 2023-10-27T10:00:00)
+    - end_time: ISO format datetime string (e.g., 2023-10-28T10:00:00)
+    - limit: integer, max number of records to return (e.g., 50)
+    - offset: integer, number of records to skip for pagination (e.g., 0)
     '''
-
-    session = DBConn.get_session()
     try:
-        query = session.query(AlertHistory).filter(AlertHistory.alert_history_read == False)
-        results = query.all()
+        start_time_str = request.args.get('start_time')
+        end_time_str = request.args.get('end_time')
+        limit_str = request.args.get('limit')
+        offset_str = request.args.get('offset')
+
+        start_time = None
+        end_time = None
+        limit = None
+        offset = None
+
+        if start_time_str:
+            try:
+                start_time = datetime.fromisoformat(start_time_str)
+            except ValueError:
+                return jsonify({"error": "Invalid start_time format. Use ISO format (e.g., 2023-10-27T10:00:00)"}), 400
+
+        if end_time_str:
+            try:
+                end_time = datetime.fromisoformat(end_time_str)
+            except ValueError:
+                return jsonify({"error": "Invalid end_time format. Use ISO format (e.g., 2023-10-27T10:00:00)"}), 400
+
+        if limit_str:
+            try:
+                limit = int(limit_str)
+                if limit < 1:
+                    return jsonify({"error": "Limit must be a positive integer"}), 400
+            except ValueError:
+                return jsonify({"error": "Invalid limit format. Must be an integer"}), 400
+
+        if offset_str:
+            try:
+                offset = int(offset_str)
+                if offset < 0:
+                    return jsonify({"error": "Offset must be a non-negative integer"}), 400
+            except ValueError:
+                return jsonify({"error": "Invalid offset format. Must be an integer"}), 400
+
+        results = get_all_alert_history(start_time, end_time, limit, offset, False)
 
         data = []
         for alert in results:
             data.append({
                 "alert_history_id": alert.alert_history_id,
-                "alert_history_timestamp": alert.alert_history_timestamp,
+                "alert_history_timestamp": alert.alert_history_timestamp.isoformat() if alert.alert_history_timestamp else None,
                 "alert_history_read": alert.alert_history_read,
-                "alert_history_read_at": alert.alert_history_read_at,
+                "alert_history_read_at": alert.alert_history_read_at.isoformat() if alert.alert_history_read_at else None,
                 "alert_history_alert_rule_id": alert.alert_history_alert_rule_id,
                 "alert_history_context": alert.alert_history_context
             })
@@ -78,16 +168,18 @@ def get_unread_alert_history():
         return jsonify({
             "status": "success",
             "count": len(data),
-            "data": data
+            "data": data,
+            "filters_applied": {
+                "start_time": start_time_str,
+                "end_time": end_time_str,
+                "limit": limit,
+                "offset": offset
+            }
         }), 200
 
     except Exception as e:
         logger.error("Error in get_unread_alert_history: %s", e, exc_info=Settings.EXEC_INFO_API)
         return jsonify({"error": "Internal server error", "details": str(e)}), 500
-
-    finally:
-        if session:
-            DBConn.close_session()
 
 @alerts_bp.route('/rule/all', methods=['GET'])
 def get_all_alert_rule_web():
