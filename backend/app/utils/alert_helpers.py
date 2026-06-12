@@ -23,11 +23,11 @@ def get_all_alert_history(start_time: Optional[datetime] = None, end_time: Optio
 
         query = query.order_by(AlertHistory.alert_history_timestamp.desc())
 
-        if start_time:
+        if start_time is not None:
             query = query.filter(AlertHistory.alert_history_timestamp >= start_time)
-        if end_time:
+        if end_time is not None:
             query = query.filter(AlertHistory.alert_history_timestamp <= end_time)
-        if is_read:
+        if is_read is not None:
             query = query.filter(AlertHistory.alert_history_read == is_read)
 
         if offset is not None:
