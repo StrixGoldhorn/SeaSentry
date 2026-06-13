@@ -163,10 +163,10 @@ def get_all_aois_web():
         write_audit_log("Error in get_all_aois_web", __name__, {"info": str(e)}, "ERROR")
         return jsonify({"error": "Internal server error", "details": str(e)}), 500
 
-@aois_bp.route('/update/<int:aoi_id>', methods=['POST', 'PATCH'])
+@aois_bp.route('/<int:aoi_id>/update', methods=['POST', 'PATCH'])
 def update_aoi_by_id(aoi_id):
     '''
-    POST/PATCH /api/v1/aois/update/<aoi_id>
+    POST/PATCH /api/v1/aois/<aoi_id>/update
     Updates an existing Area of Interest. Supports partial updates.
     
     Query Params (all optional, but at least one required):

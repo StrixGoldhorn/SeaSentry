@@ -165,10 +165,10 @@ def get_all_geofences_web():
         write_audit_log("Error in get_all_geofences_web", __name__, {"info": str(e)}, "ERROR")
         return jsonify({"error": "Internal server error", "details": str(e)}), 500
 
-@geofences_bp.route('/update/<int:geofence_id>', methods=['POST', 'PATCH'])
+@geofences_bp.route('/<int:geofence_id>/update', methods=['POST', 'PATCH'])
 def update_geofence_by_id(geofence_id):
     '''
-    POST/PATCH /api/v1/geofences/update/<geofence_id>
+    POST/PATCH /api/v1/geofences/<geofence_id>/update
     Updates an existing Geofence. Supports partial updates.
     
     Query Params (all optional, but at least one required):
