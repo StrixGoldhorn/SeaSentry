@@ -192,7 +192,7 @@ def test_get_all_geofences_success(mock_get_all, mock_get_verts, client):
 
 
 # ==========================================
-# Tests for POST/PATCH /api/v1/geofences/update/<geofence_id>
+# Tests for POST/PATCH /api/v1/geofences/<geofence_id>/update
 # ==========================================
 
 @patch('app.modules.geofences.routes.write_audit_log')
@@ -203,7 +203,7 @@ def test_update_geofence_by_id_success_name_desc(mock_update, mock_audit, client
     '''
     mock_update.return_value = True
 
-    response = client.post('/api/v1/geofences/update/1', data={
+    response = client.post('/api/v1/geofences/1/update', data={
         'name': 'NewName', 'desc': 'NewDesc'
     })
 
@@ -222,7 +222,7 @@ def test_update_geofence_by_id_success_coords(mock_update, client):
     # Use a valid polygon (a square) to avoid Shapely invalid geometry errors
     coords = json.dumps([[0.0, 0.0], [0.0, 1.0], [1.0, 1.0], [1.0, 0.0], [0.0, 0.0]])
 
-    response = client.patch('/api/v1/geofences/update/2', data={
+    response = client.patch('/api/v1/geofences/2/update', data={
         'coords': coords
     })
 
@@ -241,7 +241,7 @@ def test_update_geofence_by_id_success_bbox(mock_update, client):
     '''
     mock_update.return_value = True
 
-    response = client.post('/api/v1/geofences/update/3', data={
+    response = client.post('/api/v1/geofences/3/update', data={
         'lat_min': '10.0', 'lat_max': '20.0', 'long_min': '30.0', 'long_max': '40.0'
     })
 
@@ -255,7 +255,7 @@ def test_update_geofence_by_id_missing_fields(client):
     '''
     Test updating Geofence without providing any fields
     '''
-    response = client.post('/api/v1/geofences/update/1', data={})
+    response = client.post('/api/v1/geofences/1/update', data={})
     assert response.status_code == 400
     assert json.loads(response.data)['error'] == 'Requires at least 1 field to update.'
 
@@ -264,7 +264,7 @@ def test_update_geofence_by_id_both_coords_and_bbox(client):
     Test updating Geofence with both coords and bbox (should fail)
     '''
     coords = json.dumps([[0.0, 0.0], [0.0, 1.0], [1.0, 1.0], [1.0, 0.0], [0.0, 0.0]])
-    response = client.post('/api/v1/geofences/update/1', data={
+    response = client.post('/api/v1/geofences/1/update', data={
         'coords': coords,
         'lat_min': '10.0', 'lat_max': '20.0', 'long_min': '30.0', 'long_max': '40.0'
     })
@@ -275,7 +275,7 @@ def test_update_geofence_by_id_invalid_coords_json(client):
     '''
     Test updating Geofence with invalid coords JSON
     '''
-    response = client.post('/api/v1/geofences/update/1', data={
+    response = client.post('/api/v1/geofences/1/update', data={
         'coords': 'invalid json'
     })
     assert response.status_code == 400
@@ -292,7 +292,7 @@ def test_update_geofence_by_id_invalid_polygon_geometry(mock_update, mock_poly_c
     mock_poly_class.return_value = mock_poly_instance
 
     coords = json.dumps([[0, 0], [1, 1], [2, 2], [0, 0]]) 
-    response = client.post('/api/v1/geofences/update/1', data={
+    response = client.post('/api/v1/geofences/1/update', data={
         'coords': coords
     })
     assert response.status_code == 400
@@ -305,7 +305,7 @@ def test_update_geofence_by_id_not_found(mock_update, client):
     '''
     mock_update.return_value = False
 
-    response = client.post('/api/v1/geofences/update/999', data={
+    response = client.post('/api/v1/geofences/999/update', data={
         'name': 'NewName'
     })
 
