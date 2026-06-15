@@ -10,6 +10,7 @@ Fields are compulsory unless otherwise stated
     - [GET `/api/v1/vessels/bbox`](#get-apiv1vesselsbbox)
   - [AOIs](#aois)
     - [GET `/api/v1/aois/get/all`](#get-apiv1aoisgetall)
+    - [GET `/api/v1/aois/<aoi_id>`](#get-apiv1aoisaoi_id)
     - [POST `/api/v1/aois/add/box`](#post-apiv1aoisaddbox)
     - [POST `/api/v1/aois/add/polygon`](#post-apiv1aoisaddpolygon)
     - [POST/PATCH `/api/v1/aois/<aoi_id>/update`](#postpatch-apiv1aoisaoi_idupdate)
@@ -66,6 +67,18 @@ Summary: Query for all AOIs
 Returns:
 
 - 200 with JSON of all AOIs
+
+- 500 if internal server error
+
+### GET `/api/v1/aois/<aoi_id>`
+
+Summary: Query for AOI with given aoi_id
+
+Returns:
+
+- 200 with details of AOI
+
+- 404 if AOI with aoi_id does not exist
 
 - 500 if internal server error
 

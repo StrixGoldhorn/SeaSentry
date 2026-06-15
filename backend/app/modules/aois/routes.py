@@ -10,7 +10,7 @@ from geoalchemy2.shape import from_shape
 from app.models.areaofinterest import AreaOfInterest
 from app.core.config import Settings
 from app.utils.aoi_helpers import (add_rectangle_aoi_to_db, add_polygon_aoi_to_db,
-                                   get_all_aois, get_aoi_polygon_vertices, 
+                                   get_all_aois, get_aoi_polygon_vertices, get_aoi_by_id,
                                    update_aoi_in_db,
                                    check_if_aoi_name_exists)
 from app.utils.audit_log_helpers import write_audit_log
@@ -161,6 +161,33 @@ def get_all_aois_web():
     except Exception as e:
         logger.error("Error in get_all_aois_web: %s", e, exc_info=Settings.EXEC_INFO_API)
         write_audit_log("Error in get_all_aois_web", __name__, {"info": str(e)}, "ERROR")
+        return jsonify({"error": "Internal server error", "details": str(e)}), 500
+
+@aois_bp.route('/<int:aoi_id>', methods=['GET'])
+def get_aoi_by_id_web(aoi_id):
+    '''
+    GET /api/v1/aois/<int:aoi_id>
+    Returns details of AOI with given ID
+    '''
+
+    try:
+        aoi = get_aoi_by_id(aoi_id)
+        if not aoi:
+            return jsonify({"error": f"AOI with ID {aoi_id} not found."}), 404
+        return jsonify({
+            "status": "success",
+            "data": {
+                "area_of_interest_id": aoi.area_of_interest_id,
+                "area_of_interest_timestamp": aoi.area_of_interest_timestamp,
+                "area_of_interest_name": aoi.area_of_interest_name,
+                "area_of_interest_description": aoi.area_of_interest_description,
+                "area_of_interest_polygon": get_aoi_polygon_vertices(aoi),
+            }
+        }), 200
+
+    except Exception as e:
+        logger.error("Error in get_aoi_by_id_web: %s", e, exc_info=Settings.EXEC_INFO_API)
+        write_audit_log("Error in get_aoi_by_id_web", __name__, {"info": str(e)}, "ERROR")
         return jsonify({"error": "Internal server error", "details": str(e)}), 500
 
 @aois_bp.route('/<int:aoi_id>/update', methods=['POST', 'PATCH'])

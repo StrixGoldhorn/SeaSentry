@@ -46,7 +46,7 @@ def test_add_aoi_box_success(mock_check_name, mock_add_rect, mock_audit, client)
     data = json.loads(response.data)
     assert data['status'] == 'success'
     assert data['aoi_id'] == 101
-    
+
     mock_add_rect.assert_called_once_with('TestBox', 30.5, 40.5, 10.5, 20.5, 'Test Description')
 
 def test_add_aoi_box_missing_bbox(client):
@@ -82,6 +82,60 @@ def test_add_aoi_box_name_exists(mock_check_name, client):
     assert response.status_code == 403
     assert 'already exists' in json.loads(response.data)['error']
 
+# ==========================================
+# Tests for GET /api/v1/aois/<int:aoi_id>
+# ==========================================
+
+@patch('app.modules.aois.routes.get_aoi_polygon_vertices')
+@patch('app.modules.aois.routes.get_aoi_by_id')
+def test_get_aoi_by_id_success(mock_get_aoi, mock_get_verts, client):
+    '''
+    Test GET /api/v1/aois/<int:aoi_id> with valid ID
+    '''
+    mock_aoi = MagicMock()
+    mock_aoi.area_of_interest_id = 1
+    mock_aoi.area_of_interest_timestamp = "2023-10-25T10:00:00"
+    mock_aoi.area_of_interest_name = "Test AOI"
+    mock_aoi.area_of_interest_description = "Test Description"
+
+    mock_get_aoi.return_value = mock_aoi
+    mock_get_verts.return_value = [[0.0, 0.0], [1.0, 1.0], [0.0, 1.0], [0.0, 0.0]]
+
+    response = client.get('/api/v1/aois/1')
+
+    assert response.status_code == 200
+    data = json.loads(response.data)
+    assert data['status'] == 'success'
+    assert data['data']['area_of_interest_id'] == 1
+    assert data['data']['area_of_interest_name'] == "Test AOI"
+    assert data['data']['area_of_interest_polygon'] == [[0.0, 0.0], [1.0, 1.0], [0.0, 1.0], [0.0, 0.0]]
+
+@patch('app.modules.aois.routes.get_aoi_by_id')
+def test_get_aoi_by_id_not_found(mock_get_aoi, client):
+    '''
+    Test GET /api/v1/aois/<int:aoi_id> with non-existent ID
+    '''
+    mock_get_aoi.return_value = None
+
+    response = client.get('/api/v1/aois/999')
+
+    assert response.status_code == 404
+    data = json.loads(response.data)
+    assert data['error'] == "AOI with ID 999 not found."
+
+@patch('app.modules.aois.routes.get_aoi_by_id')
+def test_get_aoi_by_id_internal_error(mock_get_aoi, client):
+    '''
+    Test GET /api/v1/aois/<int:aoi_id> when an exception occurs
+    '''
+    mock_get_aoi.side_effect = Exception("Database connection failed")
+
+    response = client.get('/api/v1/aois/1')
+
+    assert response.status_code == 500
+    data = json.loads(response.data)
+    assert data['error'] == "Internal server error"
+    assert "Database connection failed" in data['details']
 
 # ==========================================
 # Tests for POST /api/v1/aois/add/polygon
@@ -134,7 +188,7 @@ def test_add_aoi_polygon_invalid_geometry(mock_check_name, mock_poly_class, clie
     Test /api/v1/aois/add/polygon with invalid polygon geometry
     '''
     mock_check_name.return_value = False
-    
+
     mock_poly_instance = MagicMock()
     mock_poly_instance.is_valid = False 
     mock_poly_class.return_value = mock_poly_instance
@@ -160,7 +214,6 @@ def test_add_aoi_polygon_name_exists(mock_check_name, client):
     })
     assert response.status_code == 403
     assert 'already exists' in json.loads(response.data)['error']
-
 
 # ==========================================
 # Tests for GET /api/v1/aois/get/all
@@ -189,7 +242,6 @@ def test_get_all_aois_success(mock_get_all, mock_get_verts, client):
     assert data['count'] == 1
     assert data['data'][0]['area_of_interest_name'] == "Global"
     assert data['data'][0]['area_of_interest_polygon'] == [[-180, -90], [180, 90]]
-
 
 # ==========================================
 # Tests for POST/PATCH /api/v1/aois/<aoi_id>/update/
