@@ -1,7 +1,32 @@
 import pytest
+import json
 from unittest.mock import patch, MagicMock
+from flask import Flask
+
 from app.utils.vessel_helpers import get_all_vessels_in_bbox
 from app.models.vessel import VesselData, VesselLocation
+from app.modules.vessels.routes import vessels_bp  # Make sure this import matches your actual blueprint name
+
+@pytest.fixture
+def app():
+    '''
+    Create and configure a new app instance for each test.
+    '''
+    app = Flask(__name__)
+    app.config['TESTING'] = True
+    app.register_blueprint(vessels_bp)
+    return app
+
+@pytest.fixture
+def client(app):
+    '''
+    Create a test client for the app.
+    '''
+    return app.test_client()
+
+# ==========================================
+# Tests for GET /api/v1/vessels/bbox
+# ==========================================
 
 @patch('app.utils.vessel_helpers.DBConn')
 def test_get_all_vessels_in_bbox_success(mock_db_conn):
@@ -118,3 +143,66 @@ def test_get_all_vessels_in_bbox_exception(mock_db_conn):
 
     assert result == []
     mock_db_conn.close_session.assert_called_once()
+
+# ==========================================
+# Tests for GET /api/v1/vessels/<int:vessel_data_id>
+# ==========================================
+
+@patch('app.modules.vessels.routes.get_vessel_by_vessel_data_id')
+def test_get_vessel_by_vessel_data_id_success(mock_get_vessel, client):
+    '''
+    Test GET /api/v1/vessels/<int:vessel_data_id> with valid ID
+    '''
+    mock_vessel = MagicMock()
+    mock_vessel.vessel_data_id = 101
+    mock_vessel.vessel_data_mmsi = 123456789
+    mock_vessel.vessel_data_imo = 9876543
+    mock_vessel.vessel_data_ship_name = "Test Ship"
+    mock_vessel.vessel_data_ship_type = "Cargo"
+    mock_vessel.vessel_data_flag = "Panama"
+    mock_vessel.vessel_data_length_meters = 150.5
+    mock_vessel.vessel_data_beam_meters = 25.0
+    mock_vessel.vessel_data_user_tags = ["tag1", "tag2"]
+
+    mock_get_vessel.return_value = mock_vessel
+
+    response = client.get('/api/v1/vessels/101')
+
+    assert response.status_code == 200
+    data = json.loads(response.data)
+    assert data['status'] == 'success'
+    assert data['data']['vessel_data_id'] == 101
+    assert data['data']['vessel_data_mmsi'] == 123456789
+    assert data['data']['vessel_data_ship_name'] == "Test Ship"
+    assert data['data']['vessel_data_user_tags'] == ["tag1", "tag2"]
+
+@patch('app.modules.vessels.routes.get_vessel_by_vessel_data_id')
+def test_get_vessel_by_vessel_data_id_not_found(mock_get_vessel, client):
+    '''
+    Test GET /api/v1/vessels/<int:vessel_data_id> with non-existent ID
+    '''
+    mock_get_vessel.return_value = None
+
+    response = client.get('/api/v1/vessels/999')
+
+    assert response.status_code == 404
+    data = json.loads(response.data)
+    assert data['error'] == "Vessel with ID 999 not found."
+
+@patch('app.modules.vessels.routes.write_audit_log')
+@patch('app.modules.vessels.routes.logger')
+@patch('app.modules.vessels.routes.get_vessel_by_vessel_data_id')
+def test_get_vessel_by_vessel_data_id_exception(mock_get_vessel, mock_logger, mock_audit, client):
+    '''
+    Test GET /api/v1/vessels/<int:vessel_data_id> when an exception occurs
+    '''
+    mock_get_vessel.side_effect = Exception("Database connection failed")
+
+    response = client.get('/api/v1/vessels/101')
+
+    assert response.status_code == 500
+    data = json.loads(response.data)
+    assert data['error'] == "Internal server error"
+    assert "Database connection failed" in data['details']
+
+    mock_logger.error.assert_called_once()

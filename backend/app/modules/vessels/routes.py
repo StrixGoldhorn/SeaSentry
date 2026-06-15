@@ -9,7 +9,8 @@ from geoalchemy2.shape import to_shape
 from app.core.config import Settings
 from app.core.database import DBConn
 from app.models.vessel import VesselData, VesselLocation
-from app.utils.vessel_helpers import get_all_vessels_in_bbox
+from app.utils.vessel_helpers import get_all_vessels_in_bbox, get_vessel_by_vessel_data_id
+from app.utils.audit_log_helpers import write_audit_log
 
 import logging
 
@@ -93,4 +94,36 @@ def get_vessels_in_bbox():
 
     except Exception as e:
         logger.error("Error in get_vessels_in_bbox: %s", e, exc_info=Settings.EXEC_INFO_API)
+        write_audit_log("Error in get_vessels_in_bbox", __name__, {"info": str(e)}, "ERROR")
+        return jsonify({"error": "Internal server error", "details": str(e)}), 500
+
+@vessels_bp.route('/<int:vessel_data_id>', methods=['GET'])
+def get_vessel_by_vessel_data_id_web(vessel_data_id):
+    '''
+    GET /api/v1/vessels/<int:vessel_data_id>
+    Returns details of vessel with given vessel_data_id
+    '''
+
+    try:
+        vessel = get_vessel_by_vessel_data_id(vessel_data_id)
+        if not vessel:
+            return jsonify({"error": f"Vessel with ID {vessel_data_id} not found."}), 404
+        return jsonify({
+            "status": "success",
+            "data": {
+                "vessel_data_id": vessel.vessel_data_id,
+                "vessel_data_mmsi": vessel.vessel_data_mmsi,
+                "vessel_data_imo": vessel.vessel_data_imo,
+                "vessel_data_ship_name": vessel.vessel_data_ship_name,
+                "vessel_data_ship_type": vessel.vessel_data_ship_type,
+                "vessel_data_flag": vessel.vessel_data_flag,
+                "vessel_data_length_meters": vessel.vessel_data_length_meters,
+                "vessel_data_beam_meters": vessel.vessel_data_beam_meters,
+                "vessel_data_user_tags": vessel.vessel_data_user_tags
+            }
+        }), 200
+
+    except Exception as e:
+        logger.error("Error in get_vessel_by_vessel_data_id_web: %s", e, exc_info=Settings.EXEC_INFO_API)
+        write_audit_log("Error in get_vessel_by_vessel_data_id_web", __name__, {"info": str(e)}, "ERROR")
         return jsonify({"error": "Internal server error", "details": str(e)}), 500

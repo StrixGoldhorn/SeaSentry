@@ -8,6 +8,7 @@ Fields are compulsory unless otherwise stated
   - [Table of Contents](#table-of-contents)
   - [Vessels](#vessels)
     - [GET `/api/v1/vessels/bbox`](#get-apiv1vesselsbbox)
+    - [GET `/api/v1/vessels/<vessel_data_id>`](#get-apiv1vesselsvessel_data_id)
   - [AOIs](#aois)
     - [GET `/api/v1/aois/get/all`](#get-apiv1aoisgetall)
     - [GET `/api/v1/aois/<aoi_id>`](#get-apiv1aoisaoi_id)
@@ -57,7 +58,17 @@ E.g. `/api/v1/vessels/bbox?lat_min=1.2535&lat_max=1.2664&long_min=103.8233&long_
 
 This will return the 25 latest vessel locations with its corresponding unique vessels within the given area in the past 670 seconds.
 
+### GET `/api/v1/vessels/<vessel_data_id>`
 
+Summary: Query for vessel data with given vessel_data_id
+
+Returns:
+
+- 200 with details of vessel
+
+- 400 if missing fields
+
+- 500 if internal server error
 
 ## AOIs
 

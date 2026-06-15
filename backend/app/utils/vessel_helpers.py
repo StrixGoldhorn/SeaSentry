@@ -44,3 +44,25 @@ def get_all_vessels_in_bbox(envelope, time_lower_bound: datetime, limit: int) ->
     finally:
         if session:
             DBConn.close_session()
+
+def get_vessel_by_vessel_data_id(vessel_data_id: int) -> VesselData:
+    '''
+    Returns vessel with the vessel_data_id
+
+    Args:
+        vessel_data_id: The vessel_data_id
+
+    Returns:
+        A VesselData object containing the vessel details
+    '''
+
+    session = DBConn.get_session()
+    try:
+        query = session.query(VesselData).filter(VesselData.vessel_data_id == vessel_data_id)
+        res = query.first()
+        return res
+    except Exception as e:
+        logger.error("DB Error in get_vessel_by_vessel_data_id: %s", str(e))
+        raise
+    finally:
+        DBConn.close_session()
