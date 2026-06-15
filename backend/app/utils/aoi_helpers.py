@@ -33,6 +33,30 @@ def get_all_aois() -> List[AreaOfInterest]:
         if session:
             DBConn.close_session()
 
+def get_aoi_by_id(id: int):
+    '''
+    Returns AOI with given ID
+    
+    Args:
+        id: id of AOI
+
+    Returns:
+        AOI object if exists, None otherwise
+    '''
+
+    session = DBConn.get_session()
+    try:
+        query = session.query(AreaOfInterest).filter(AreaOfInterest.area_of_interest_id == id)
+        res = query.first()
+        return res
+    except Exception as e:
+        session.rollback()
+        logger.error("DB Error in get_aoi_by_id: %s", str(e))
+        raise
+    finally:
+        DBConn.close_session()
+
+
 def get_aoi_polygon_corners(aoi: AreaOfInterest) -> dict:
     '''
     Returns the coordinates of the bounding box of the AOI
@@ -128,7 +152,7 @@ def add_rectangle_aoi_to_db(name: str, long_min: float, long_max: float, lat_min
 
     except Exception as e:
         session.rollback()
-        logger.error("Failed to create AOI '%s': %s", name, e, exc_info=True)
+        logger.error("Failed to create AOI '%s': %s", name, str(e), exc_info=True)
         raise
 
     finally:
@@ -196,7 +220,7 @@ def update_aoi_in_db(aoi_id: int, name: str = None, desc: str = None, geometry_w
 
     except Exception as e:
         session.rollback()
-        logger.error("DB Error in update_aoi_in_db: %s", e)
+        logger.error("DB Error in update_aoi_in_db: %s", str(e))
         raise
     finally:
         DBConn.close_session()

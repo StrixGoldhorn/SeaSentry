@@ -192,6 +192,61 @@ def test_get_all_geofences_success(mock_get_all, mock_get_verts, client):
 
 
 # ==========================================
+# Tests for GET /api/v1/geofences/<int:geofence_id>
+# ==========================================
+
+@patch('app.modules.geofences.routes.get_geofence_polygon_vertices')
+@patch('app.modules.geofences.routes.get_geofence_by_id')
+def test_get_geofence_by_id_success(mock_get_geofence, mock_get_verts, client):
+    '''
+    Test GET /api/v1/geofences/<int:geofence_id> with valid ID
+    '''
+    mock_geofence = MagicMock()
+    mock_geofence.geofence_id = 1
+    mock_geofence.geofence_timestamp = "2023-10-25T10:00:00"
+    mock_geofence.geofence_name = "Test Geofence"
+    mock_geofence.geofence_description = "Test Description"
+
+    mock_get_geofence.return_value = mock_geofence
+    mock_get_verts.return_value = [[0.0, 0.0], [1.0, 1.0], [0.0, 1.0], [0.0, 0.0]]
+
+    response = client.get('/api/v1/geofences/1')
+
+    assert response.status_code == 200
+    data = json.loads(response.data)
+    assert data['status'] == 'success'
+    assert data['data']['geofence_id'] == 1
+    assert data['data']['geofence_name'] == "Test Geofence"
+    assert data['data']['geofence_polygon'] == [[0.0, 0.0], [1.0, 1.0], [0.0, 1.0], [0.0, 0.0]]
+
+@patch('app.modules.geofences.routes.get_geofence_by_id')
+def test_get_geofence_by_id_not_found(mock_get_geofence, client):
+    '''
+    Test GET /api/v1/geofences/<int:geofence_id> with non-existent ID
+    '''
+    mock_get_geofence.return_value = None
+
+    response = client.get('/api/v1/geofences/999')
+
+    assert response.status_code == 404
+    data = json.loads(response.data)
+    assert data['error'] == "Geofence with ID 999 not found."
+
+@patch('app.modules.geofences.routes.get_geofence_by_id')
+def test_get_geofence_by_id_internal_error(mock_get_geofence, client):
+    '''
+    Test GET /api/v1/geofences/<int:geofence_id> when an exception occurs
+    '''
+    mock_get_geofence.side_effect = Exception("Database connection failed")
+
+    response = client.get('/api/v1/geofences/1')
+
+    assert response.status_code == 500
+    data = json.loads(response.data)
+    assert data['error'] == "Internal server error"
+    assert "Database connection failed" in data['details']
+
+# ==========================================
 # Tests for POST/PATCH /api/v1/geofences/<geofence_id>/update
 # ==========================================
 

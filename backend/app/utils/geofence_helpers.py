@@ -31,6 +31,29 @@ def get_all_geofences() -> List[Geofence]:
         if session:
             DBConn.close_session()
 
+def get_geofence_by_id(id: int):
+    '''
+    Returns Geofence with given ID
+    
+    Args:
+        id: id of Geofence
+
+    Returns:
+        Geofence object if exists, None otherwise
+    '''
+
+    session = DBConn.get_session()
+    try:
+        query = session.query(Geofence).filter(Geofence.geofence_id == id)
+        res = query.first()
+        return res
+    except Exception as e:
+        session.rollback()
+        logger.error("DB Error in get_geofence_by_id: %s", str(e))
+        raise
+    finally:
+        DBConn.close_session()
+
 def get_geofence_polygon_corners(geofence: Geofence) -> dict:
     '''
     Returns Axis-Aligned Bounding Box of the geofence

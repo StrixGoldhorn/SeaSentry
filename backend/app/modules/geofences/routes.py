@@ -11,7 +11,7 @@ from app.models.geofence import Geofence
 from app.core.config import Settings
 from app.utils.geofence_helpers import (
     add_rectangle_geofence_to_db, add_polygon_geofence_to_db,
-    get_all_geofences, get_geofence_polygon_vertices,
+    get_all_geofences, get_geofence_polygon_vertices, get_geofence_by_id,
     update_geofence_in_db,
     check_if_geofence_name_exists
     )
@@ -163,6 +163,33 @@ def get_all_geofences_web():
     except Exception as e:
         logger.error("Error in get_all_geofences_web: %s", e, exc_info=Settings.EXEC_INFO_API)
         write_audit_log("Error in get_all_geofences_web", __name__, {"info": str(e)}, "ERROR")
+        return jsonify({"error": "Internal server error", "details": str(e)}), 500
+
+@geofences_bp.route('/<int:geofence_id>', methods=['GET'])
+def get_geofence_by_id_web(geofence_id):
+    '''
+    GET /api/v1/geofences/<int:geofence_id>
+    Returns details of Geofence with given ID
+    '''
+
+    try:
+        geofence = get_geofence_by_id(geofence_id)
+        if not geofence:
+            return jsonify({"error": f"Geofence with ID {geofence_id} not found."}), 404
+        return jsonify({
+            "status": "success",
+            "data": {
+                "geofence_id": geofence.geofence_id,
+                "geofence_timestamp": geofence.geofence_timestamp,
+                "geofence_name": geofence.geofence_name,
+                "geofence_description": geofence.geofence_description,
+                "geofence_polygon": get_geofence_polygon_vertices(geofence),
+            }
+        }), 200
+
+    except Exception as e:
+        logger.error("Error in get_geofence_by_id_web: %s", e, exc_info=Settings.EXEC_INFO_API)
+        write_audit_log("Error in get_geofence_by_id_web", __name__, {"info": str(e)}, "ERROR")
         return jsonify({"error": "Internal server error", "details": str(e)}), 500
 
 @geofences_bp.route('/<int:geofence_id>/update', methods=['POST', 'PATCH'])

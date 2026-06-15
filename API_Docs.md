@@ -16,6 +16,7 @@ Fields are compulsory unless otherwise stated
     - [POST/PATCH `/api/v1/aois/<aoi_id>/update`](#postpatch-apiv1aoisaoi_idupdate)
   - [Geofences](#geofences)
     - [GET `/api/v1/geofences/get/all`](#get-apiv1geofencesgetall)
+    - [GET `/api/v1/geofences/<geofence_id>`](#get-apiv1geofencesgeofence_id)
     - [POST `/api/v1/geofences/add/box`](#post-apiv1geofencesaddbox)
     - [POST `/api/v1/geofences/add/polygon`](#post-apiv1geofencesaddpolygon)
     - [POST/PATCH `/api/v1/geofences/<geofence_id>/update`](#postpatch-apiv1geofencesgeofence_idupdate)
@@ -161,6 +162,18 @@ Returns:
 
 - 500 if internal server error
 
+### GET `/api/v1/geofences/<geofence_id>`
+
+Summary: Query for Geofence with given geofence_id
+
+Returns:
+
+- 200 with details of Geofence
+
+- 404 if Geofence with geofence_id does not exist
+
+- 500 if internal server error
+- 
 ### POST `/api/v1/geofences/add/box`
 
 Summary: Adds specified bounding box.
