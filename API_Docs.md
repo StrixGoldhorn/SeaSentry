@@ -9,6 +9,8 @@ Fields are compulsory unless otherwise stated
   - [Vessels](#vessels)
     - [GET `/api/v1/vessels/bbox`](#get-apiv1vesselsbbox)
     - [GET `/api/v1/vessels/<vessel_data_id>`](#get-apiv1vesselsvessel_data_id)
+  - [Vessel of Interest](#vessel-of-interest)
+    - [POST `/api/v1/vessel_of_interest/add`](#post-apiv1vessel_of_interestadd)
   - [AOIs](#aois)
     - [GET `/api/v1/aois/get/all`](#get-apiv1aoisgetall)
     - [GET `/api/v1/aois/<aoi_id>`](#get-apiv1aoisaoi_id)
@@ -69,6 +71,35 @@ Returns:
 - 400 if missing fields
 
 - 500 if internal server error
+
+
+## Vessel of Interest
+
+### POST `/api/v1/vessel_of_interest/add`
+
+Summary: Adds specified vessel of interest
+
+Returns:
+
+- 201 if successfully added
+
+- 400 if missing/malformed fields
+
+- 403 if name already exsts
+
+- 500 if internal server error
+
+Query Params:
+**Note**: Either MMSI, or IMO, or both MMSI and IMO must be present.
+
+- name: str (user-defined name for the vessel of interest)
+
+- desc: str (optional, description of the vessel of interest)
+
+- mmsi: str (MMSI of the vessel of interest)
+
+- imo: str (IMO of the vessel of interest)
+
 
 ## AOIs
 

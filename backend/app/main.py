@@ -17,6 +17,7 @@ from app.modules.vessels.routes import vessels_bp
 from app.modules.aois.routes import aois_bp
 from app.modules.geofences.routes import geofences_bp
 from app.modules.alerts.routes import alerts_bp
+from app.modules.vessel_of_interest.routes import vessel_of_interest_bp
 from app.core.database import DBConn
 from app.modules.scrapers.scrape import run_all_scrapers
 from app.core.config import Settings
@@ -62,6 +63,7 @@ def create_app():
     app.register_blueprint(aois_bp)
     app.register_blueprint(geofences_bp)
     app.register_blueprint(alerts_bp)
+    app.register_blueprint(vessel_of_interest_bp)
 
     CORS(app, resources={r"/api/*": {"origins": ["http://localhost:3000", "http://127.0.0.1:3000"]}})
 
