@@ -26,7 +26,8 @@ class Settings():
     }
 
     # Alerts
-    ALERT_CHECK_MINUTES: int = 1
+    ALERT_RECHECK_MINUTES: int = 30
+    ALERT_CHECK_PREVIOUS_MINUTES: int = 180
 
     # env
     ENV = os.getenv("ENV", "local")

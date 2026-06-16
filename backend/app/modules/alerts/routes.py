@@ -204,7 +204,7 @@ def mark_alert_history_read(alert_history_id: int):
     except Exception as e:
         logger.error("Error in mark_alert_history_read: %s", e, exc_info=Settings.EXEC_INFO_API)
         return jsonify({"error": "Internal server error", "details": str(e)}), 500
-    
+
 @alerts_bp.route('/history/<int:alert_history_id>/mark/unread', methods=['POST'])
 def mark_alert_history_unread(alert_history_id: int):
     '''

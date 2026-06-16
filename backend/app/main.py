@@ -46,9 +46,9 @@ def schedules(scheduler):
     check_all_vessels(30)
     scheduler.add_job(
         func = check_all_vessels,
-        args=[Settings.ALERT_CHECK_MINUTES,],
-        trigger = IntervalTrigger(minutes=Settings.ALERT_CHECK_MINUTES),
-        id = f"check_all_vessels_{Settings.ALERT_CHECK_MINUTES}",
+        args=[Settings.ALERT_CHECK_PREVIOUS_MINUTES,],
+        trigger = IntervalTrigger(minutes=Settings.ALERT_RECHECK_MINUTES),
+        id = f"check_all_vessels_{Settings.ALERT_RECHECK_MINUTES}",
         max_instances = 1,
         coalesce = True,
         replace_existing = True,
