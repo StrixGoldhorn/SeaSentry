@@ -1,4 +1,4 @@
-# backend/app/utils/aoi_helpers.py
+# backend/app/utils/vessel_helpers.py
 
 import logging
 from typing import List
@@ -63,6 +63,59 @@ def get_vessel_by_vessel_data_id(vessel_data_id: int) -> VesselData:
         return res
     except Exception as e:
         logger.error("DB Error in get_vessel_by_vessel_data_id: %s", str(e))
+        raise
+    finally:
+        DBConn.close_session()
+
+def update_vessel_data_in_db(vessel_data_id: int, ship_name: str = None, ship_type: str = None,
+                            flag: str = None, length_meters: int = None, beam_meters: int = None,
+                            user_tags: List[str] = None) -> bool:
+    '''
+    Updates an existing vessel in the database. Supports partial updates.
+    
+    Args:
+        vessel_data_id: int representing vessel_data_id to be updated
+        ship_name: str = None, new ship name of vessel
+        ship_type: str = None, new ship type of vessel
+        flag: str = None, new flag of vessel
+        length_meters: int = None, new length meters of vessel
+        beam_meters: int = None, new beam meters of vessel
+        user_tags: list = None, new user tags of vessel
+
+    Returns:
+        True if successful
+    '''
+
+    session = DBConn.get_session()
+    try:
+        vessel = session.query(VesselData).filter(VesselData.vessel_data_id == vessel_data_id).first()
+        if not vessel:
+            return False
+
+        if ship_name is not None:
+            vessel.vessel_data_ship_name = ship_name
+
+        if ship_type is not None:
+            vessel.vessel_data_ship_type = ship_type
+
+        if flag is not None:
+            vessel.vessel_data_flag = flag
+
+        if length_meters is not None:
+            vessel.vessel_data_length_meters = length_meters
+
+        if beam_meters is not None:
+            vessel.vessel_data_beam_meters = beam_meters
+
+        if user_tags is not None:
+            vessel.vessel_data_user_tags = user_tags
+
+        session.commit()
+        return True
+
+    except Exception as e:
+        session.rollback()
+        logger.error("DB Error in update_vessel_data_in_db: %s", str(e))
         raise
     finally:
         DBConn.close_session()

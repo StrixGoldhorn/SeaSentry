@@ -9,8 +9,10 @@ Fields are compulsory unless otherwise stated
   - [Vessels](#vessels)
     - [GET `/api/v1/vessels/bbox`](#get-apiv1vesselsbbox)
     - [GET `/api/v1/vessels/<vessel_data_id>`](#get-apiv1vesselsvessel_data_id)
+    - [POST/PATCH `/api/v1/vessels/<vessel_data_id>/update`](#postpatch-apiv1vesselsvessel_data_idupdate)
   - [Vessel of Interest](#vessel-of-interest)
     - [GET `/api/v1/vessel_of_interest/get/all`](#get-apiv1vessel_of_interestgetall)
+    - [GET `/api/v1/vessel_of_interest/<vessel_of_interest_id>`](#get-apiv1vessel_of_interestvessel_of_interest_id)
     - [POST `/api/v1/vessel_of_interest/add`](#post-apiv1vessel_of_interestadd)
   - [AOIs](#aois)
     - [GET `/api/v1/aois/get/all`](#get-apiv1aoisgetall)
@@ -73,6 +75,35 @@ Returns:
 
 - 500 if internal server error
 
+
+### POST/PATCH `/api/v1/vessels/<vessel_data_id>/update`
+
+Summary: Updates an existing Vessel. Supports partial updates.
+
+Query Params (all optional, but at least one required):
+
+- ship_name: str (new ship name of Vessel)
+
+- ship_type: str (new ship type of Vessel)
+
+- flag: str (new flag of Vessel)
+
+- length_meters: int (new length (in meters) of Vessel)
+
+- beam_meters: int (new beam (in meters) of Vessel)
+
+- user_tags: array of string (new user tags for Vessel)
+
+    
+Returns:
+
+- 200 if successfully updated
+
+- 400 if missing/malformed fields
+
+- 404 if Vessel with id does not exist
+
+- 500 if internal server error
 
 ## Vessel of Interest
 
