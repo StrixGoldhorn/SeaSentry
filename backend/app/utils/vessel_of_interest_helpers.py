@@ -75,3 +75,47 @@ def check_if_vessel_of_interest_name_exists(name: str):
     finally:
         DBConn.close_session()
 
+def get_all_vessel_of_interest():
+    '''
+    Returns all vessels of interest
+
+    Returns:
+        List of VesselOfInterest objects
+    '''
+    session = DBConn.get_session()
+
+    try:
+        query = session.query(VesselOfInterest)
+        res = query.all()
+        return res
+
+    except Exception as e:
+        session.rollback()
+        logger.error("Error in get_all_vessel_of_interest: %s", str(e), exc_info=Settings.EXEC_INFO_API)
+        raise
+
+    finally:
+        DBConn.close_session()
+
+def get_vessel_of_interest_by_vessel_of_interest_id(vessel_of_interest_id: int) -> VesselOfInterest:
+    '''
+    Returns vessel_of_interest with the vessel_of_interest_id
+
+    Args:
+        vessel_of_interest_id: The vessel_of_interest_id
+
+    Returns:
+        A VesselOfInterest object containing the vessel details
+    '''
+
+    session = DBConn.get_session()
+    try:
+        query = session.query(VesselOfInterest).filter(VesselOfInterest.vessel_of_interest_id == vessel_of_interest_id)
+        res = query.first()
+        return res
+    except Exception as e:
+        logger.error("DB Error in get_vessel_of_interest_by_vessel_data_id: %s", str(e))
+        raise
+    finally:
+        DBConn.close_session()
+

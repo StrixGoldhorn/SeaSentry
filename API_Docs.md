@@ -10,6 +10,7 @@ Fields are compulsory unless otherwise stated
     - [GET `/api/v1/vessels/bbox`](#get-apiv1vesselsbbox)
     - [GET `/api/v1/vessels/<vessel_data_id>`](#get-apiv1vesselsvessel_data_id)
   - [Vessel of Interest](#vessel-of-interest)
+    - [GET `/api/v1/vessel_of_interest/get/all`](#get-apiv1vessel_of_interestgetall)
     - [POST `/api/v1/vessel_of_interest/add`](#post-apiv1vessel_of_interestadd)
   - [AOIs](#aois)
     - [GET `/api/v1/aois/get/all`](#get-apiv1aoisgetall)
@@ -74,6 +75,28 @@ Returns:
 
 
 ## Vessel of Interest
+
+### GET `/api/v1/vessel_of_interest/get/all`
+
+Summary: Query for all vessels of interest
+
+Returns:
+
+- 200 with JSON of all vessels of interest
+
+- 500 if internal server error
+
+### GET `/api/v1/vessel_of_interest/<vessel_of_interest_id>`
+
+Summary: Query for vessel of interest with given vessel_of_interest_id
+
+Returns:
+
+- 200 with details of vessel of interest
+
+- 404 if vessel of interest with vessel_of_interest_id does not exist
+
+- 500 if internal server error
 
 ### POST `/api/v1/vessel_of_interest/add`
 
