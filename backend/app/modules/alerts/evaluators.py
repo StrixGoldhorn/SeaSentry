@@ -59,6 +59,7 @@ def complex_evaluator(vessel_data_id: int, vessel_location_id: int):
 
             query = (
                 select(VesselLocation)
+                .join(VesselData, VesselLocation.vessel_location_vessel_data_id == VesselData.vessel_data_id)
                 .where(
                     VesselLocation.vessel_location_id == vessel_location_id,
                     where_expression

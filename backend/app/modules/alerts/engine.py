@@ -1,5 +1,6 @@
 # backend/app/modules/alerts/engine.py
 
+from sqlalchemy import desc
 from datetime import datetime, timedelta
 import logging
 
@@ -39,7 +40,13 @@ def check_all_vessels(n: int):
         threshold_time = datetime.now() - timedelta(minutes=n)
 
         results = session.query(VesselLocation.vessel_location_vessel_data_id, VesselLocation.vessel_location_id)\
-                        .filter(VesselLocation.vessel_location_timestamp >= threshold_time).all()
+                        .filter(VesselLocation.vessel_location_timestamp >= threshold_time)\
+                        .distinct(VesselLocation.vessel_location_vessel_data_id)\
+                        .order_by(
+                            VesselLocation.vessel_location_vessel_data_id, 
+                            desc(VesselLocation.vessel_location_timestamp)
+                        )\
+                        .all()
 
         logger.debug("Processing %d records", len(results))
 

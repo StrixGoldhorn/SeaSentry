@@ -4,9 +4,8 @@
 from flask import Blueprint, request, jsonify
 import json
 from datetime import datetime
-from app.core.database import DBConn
-from app.models.alert import AlertHistory, AlertRule
 from app.core.config import Settings
+from app.modules.alerts.custom_rules import RuleTreeAdapter, build_sqlalchemy_expression 
 
 from app.utils.audit_log_helpers import write_audit_log
 from app.utils.alert_helpers import (
@@ -14,8 +13,6 @@ from app.utils.alert_helpers import (
     mark_alert_as_read, mark_alert_as_unread,
     add_alert_rule_to_db
     )
-
-from app.modules.alerts.custom_rules import RuleTreeAdapter
 
 import logging
 
@@ -323,7 +320,18 @@ def add_alert_rule_web():
 
         try:
             validated_params = RuleTreeAdapter.validate_python(rule_params)
+            
+            try:
+                build_sqlalchemy_expression(validated_params)
+            except ValueError as e:
+                logger.warning("Invalid rule logic detected: %s", str(e))
+                return jsonify({"error": "Invalid rule logic", "details": str(e)}), 400
+            except Exception as e:
+                logger.error("Unexpected error during rule validation: %s", str(e), exc_info=True)
+                return jsonify({"error": "Internal error during rule validation", "details": str(e)}), 500
+
             params_for_db = validated_params.model_dump()
+
         except Exception as e:
             logger.error("Validation failed for new rule params: %s", str(e))
             return jsonify({"error": "Invalid rule parameters", "details": str(e)}), 400

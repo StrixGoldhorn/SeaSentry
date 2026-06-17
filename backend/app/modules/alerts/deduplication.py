@@ -76,5 +76,5 @@ def check_and_record_alert(session, rule_id: int, context: Dict[str, Any]) -> Op
         logger.debug("Alert is duplicate! context: %s", str(context))
         return None
 
-    logger.debug("Alert generated, id %d", rule_id)
+    logger.debug("Alert generated, rule id: %d", rule_id)
     return record_alert(session, rule_id, context)
