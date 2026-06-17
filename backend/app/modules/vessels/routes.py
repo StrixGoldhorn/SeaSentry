@@ -1,13 +1,18 @@
 # backend/app/modules/vessels/routes.py
 # for api routes relating to vessel queries, eg /api/v1/vessels, /api/v1/history
 
+import json
 from flask import Blueprint, request, jsonify
 from datetime import datetime, timedelta, timezone
 from sqlalchemy import func
 from geoalchemy2.shape import to_shape
-from app.core.database import DBConn
-from app.models.vessel import VesselData, VesselLocation
+
 from app.core.config import Settings
+from app.models.vessel import VesselData, VesselLocation
+from app.utils.vessel_helpers import (get_all_vessels_in_bbox, get_vessel_by_vessel_data_id,
+                                      update_vessel_data_in_db)
+from app.utils.audit_log_helpers import write_audit_log
+
 import logging
 
 logger = logging.getLogger(__name__)
@@ -25,7 +30,6 @@ def get_vessels_in_bbox():
     - limit: int (default 50, max 1000)
     '''
 
-    session = DBConn.get_session()
     try:
 
         bbox_params = ["lat_min", "lat_max", "long_min", "long_max"]
@@ -41,15 +45,9 @@ def get_vessels_in_bbox():
         except (ValueError, TypeError):
             return jsonify({"error": "Invalid limit format. Must be an integer."}), 400
 
-        query = session.query(VesselLocation, VesselData).join(
-            VesselData,
-            VesselLocation.vessel_location_vessel_data_id == VesselData.vessel_data_id,
-        )
-
         try:
             time_within = int(request.args.get('time_within', default = 60 * 60 * 24))
             time_lower_bound = datetime.now(timezone.utc) - timedelta(seconds = time_within)
-            query = query.filter(VesselLocation.vessel_location_timestamp >= time_lower_bound)
         except ValueError:
             return jsonify({"error": "Invalid time_within format. Ensure it is in seconds."}), 400
 
@@ -58,20 +56,8 @@ def get_vessels_in_bbox():
             bbox["long_max"], bbox["lat_max"],
             4326
         )
-        query = query.filter(
-            VesselLocation.vessel_location_coords.ST_Within(envelope)
-        )
 
-        query = query.order_by(
-            VesselLocation.vessel_location_vessel_data_id,
-            VesselLocation.vessel_location_timestamp.desc()
-        )
-
-        query = query.distinct(VesselLocation.vessel_location_vessel_data_id)
-
-        query = query.limit(limit)
-
-        results = query.all()
+        results = get_all_vessels_in_bbox(envelope, time_lower_bound, limit)
 
         data = []
         for location, vessel in results:
@@ -109,8 +95,100 @@ def get_vessels_in_bbox():
 
     except Exception as e:
         logger.error("Error in get_vessels_in_bbox: %s", e, exc_info=Settings.EXEC_INFO_API)
+        write_audit_log("Error in get_vessels_in_bbox", __name__, {"info": str(e)}, "ERROR")
         return jsonify({"error": "Internal server error", "details": str(e)}), 500
 
-    finally:
-        if session:
-            DBConn.close_session()
+@vessels_bp.route('/<int:vessel_data_id>', methods=['GET'])
+def get_vessel_by_vessel_data_id_web(vessel_data_id):
+    '''
+    GET /api/v1/vessels/<int:vessel_data_id>
+    Returns details of vessel with given vessel_data_id
+    '''
+
+    try:
+        vessel = get_vessel_by_vessel_data_id(vessel_data_id)
+        if not vessel:
+            return jsonify({"error": f"Vessel with ID {vessel_data_id} not found."}), 404
+        return jsonify({
+            "status": "success",
+            "data": {
+                "vessel_data_id": vessel.vessel_data_id,
+                "vessel_data_mmsi": vessel.vessel_data_mmsi,
+                "vessel_data_imo": vessel.vessel_data_imo,
+                "vessel_data_ship_name": vessel.vessel_data_ship_name,
+                "vessel_data_ship_type": vessel.vessel_data_ship_type,
+                "vessel_data_flag": vessel.vessel_data_flag,
+                "vessel_data_length_meters": vessel.vessel_data_length_meters,
+                "vessel_data_beam_meters": vessel.vessel_data_beam_meters,
+                "vessel_data_user_tags": vessel.vessel_data_user_tags
+            }
+        }), 200
+
+    except Exception as e:
+        logger.error("Error in get_vessel_by_vessel_data_id_web: %s", e, exc_info=Settings.EXEC_INFO_API)
+        write_audit_log("Error in get_vessel_by_vessel_data_id_web", __name__, {"info": str(e)}, "ERROR")
+        return jsonify({"error": "Internal server error", "details": str(e)}), 500
+
+@vessels_bp.route('/<int:vessel_data_id>/update', methods=['POST', 'PATCH'])
+def update_vessel_by_id(vessel_data_id):
+    '''
+    POST/PATCH /api/v1/vessels/<vessel_data_id>/update
+    Updates an existing Vessel. Supports partial updates.
+    
+    Query Params (all optional, but at least one required):
+    ship_name: str, new ship name of vessel
+    ship_type: str, new ship type of vessel
+    flag: str, new flag of vessel
+    length_meters: int, new length meters of vessel
+    beam_meters: int, new beam meters of vessel
+    user_tags: array, new user tags of vessel
+    '''
+
+    try:
+        ship_name = request.form.get("ship_name")
+        ship_type = request.form.get("ship_type")
+        flag = request.form.get("flag")
+        length_meters = request.form.get("length_meters")
+        beam_meters = request.form.get("beam_meters")
+        user_tags = request.form.get("user_tags")
+
+        if not any([ship_name, ship_type, flag, length_meters, beam_meters, user_tags]):
+            return jsonify({"error": "Requires at least 1 field to update."}), 400
+
+        try:
+            parsed_length = int(length_meters) if length_meters else None
+            parsed_beam = int(beam_meters) if beam_meters else None
+        except ValueError:
+            return jsonify({"error": "Invalid data format: length_meters and beam_meters must be valid integers."}), 400
+
+        parsed_tags = None
+        if user_tags is not None:
+            if isinstance(user_tags, str):
+                try:
+                    parsed_tags = json.loads(user_tags)
+                except json.JSONDecodeError:
+                    return jsonify({"error": "Invalid data format: user_tags should be an array of strings."}), 400
+            elif isinstance(user_tags, list):
+                parsed_tags = user_tags
+
+
+        success = update_vessel_data_in_db(
+            vessel_data_id = vessel_data_id,
+            ship_name = str(ship_name).strip() if ship_name else None,
+            ship_type = str(ship_type).strip() if ship_type else None,
+            flag = str(flag).strip() if flag else None,
+            length_meters = parsed_length,
+            beam_meters = parsed_beam,
+            user_tags = parsed_tags
+        )
+
+        if not success:
+            return jsonify({"error": f"Vessel with ID {vessel_data_id} not found."}), 404
+
+        write_audit_log("Updated Vessel", __name__, {"vessel_data_id": vessel_data_id, "client-form": str(request.form)}, "INFO")
+        return jsonify({"status": "success", "vessel_data_id": vessel_data_id, "message": "Vessel updated successfully."}), 200
+
+    except Exception as e:
+        logger.error("Error in update_vessel_by_id: %s", e, exc_info=Settings.EXEC_INFO_API)
+        write_audit_log("Error in update_vessel_by_id", __name__, {"vessel_data_id": vessel_data_id, "info": str(e)}, "ERROR")
+        return jsonify({"error": "Internal server error", "details": str(e)}), 500

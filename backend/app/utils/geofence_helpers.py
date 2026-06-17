@@ -31,6 +31,29 @@ def get_all_geofences() -> List[Geofence]:
         if session:
             DBConn.close_session()
 
+def get_geofence_by_id(id: int):
+    '''
+    Returns Geofence with given ID
+    
+    Args:
+        id: id of Geofence
+
+    Returns:
+        Geofence object if exists, None otherwise
+    '''
+
+    session = DBConn.get_session()
+    try:
+        query = session.query(Geofence).filter(Geofence.geofence_id == id)
+        res = query.first()
+        return res
+    except Exception as e:
+        session.rollback()
+        logger.error("DB Error in get_geofence_by_id: %s", str(e))
+        raise
+    finally:
+        DBConn.close_session()
+
 def get_geofence_polygon_corners(geofence: Geofence) -> dict:
     '''
     Returns Axis-Aligned Bounding Box of the geofence
@@ -135,6 +158,58 @@ def add_polygon_geofence_to_db(name: str, geometry_wkb, description: str = "") -
     except Exception as e:
         session.rollback()
         raise e
+    finally:
+        DBConn.close_session()
+
+def update_geofence_in_db(geofence_id: int, name: str = None, desc: str = None, geometry_wkb = None) -> bool:
+    '''
+    Updates an existing Geofence in the database. Supports partial updates.
+    Returns True if successful.
+    '''
+    session = DBConn.get_session()
+    try:
+        geofence = session.query(Geofence).filter(Geofence.geofence_id == geofence_id).first()
+        if not geofence:
+            return False
+
+        if name is not None:
+            geofence.geofence_name = name
+        if desc is not None:
+            geofence.geofence_description = desc
+        if geometry_wkb is not None:
+            geofence.geofence_polygon = geometry_wkb
+
+        session.commit()
+        return True
+
+    except Exception as e:
+        session.rollback()
+        logger.error("DB Error in update_geofence_in_db: %s", e)
+        raise
+    finally:
+        DBConn.close_session()
+
+def check_if_geofence_name_exists(name: str):
+    '''
+    Checks if geofence with given name exists
+    
+    Args:
+        name: geofence name to query
+
+    Returns:
+        True if geofence with name already exists, False otherwise
+    '''
+
+    session = DBConn.get_session()
+    try:
+        query = session.query(Geofence).filter(Geofence.geofence_name == name)
+        res = query.first()
+        if res is not None: return True
+        return False
+    except Exception as e:
+        session.rollback()
+        logger.error("DB Error in check_if_geofence_name_exists: %s", e)
+        raise
     finally:
         DBConn.close_session()
 

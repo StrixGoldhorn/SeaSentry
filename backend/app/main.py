@@ -16,6 +16,8 @@ from flask_cors import CORS
 from app.modules.vessels.routes import vessels_bp
 from app.modules.aois.routes import aois_bp
 from app.modules.geofences.routes import geofences_bp
+from app.modules.alerts.routes import alerts_bp
+from app.modules.vessel_of_interest.routes import vessel_of_interest_bp
 from app.core.database import DBConn
 from app.modules.scrapers.scrape import run_all_scrapers
 from app.core.config import Settings
@@ -23,6 +25,7 @@ from app.core.config import Settings
 from app.utils.aoi_helpers import DBG_INSERT_DEFAULT_AOI
 from app.utils.geofence_helpers import DBG_INSERT_DEFAULT_GEOFENCE
 from app.utils.cleaner import clear_data_ingestion_audit_log_thirty_days
+from app.modules.alerts.engine import check_all_vessels
 
 logging.basicConfig(level=logging.DEBUG) # NOTE: PLEASE ONLY CONTROL LOGGER LEVEL FROM HERE
 logger = logging.getLogger(__name__)
@@ -41,12 +44,26 @@ def schedules(scheduler):
         misfire_grace_time = 300
     )
 
+    check_all_vessels(30)
+    scheduler.add_job(
+        func = check_all_vessels,
+        args=[Settings.ALERT_CHECK_PREVIOUS_MINUTES,],
+        trigger = IntervalTrigger(minutes=Settings.ALERT_RECHECK_MINUTES),
+        id = f"check_all_vessels_{Settings.ALERT_RECHECK_MINUTES}",
+        max_instances = 1,
+        coalesce = True,
+        replace_existing = True,
+        misfire_grace_time = 300
+    )
+
 def create_app():
     app = Flask(__name__)
 
     app.register_blueprint(vessels_bp)
     app.register_blueprint(aois_bp)
     app.register_blueprint(geofences_bp)
+    app.register_blueprint(alerts_bp)
+    app.register_blueprint(vessel_of_interest_bp)
 
     CORS(app, resources={r"/api/*": {"origins": ["http://localhost:3000", "http://127.0.0.1:3000"]}})
 
@@ -112,10 +129,10 @@ def main():
 
 if __name__ == "__main__":
     _scraper_started = False
-    try:
-        DBConn.run_init_sql()
-    except:
-        pass
+    # try:
+    #     DBConn.run_init_sql()
+    # except:
+    #     pass
 
     try:
         DBG_INSERT_DEFAULT_AOI()

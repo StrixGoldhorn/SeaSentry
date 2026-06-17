@@ -59,8 +59,6 @@ class ScraperToIngest():
         if vessel_data_id is not None:
             vessel_location_id = IngestToDB.InsertVesselLocation(vloc, vessel_data_id, raw_data_id)
 
-        cls.check_alerts(vessel_data_id, vessel_location_id)
-
     @classmethod
     def splitData(cls, scraped:ScrapedVesselRecord) -> Tuple[IngestVesselData, IngestVesselLocation]:
         '''
@@ -91,19 +89,6 @@ class ScraperToIngest():
         )
 
         return (vdata, vloc)
-
-    @classmethod
-    def check_alerts(cls, vessel_data_id: int, vessel_location_id: int):
-        '''
-        Trigger alert evaluation in background
-        '''
-        alert_thread = threading.Thread(
-            target=process_alerts_for_vessel,
-            args=(vessel_data_id, vessel_location_id),
-            daemon=True
-        )
-        alert_thread.start()
-
 
 
 

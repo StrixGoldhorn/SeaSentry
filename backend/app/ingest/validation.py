@@ -20,6 +20,7 @@ class IngestValidation:
         '''
         # TODO: Finish implementation
         def basic_validate_MMSI(mmsi: str) -> str:
+            if not mmsi: return mmsi
             if len(mmsi) != 9:
                 raise DataValidationError(f"MMSI expected to be of length 9, length of {len(mmsi)} was given instead.")
             if not mmsi.isdigit():
@@ -27,6 +28,7 @@ class IngestValidation:
             return mmsi
 
         def basic_validate_IMO(imo: str) -> str:
+            if not imo: return imo
             if len(imo) != 7:
                 raise DataValidationError(f"IMO expected to be of length 7, length of {len(imo)} was given instead.")
             if not imo.isdigit():
@@ -34,11 +36,13 @@ class IngestValidation:
             return imo
 
         def basic_validate_length_meters(length_meters: int) -> int:
+            if not length_meters: return length_meters
             if length_meters > 500:
                 raise DataValidationError(f"Length expected to be less than 500m, length of {int}m was given instead.")
             return length_meters
 
         def basic_validate_beam_meters(beam_meters: int) -> int:
+            if not beam_meters: return beam_meters
             if beam_meters > 500:
                 raise DataValidationError(f"Beam expected to be less than 200m, beam of {int}m was given instead.")
             return beam_meters
@@ -78,21 +82,25 @@ class IngestValidation:
             return lat, lon
 
         def basic_validate_speed_knots(speed_knots: float) -> float:
+            if not speed_knots: return speed_knots
             if not -150 <= speed_knots <= 300:
                 raise DataValidationError(f"Speed expected to be between -150 and 300 knots, {speed_knots} was given instead")
             return speed_knots
 
         def basic_validate_course_deg(course_deg: float) -> float:
+            if not course_deg: return course_deg
             if not 0 <= course_deg <= 360:
                 raise DataValidationError(f"Course expected to be between 0 and 360 deg, {course_deg} was given instead")
             return course_deg
 
         def basic_validate_heading_deg(heading_deg: float) -> float:
+            if not heading_deg: return heading_deg
             if not 0 <= heading_deg <= 360:
                 raise DataValidationError(f"Heading expected to be between 0 and 360 deg, {heading_deg} was given instead")
             return heading_deg
 
         def basic_validate_nav_status(nav_status: int) -> int:
+            if not nav_status: return nav_status
             if not 0 <= nav_status <= 15:
                 raise DataValidationError(f"Nav status expected to be between 0 and 15, {nav_status} was given instead")
             return nav_status
