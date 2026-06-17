@@ -5,6 +5,7 @@ from typing import List, Union, Literal, Any
 from app.models.vessel import VesselLocation
 from sqlalchemy.orm import aliased
 from sqlalchemy import  select, and_, or_, not_, exists, func
+from geoalchemy2 import Geography
 from app.models.vessel import VesselData, VesselLocation, VesselOfInterest
 from app.models.geofence import Geofence
 from datetime import timedelta, datetime
@@ -132,7 +133,11 @@ def build_sqlalchemy_expression(node: Union[LeafRule, GroupRule]):
                 vd2, v2.vessel_location_vessel_data_id == vd2.vessel_data_id
             ).where(
                 vd2.vessel_data_ship_type == node.valueShiptype,
-                func.ST_DWithin(VesselLocation.vessel_location_coords, v2.vessel_location_coords, float(node.value))
+                func.ST_DWithin(
+                    func.Cast(VesselLocation.vessel_location_coords, Geography),
+                    func.Cast(v2.vessel_location_coords, Geography),
+                    float(node.value)
+                )
             )
             return exists(subquery)
 
