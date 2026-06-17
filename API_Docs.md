@@ -34,6 +34,20 @@ Fields are compulsory unless otherwise stated
   - [Alert Rules](#alert-rules)
     - [GET `/api/v1/alerts/rule/all`](#get-apiv1alertsruleall)
     - [POST `/api/v1/alerts/rule/add`](#post-apiv1alertsruleadd)
+- [Rule Configuration](#rule-configuration)
+  - [Explanation](#explanation)
+  - [Fields and Operators](#fields-and-operators)
+    - [shipname](#shipname)
+    - [shiptype](#shiptype)
+    - [mmsi](#mmsi)
+    - [speed](#speed)
+    - [proximity\_to\_shiptype](#proximity_to_shiptype)
+    - [inside\_geofence](#inside_geofence)
+    - [enter\_geofence](#enter_geofence)
+    - [exit\_geofence](#exit_geofence)
+    - [is\_vessel\_of\_interest](#is_vessel_of_interest)
+  - [Using Combinators](#using-combinators)
+  - [Nested Rules](#nested-rules)
 
 
 
@@ -93,7 +107,6 @@ Query Params (all optional, but at least one required):
 - beam_meters: int (new beam (in meters) of Vessel)
 
 - user_tags: array of string (new user tags for Vessel)
-
     
 Returns:
 
@@ -466,6 +479,28 @@ Eg. for multiple/combined rules,
 }
 ```
 
+Refer to Rule Configuration below for all allowed fields, operators, combinators.
+
+Returns:
+
+- 201 with the new alert_rule_id if inserted successfully
+
+- 400 if missing/malformed fields
+
+- 500 if internal server error
+
+
+
+
+
+# Rule Configuration
+
+## Explanation
+
+Rules are implemented as an [abstract syntax tree](https://en.wikipedia.org/wiki/Abstract_syntax_tree), with the leaves being a condition for a field. Non-leaf nodes are combinators, ie `and`, `or`, `not`. This allows combining different conditions together, and is functionally complete (in terms of boolean logic).
+
+Fields have limited operators they have access to.
+
 Allowed fields
 ```
 shipname
@@ -476,7 +511,7 @@ proximity_to_shiptype
 inside_geofence
 enter_geofence
 exit_geofence
-is_vessel_of_interes
+is_vessel_of_interest
 ```
 
 Allowed operators
@@ -497,10 +532,240 @@ or
 not
 ```
 
-Returns:
+## Fields and Operators
+Allowed fields
+```
+shipname
+shiptype
+mmsi
+speed
+proximity_to_shiptype
+inside_geofence
+enter_geofence
+exit_geofence
+is_vessel_of_interest
+```
 
-- 201 with the new alert_rule_id if inserted successfully
+### shipname
+Allowed operators
+- `=`: Strict equality check
+- `LIKE`: Will execute a wildcard match
 
-- 400 if missing/malformed fields
+Examples
+```
+{
+  "field": "shipname",
+  "operator": "LIKE",
+  "value": "MPA"
+}
+```
+```
+{
+  "field": "shipname",
+  "operator": "=",
+  "value": "SCDF"
+}
+```
 
-- 500 if internal server error
+### shiptype
+Allowed operators
+- `=`: Checks if shiptype is the same as user provided
+- `!=`: Checks if shiptype is different from the one user provided
+
+Examples
+```
+{
+  "field": "shiptype",
+  "operator": "=",
+  "value": "Tug"
+}
+```
+```
+{
+  "field": "shiptype",
+  "operator": "!=",
+  "value": "Cargo"
+}
+```
+
+### mmsi
+Allowed operators
+- `=`: Checks if MMSI of vessels is the same as the one provided
+
+Example
+```
+{
+  "field": "mmsi",
+  "operator": "=",
+  "value": "123456789"
+}
+```
+
+### speed
+Allowed operators
+- `>`: Checks if speed of vessel recorded is strictly more than the one provided
+- `<`: Checks if speed of vessel recorded is strictly less than the one provided
+- `>=`: Checks if speed of vessel recorded is more than or equals to the one provided
+- `<=`: Checks if speed of vessel recorded is less than or equals to the one provided
+- `=`: Checks if speed of vessel recorded is strictly equals to the one provided
+
+Example
+```
+{
+  "field": "speed",
+  "operator": ">=",
+  "value": 6.7
+}
+```
+
+### proximity_to_shiptype
+Requires a special field, `valueShiptype`.
+
+Will return any ships within `value` meters of any `valueShiptype` ship.
+
+Operator can be any (will be ignored).
+
+Example
+```
+{
+  "field": "proximity_to_shiptype",
+  "operator": true,
+  "value": 100,
+  "valueShiptype": "Cargo"
+}
+```
+
+### inside_geofence
+Requires a special field, `valueGeofenceid`.
+
+Will return any ships within geofence with `valueGeofenceid`.
+
+Operator and value can be any (will be ignored).
+
+Example
+```
+{
+  "field": "inside_geofence",
+  "operator": "=",
+  "value": true,
+  "valueGeofenceid": 3
+}
+```
+
+### enter_geofence
+Requires a special field, `valueGeofenceid`.
+
+Will return any ships entering geofence with `valueGeofenceid`.
+
+Operator and value can be any (will be ignored).
+
+Example
+```
+{
+  "field": "enter_geofence",
+  "operator": "=",
+  "value": true,
+  "valueGeofenceid": 3
+}
+```
+
+### exit_geofence
+Requires a special field, `valueGeofenceid`.
+
+Will return any ships exiting geofence with `valueGeofenceid`.
+
+Operator and value can be any (will be ignored).
+
+Example
+```
+{
+  "field": "exit_geofence",
+  "operator": "=",
+  "value": true,
+  "valueGeofenceid": 3
+}
+```
+
+### is_vessel_of_interest
+Will return true if vessel is a user-defined vessel of interest.
+
+Generally used with combinators.
+
+Operator and value can be any (will be ignored).
+
+Example
+```
+{
+  "field": "is_vessel_of_interest",
+  "operator": "=",
+  "value": "abc"
+}
+```
+
+## Using Combinators
+Combinators can be used to combine singular rules.
+
+Available combinators are `and`, `or`, `not`.
+
+For example, the code below will be evaluated as true if any a vessel is inside, or entering, or exiting geofecnce 3.
+
+```
+"combinator": "or",
+"rules": [
+    {
+        "field": "inside_geofence",
+        "operator": "=",
+        "value": true,
+        "valueGeofenceid": 3
+    },
+    {
+        "field": "enter_geofence",
+        "operator": "=",
+        "value": true,
+        "valueGeofenceid": 3
+    },
+    {
+        "field": "exit_geofence",
+        "operator": "=",
+        "value": true,
+        "valueGeofenceid": 3
+    }
+]
+```
+
+## Nested Rules
+Combinators can be nested within combinators.
+
+For example, the rule below evaluates true if `(vessel is NOT inside geofence 1) AND (shipname is like MPA OR shipname is like SCDF)`
+
+```
+"rules": [
+  {
+    "combinator": "not",
+    "rules": [
+      {
+        "field": "inside_geofence",
+        "operator": "=",
+        "value": true,
+        "valueGeofenceid": 1
+      }
+    ]
+  },
+  {
+    "rules": [
+      {
+        "field": "shipname",
+        "value": "MPA",
+        "operator": "LIKE"
+      },
+      {
+        "field": "shipname",
+        "value": "SCDF",
+        "operator": "LIKE"
+      }
+    ],
+    "combinator": "or"
+  }
+],
+"combinator": "and"
+```
