@@ -10,6 +10,7 @@ from app.modules.alerts.custom_rules import RuleTreeAdapter, build_sqlalchemy_ex
 from app.utils.audit_log_helpers import write_audit_log
 from app.utils.alert_helpers import (
     get_all_alert_history, get_all_alert_rule,
+    update_alert_rule_in_db,
     mark_alert_as_read, mark_alert_as_unread,
     mark_rule_as_disable, mark_rule_as_enable,
     add_alert_rule_to_db
@@ -47,29 +48,29 @@ def get_all_alert_history_web():
             try:
                 start_time = datetime.fromisoformat(start_time_str)
             except ValueError:
-                return jsonify({"error": "Invalid start_time format. Use ISO format (e.g., 2023-10-27T10:00:00)"}), 400
+                return jsonify({"status": "error", "error": "Invalid start_time format. Use ISO format (e.g., 2023-10-27T10:00:00)"}), 400
 
         if end_time_str:
             try:
                 end_time = datetime.fromisoformat(end_time_str)
             except ValueError:
-                return jsonify({"error": "Invalid end_time format. Use ISO format (e.g., 2023-10-27T10:00:00)"}), 400
+                return jsonify({"status": "error", "error": "Invalid end_time format. Use ISO format (e.g., 2023-10-27T10:00:00)"}), 400
 
         if limit_str:
             try:
                 limit = int(limit_str)
                 if limit < 1:
-                    return jsonify({"error": "Limit must be a positive integer"}), 400
+                    return jsonify({"status": "error", "error": "Limit must be a positive integer"}), 400
             except ValueError:
-                return jsonify({"error": "Invalid limit format. Must be an integer"}), 400
+                return jsonify({"status": "error", "error": "Invalid limit format. Must be an integer"}), 400
 
         if offset_str:
             try:
                 offset = int(offset_str)
                 if offset < 0:
-                    return jsonify({"error": "Offset must be a non-negative integer"}), 400
+                    return jsonify({"status": "error", "error": "Offset must be a non-negative integer"}), 400
             except ValueError:
-                return jsonify({"error": "Invalid offset format. Must be an integer"}), 400
+                return jsonify({"status": "error", "error": "Invalid offset format. Must be an integer"}), 400
 
         results = get_all_alert_history(start_time, end_time, limit, offset)
 
@@ -98,7 +99,7 @@ def get_all_alert_history_web():
 
     except Exception as e:
         logger.error("Error in get_all_alert_history_web: %s", str(e), exc_info=Settings.EXEC_INFO_API)
-        return jsonify({"error": "Internal server error", "details": str(e)}), 500
+        return jsonify({"status": "error", "error": "Internal server error", "details": str(e)}), 500
 
 @alerts_bp.route('/history/unread', methods=['GET'])
 def get_unread_alert_history():
@@ -127,29 +128,29 @@ def get_unread_alert_history():
             try:
                 start_time = datetime.fromisoformat(start_time_str)
             except ValueError:
-                return jsonify({"error": "Invalid start_time format. Use ISO format (e.g., 2023-10-27T10:00:00)"}), 400
+                return jsonify({"status": "error", "error": "Invalid start_time format. Use ISO format (e.g., 2023-10-27T10:00:00)"}), 400
 
         if end_time_str:
             try:
                 end_time = datetime.fromisoformat(end_time_str)
             except ValueError:
-                return jsonify({"error": "Invalid end_time format. Use ISO format (e.g., 2023-10-27T10:00:00)"}), 400
+                return jsonify({"status": "error", "error": "Invalid end_time format. Use ISO format (e.g., 2023-10-27T10:00:00)"}), 400
 
         if limit_str:
             try:
                 limit = int(limit_str)
                 if limit < 1:
-                    return jsonify({"error": "Limit must be a positive integer"}), 400
+                    return jsonify({"status": "error", "error": "Limit must be a positive integer"}), 400
             except ValueError:
-                return jsonify({"error": "Invalid limit format. Must be an integer"}), 400
+                return jsonify({"status": "error", "error": "Invalid limit format. Must be an integer"}), 400
 
         if offset_str:
             try:
                 offset = int(offset_str)
                 if offset < 0:
-                    return jsonify({"error": "Offset must be a non-negative integer"}), 400
+                    return jsonify({"status": "error", "error": "Offset must be a non-negative integer"}), 400
             except ValueError:
-                return jsonify({"error": "Invalid offset format. Must be an integer"}), 400
+                return jsonify({"status": "error", "error": "Invalid offset format. Must be an integer"}), 400
 
         results = get_all_alert_history(start_time, end_time, limit, offset, False)
 
@@ -178,7 +179,7 @@ def get_unread_alert_history():
 
     except Exception as e:
         logger.error("Error in get_unread_alert_history: %s", str(e), exc_info=Settings.EXEC_INFO_API)
-        return jsonify({"error": "Internal server error", "details": str(e)}), 500
+        return jsonify({"status": "error", "error": "Internal server error", "details": str(e)}), 500
 
 @alerts_bp.route('/history/<int:alert_history_id>/mark/read', methods=['POST'])
 def mark_alert_history_read(alert_history_id: int):
@@ -201,7 +202,7 @@ def mark_alert_history_read(alert_history_id: int):
 
     except Exception as e:
         logger.error("Error in mark_alert_history_read: %s", str(e), exc_info=Settings.EXEC_INFO_API)
-        return jsonify({"error": "Internal server error", "details": str(e)}), 500
+        return jsonify({"status": "error", "error": "Internal server error", "details": str(e)}), 500
 
 @alerts_bp.route('/history/<int:alert_history_id>/mark/unread', methods=['POST'])
 def mark_alert_history_unread(alert_history_id: int):
@@ -224,7 +225,7 @@ def mark_alert_history_unread(alert_history_id: int):
 
     except Exception as e:
         logger.error("Error in mark_alert_history_unread: %s", str(e), exc_info=Settings.EXEC_INFO_API)
-        return jsonify({"error": "Internal server error", "details": str(e)}), 500
+        return jsonify({"status": "error", "error": "Internal server error", "details": str(e)}), 500
 
 @alerts_bp.route('/rule/all', methods=['GET'])
 def get_all_alert_rule_web():
@@ -255,7 +256,7 @@ def get_all_alert_rule_web():
 
     except Exception as e:
         logger.error("Error in get_all_alert_rule_web: %s", e, exc_info=Settings.EXEC_INFO_API)
-        return jsonify({"error": "Internal server error", "details": str(e)}), 500
+        return jsonify({"status": "error", "error": "Internal server error", "details": str(e)}), 500
 
 @alerts_bp.route('/rule/add/', methods=['POST'])
 def add_alert_rule_web():
@@ -307,35 +308,35 @@ def add_alert_rule_web():
     try:
         data = request.get_json()
         if not data:
-            return jsonify({"error": "No JSON data provided"}), 400
+            return jsonify({"status": "error", "error": "No JSON data provided"}), 400
 
         rule_name = data.get('name')
         rule_description = data.get('description', '')
         rule_params = data.get('params')
 
         if not rule_name:
-            return jsonify({"error": "Missing required fields: 'name'"}), 400
+            return jsonify({"status": "error", "error": "Missing required fields: 'name'"}), 400
 
         if rule_params is None:
-            return jsonify({"error": "Missing required fields: 'params'"}), 400
+            return jsonify({"status": "error", "error": "Missing required fields: 'params'"}), 400
 
         try:
             validated_params = RuleTreeAdapter.validate_python(rule_params)
- 
+
             try:
                 build_sqlalchemy_expression(validated_params)
             except ValueError as e:
                 logger.warning("Invalid rule logic detected: %s", str(e))
-                return jsonify({"error": "Invalid rule logic", "details": str(e)}), 400
+                return jsonify({"status": "error", "error": "Invalid rule logic", "details": str(e)}), 400
             except Exception as e:
-                logger.error("Unexpected error during rule validation: %s", str(e), exc_info=True)
-                return jsonify({"error": "Internal error during rule validation", "details": str(e)}), 500
+                logger.error("Unexpected error during rule validation: %s", str(e), exc_info=Settings.EXEC_INFO_API)
+                return jsonify({"status": "error", "error": "Internal error during rule validation", "details": str(e)}), 500
 
             params_for_db = validated_params.model_dump()
 
         except Exception as e:
             logger.error("Validation failed for new rule params: %s", str(e))
-            return jsonify({"error": "Invalid rule parameters", "details": str(e)}), 400
+            return jsonify({"status": "error", "error": "Invalid rule parameters", "details": str(e)}), 400
 
         new_rule_id = add_alert_rule_to_db(rule_name, rule_description, params_for_db)
 
@@ -346,11 +347,11 @@ def add_alert_rule_web():
         }), 201
 
     except json.JSONDecodeError:
-        return jsonify({"error": "Invalid JSON format"}), 400
+        return jsonify({"status": "error", "error": "Invalid JSON format"}), 400
     except Exception as e:
         logger.error("Error in add_alert_rule_web: %s", str(e), exc_info=Settings.EXEC_INFO_API)
         write_audit_log("Error adding alert rule", __name__, {"info": str(e), "payload": str(data)}, "ERROR")
-        return jsonify({"error": "Internal server error", "details": str(e)}), 500
+        return jsonify({"status": "error", "error": "Internal server error", "details": str(e)}), 500
 
 @alerts_bp.route('/rule/<int:alert_rule_id>/mark/disable', methods=['POST'])
 def mark_alert_rule_disable(alert_rule_id: int):
@@ -373,8 +374,8 @@ def mark_alert_rule_disable(alert_rule_id: int):
 
     except Exception as e:
         logger.error("Error in mark_alert_rule_disable: %s", str(e), exc_info=Settings.EXEC_INFO_API)
-        return jsonify({"error": "Internal server error", "details": str(e)}), 500
-    
+        return jsonify({"status": "error", "error": "Internal server error", "details": str(e)}), 500
+
 @alerts_bp.route('/rule/<int:alert_rule_id>/mark/enable', methods=['POST'])
 def mark_alert_rule_enable(alert_rule_id: int):
     '''
@@ -396,4 +397,78 @@ def mark_alert_rule_enable(alert_rule_id: int):
 
     except Exception as e:
         logger.error("Error in mark_alert_rule_enable: %s", str(e), exc_info=Settings.EXEC_INFO_API)
-        return jsonify({"error": "Internal server error", "details": str(e)}), 500
+        return jsonify({"status": "error", "error": "Internal server error", "details": str(e)}), 500
+
+@alerts_bp.route('/rule/<int:alert_rule_id>/update', methods=['POST', 'PATCH'])
+def update_alert_rule_web(alert_rule_id: int):
+    '''
+    POST/PATCH/PUT /api/v1/alerts/rule/<int:alert_rule_id>/update
+    Updates an existing alert rule. Supports partial updates.
+
+    Expects JSON payload
+    {
+        "name": "new name of alert",
+        "description": "new description of alert",
+        "params": { ... }
+    }
+    '''
+    data = None
+    try:
+        data = request.get_json()
+
+        if data is None:
+            return jsonify({"status": "error", "error": "No JSON data provided"}), 400
+
+        name = data.get('name')
+        desc = data.get('description')
+        params = data.get('params')
+
+        if not any([name, desc, params]):
+            return jsonify({"status": "error", "error": "At least one field ('name', 'description', or 'params') must be provided to update."}), 400
+
+        params_for_db = None
+
+        if params is not None:
+            try:
+                validated_params = RuleTreeAdapter.validate_python(params)
+
+                try:
+                    build_sqlalchemy_expression(validated_params)
+                except ValueError as e:
+                    logger.warning("Invalid rule logic detected during update: %s", str(e))
+                    return jsonify({"status": "error", "error": "Invalid rule logic", "details": str(e)}), 400
+                except Exception as e:
+                    logger.error("Unexpected error during rule validation: %s", str(e), exc_info=Settings.EXEC_INFO_API)
+                    return jsonify({"status": "error", "error": "Internal error during rule validation", "details": str(e)}), 500
+
+                params_for_db = validated_params.model_dump()
+
+            except Exception as e:
+                logger.error("Validation failed for updated rule params: %s", str(e))
+                return jsonify({"status": "error", "error": "Invalid rule parameters", "details": str(e)}), 400
+
+        try:
+            success = update_alert_rule_in_db(
+                alert_rule_id=alert_rule_id,
+                name=name,
+                desc=desc,
+                params=params_for_db
+            )
+        except ValueError as ve:
+            return jsonify({"status": "error", "error": str(ve)}), 400
+
+        if not success:
+            return jsonify({"status": "error", "message": f"Alert rule with id {alert_rule_id} not found."}), 404
+
+        return jsonify({
+            "status": "success",
+            "message": "Alert rule updated successfully",
+            "alert_rule_id": alert_rule_id
+        }), 200
+
+    except json.JSONDecodeError:
+        return jsonify({"status": "error", "error": "Invalid JSON format"}), 400
+    except Exception as e:
+        logger.error("Error in update_alert_rule_web: %s", str(e), exc_info=Settings.EXEC_INFO_API)
+        write_audit_log("Error updating alert rule", __name__, {"info": str(e), "payload": str(data), "rule_id": alert_rule_id}, "ERROR")
+        return jsonify({"status": "error", "error": "Internal server error", "details": str(e)}), 500
