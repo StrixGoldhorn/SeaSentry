@@ -363,3 +363,99 @@ def test_update_aoi_by_id_not_found(mock_update, client):
 
     assert response.status_code == 404
     assert 'not found' in json.loads(response.data)['error']
+
+# ==========================================
+# Tests for DELETE /api/v1/aois/<int:aoi_id>/delete
+# ==========================================
+
+@patch('app.modules.aois.routes.delete_aoi_in_db')
+@patch('app.modules.aois.routes.get_aoi_by_id')
+def test_delete_aoi_success(mock_get_aoi, mock_delete, client):
+    '''
+    Test successful deletion of an AOI
+    '''
+    mock_aoi = MagicMock()
+    mock_aoi.area_of_interest_name = "TestAOI"
+
+    mock_get_aoi.side_effect = [mock_aoi, None]
+    mock_delete.return_value = True
+
+    response = client.delete('/api/v1/aois/1/delete?aoi_name=TestAOI')
+
+    assert response.status_code == 200
+    data = json.loads(response.data)
+    assert data['status'] == 'success'
+    assert 'deleted successfully' in data['message']
+    mock_delete.assert_called_once_with(1)
+
+def test_delete_aoi_missing_name(client):
+    '''
+    Test deletion without providing the required aoi_name query parameter
+    '''
+    response = client.delete('/api/v1/aois/1/delete')
+    
+    assert response.status_code == 400
+    data = json.loads(response.data)
+    assert data['error'] == "Missing required query parameter: 'aoi_name'."
+
+@patch('app.modules.aois.routes.get_aoi_by_id')
+def test_delete_aoi_not_found(mock_get_aoi, client):
+    '''
+    Test deletion of a non-existent AOI
+    '''
+    mock_get_aoi.return_value = None
+
+    response = client.delete('/api/v1/aois/999/delete?aoi_name=GhostAOI')
+
+    assert response.status_code == 404
+    data = json.loads(response.data)
+    assert data['error'] == "AOI with ID 999 not found."
+
+@patch('app.modules.aois.routes.get_aoi_by_id')
+def test_delete_aoi_name_mismatch(mock_get_aoi, client):
+    '''
+    Test deletion with an incorrect aoi_name
+    '''
+    mock_aoi = MagicMock()
+    mock_aoi.area_of_interest_name = "RealAOIName"
+    mock_get_aoi.return_value = mock_aoi
+
+    response = client.delete('/api/v1/aois/1/delete?aoi_name=WrongAOIName')
+
+    assert response.status_code == 403
+    data = json.loads(response.data)
+    assert data['error'] == "'aoi_name' does not match the AOI with the given ID."
+
+@patch('app.modules.aois.routes.delete_aoi_in_db')
+@patch('app.modules.aois.routes.get_aoi_by_id')
+def test_delete_aoi_db_failure(mock_get_aoi, mock_delete, client):
+    '''
+    Test when the AOI is not actually deleted from the database 
+    '''
+    mock_aoi = MagicMock()
+    mock_aoi.area_of_interest_name = "TestAOI"
+
+    mock_get_aoi.return_value = mock_aoi
+    mock_delete.return_value = True
+
+    response = client.delete('/api/v1/aois/1/delete?aoi_name=TestAOI')
+
+    assert response.status_code == 500
+    data = json.loads(response.data)
+    assert data['error'] == "Internal server error: Failed to delete AOI."
+
+@patch('app.modules.aois.routes.write_audit_log')
+@patch('app.modules.aois.routes.get_aoi_by_id')
+def test_delete_aoi_internal_error(mock_get_aoi, mock_audit, client):
+    '''
+    Test internal server error during the deletion process
+    '''
+    mock_get_aoi.side_effect = Exception("Database connection failed")
+
+    response = client.delete('/api/v1/aois/1/delete?aoi_name=TestAOI')
+
+    assert response.status_code == 500
+    data = json.loads(response.data)
+    assert data['error'] == "Internal server error"
+
+    mock_audit.assert_called_once()

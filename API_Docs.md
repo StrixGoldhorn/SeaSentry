@@ -21,6 +21,7 @@ Fields are compulsory unless otherwise stated
     - [POST `/api/v1/aois/add/box`](#post-apiv1aoisaddbox)
     - [POST `/api/v1/aois/add/polygon`](#post-apiv1aoisaddpolygon)
     - [POST/PATCH `/api/v1/aois/<aoi_id>/update`](#postpatch-apiv1aoisaoi_idupdate)
+    - [DELETE `/api/v1/aois/<aoi_id>/delete`](#delete-apiv1aoisaoi_iddelete)
   - [Geofences](#geofences)
     - [GET `/api/v1/geofences/get/all`](#get-apiv1geofencesgetall)
     - [GET `/api/v1/geofences/<geofence_id>`](#get-apiv1geofencesgeofence_id)
@@ -288,6 +289,27 @@ Returns:
 - 200 if successfully updated
 
 - 400 if missing/malformed fields
+
+- 404 if AOI with id does not exist
+
+- 500 if internal server error
+
+### DELETE `/api/v1/aois/<aoi_id>/delete`
+
+Summary: Deletes an existing Area of Interest.
+
+Query Param:
+- aoi_name: Name of the AOI to be deleted.
+
+**Note**: The above is done soley to ensure that the user does not accidentally delete the wrong AOI.
+    
+Returns:
+
+- 200 if successfully deleted
+
+- 400 if missing/malformed fields
+
+- 403 if provided aoi_name is incorrect
 
 - 404 if AOI with id does not exist
 

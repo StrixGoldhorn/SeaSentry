@@ -249,6 +249,35 @@ def check_if_aoi_name_exists(name: str):
     finally:
         DBConn.close_session()
 
+def delete_aoi_in_db(aoi_id: int):
+    '''
+    Deletes an existing AOI in the database.
+    
+    Args:
+        aoi_id: int representing aoi_id to be deleted
+
+    Returns:
+        True if successful
+    '''
+
+    session = DBConn.get_session()
+    try:
+        aoi = session.query(AreaOfInterest).filter(AreaOfInterest.area_of_interest_id == aoi_id).first()
+        if not aoi:
+            return False
+
+        session.delete(aoi)
+        session.commit()
+        return True
+
+    except Exception as e:
+        session.rollback()
+        logger.error("DB Error in delete_aoi_in_db: %s", str(e))
+        raise
+    finally:
+        DBConn.close_session()
+
+
 def DBG_INSERT_DEFAULT_AOI():
     logging.warning("ADDING DEFAULT AOI TO DB-------------------------------------")
     add_rectangle_aoi_to_db(
