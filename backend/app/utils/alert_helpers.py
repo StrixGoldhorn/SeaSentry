@@ -230,3 +230,52 @@ def mark_rule_as_enable(alert_rule_id: int):
 
     finally:
         DBConn.close_session()
+
+def update_alert_rule_in_db(alert_rule_id: int,
+                            name: str = None, desc: str = None,
+                            params: Dict = None) -> bool:
+    '''
+    Updates an existing vessel in the database. Supports partial updates.
+
+    Args:
+        alert_rule_id: int representing vessel_of_interest_id to be updated
+        alert_rule_name: str = None, new name of alert rule
+        alert_rule_description: str = None, new description of alert rule
+        alert_rule_params: Dict = None, new of params alert rule
+
+    Returns:
+        True if successful
+    '''
+
+    session = DBConn.get_session()
+    try:
+        rule = session.query(AlertRule).filter(AlertRule.alert_rule_id == alert_rule_id).first()
+
+        if not rule:
+            return False
+
+        if name is not None:
+            rule.alert_rule_name = name
+
+        if desc is not None:
+            rule.alert_rule_description = desc
+
+        if params is not None:
+            rule.alert_rule_params = params
+
+        session.commit()
+        logger.info("Updated alert rule id %d", alert_rule_id)
+        return True
+
+    except IntegrityError as e:
+        session.rollback()
+        logger.warning("Rule name '%s' already exists or violates unique constraint.", name)
+        raise ValueError(f"Rule name '{name}' must be unique.") from e
+
+    except Exception as e:
+        session.rollback()
+        logger.error("Failed to update rule id %d: %s", alert_rule_id, e, exc_info=True)
+        raise
+
+    finally:
+        DBConn.close_session()

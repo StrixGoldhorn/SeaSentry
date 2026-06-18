@@ -35,6 +35,7 @@ Fields are compulsory unless otherwise stated
   - [Alert Rules](#alert-rules)
     - [GET `/api/v1/alerts/rule/all`](#get-apiv1alertsruleall)
     - [POST `/api/v1/alerts/rule/add`](#post-apiv1alertsruleadd)
+    - [POST `/api/v1/alerts/rule/<alert_rule_id>/update`](#post-apiv1alertsrulealert_rule_idupdate)
     - [POST `/api/v1/alerts/rule/<alert_rule_id>/mark/disable`](#post-apiv1alertsrulealert_rule_idmarkdisable)
     - [POST `/api/v1/alerts/rule/<alert_rule_id>/mark/enable`](#post-apiv1alertsrulealert_rule_idmarkenable)
 - [Rule Configuration](#rule-configuration)
@@ -519,6 +520,27 @@ Returns:
 - 201 with the new alert_rule_id if inserted successfully
 
 - 400 if missing/malformed fields
+
+- 500 if internal server error
+
+### POST `/api/v1/alerts/rule/<alert_rule_id>/update`
+
+Summary: Updates an existing alert rule. Supports partial updates.
+
+Query param:
+
+JSON with the keys:
+- "name": name of alert, must be unique
+- "desc" (optional): description of alert
+- "params": params defining the alert rule
+
+Returns:
+
+- 200 if successfully updated
+
+- 400 if missing/malformed fields
+
+- 404 if alert rule with id does not exist
 
 - 500 if internal server error
 
