@@ -119,3 +119,65 @@ def get_vessel_of_interest_by_vessel_of_interest_id(vessel_of_interest_id: int) 
     finally:
         DBConn.close_session()
 
+def update_vessel_of_interest_data_in_db(vessel_of_interest_id: int,
+                                         desc_name: str = None, description: str = None,
+                                         mmsi: str = None, imo: str = None) -> bool:
+    '''
+    Updates an existing vessel in the database. Supports partial updates.
+
+    Args:
+        vessel_of_interest_id: int representing vessel_of_interest_id to be updated
+        desc_name: str = None, new user-defined name of vessel of interest
+        description: str = None, new description of vessel of interest
+        mmsi: str = None, new mmsi of vessel of interest
+        imo: str = None, new imo of vessel of interest
+
+    Returns:
+        True if successful
+    '''
+
+    session = DBConn.get_session()
+    try:
+        voi = session.query(VesselOfInterest).filter(VesselOfInterest.vessel_of_interest_id == vessel_of_interest_id).first()
+
+        if not voi:
+            return False
+
+        final_mmsi = voi.vessel_of_interest_mmsi
+        final_imo = voi.vessel_of_interest_imo
+
+        if desc_name is not None and desc_name != "" and not check_if_vessel_of_interest_name_exists(desc_name):
+            voi.vessel_of_interest_desc_name = desc_name
+
+        if description is not None:
+            voi.vessel_of_interest_description = description if description != "" else None
+
+        if mmsi is not None:
+            final_mmsi = mmsi if mmsi != "" else None
+            voi.vessel_of_interest_mmsi = final_mmsi
+
+        if imo is not None:
+            final_imo = imo if imo != "" else None
+            voi.vessel_of_interest_imo = final_imo
+
+        if not final_mmsi and not final_imo:
+            raise ValueError("Vessel of Interest must have at least an MMSI or an IMO.")
+
+        if final_mmsi and not (len(final_mmsi) == 9 and final_mmsi.isdigit()):
+            raise ValueError("MMSI must be 9 digits.")
+
+        if final_imo and not (len(final_imo) == 7 and final_imo.isdigit()):
+            raise ValueError("IMO must be 9 digits.")
+
+        session.commit()
+        return True
+
+    except ValueError as e:
+        session.rollback()
+        raise e
+    except Exception as e:
+        session.rollback()
+        logger.error("DB Error in update_vessel_of_interest_data_in_db: %s", str(e))
+        raise
+    finally:
+        DBConn.close_session()

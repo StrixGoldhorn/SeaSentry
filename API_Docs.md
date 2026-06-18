@@ -14,6 +14,7 @@ Fields are compulsory unless otherwise stated
     - [GET `/api/v1/vessel_of_interest/get/all`](#get-apiv1vessel_of_interestgetall)
     - [GET `/api/v1/vessel_of_interest/<vessel_of_interest_id>`](#get-apiv1vessel_of_interestvessel_of_interest_id)
     - [POST `/api/v1/vessel_of_interest/add`](#post-apiv1vessel_of_interestadd)
+    - [POST/PATCH `/api/v1/vessel_of_interest/<vessel_of_interest_id>/update`](#postpatch-apiv1vessel_of_interestvessel_of_interest_idupdate)
   - [AOIs](#aois)
     - [GET `/api/v1/aois/get/all`](#get-apiv1aoisgetall)
     - [GET `/api/v1/aois/<aoi_id>`](#get-apiv1aoisaoi_id)
@@ -166,6 +167,32 @@ Query Params:
 - mmsi: str (MMSI of the vessel of interest)
 
 - imo: str (IMO of the vessel of interest)
+
+### POST/PATCH `/api/v1/vessel_of_interest/<vessel_of_interest_id>/update`
+
+Summary: Updates an existing Vessel of Interest. Supports partial updates.
+
+Query Params (all optional, but at least one required):
+**Note**: Either MMSI, or IMO, or both MMSI and IMO must be present in the database after update.
+- desc_name: str (new user-defined name of Vessel of Interest)
+
+- desc: str (new description of Vessel of Interest)
+
+- mmsi: str (new mmsi of Vessel of Interest)
+
+- imo: str (new imo of Vessel of Interest)
+    
+Returns:
+
+- 200 if successfully updated
+
+- 400 if missing/malformed fields
+
+- 403 if new user-defined name already exists
+
+- 404 if Vessel of Interest with id does not exist
+
+- 500 if internal server error
 
 
 ## AOIs

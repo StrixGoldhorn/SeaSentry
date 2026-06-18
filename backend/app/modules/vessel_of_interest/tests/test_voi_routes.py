@@ -212,3 +212,125 @@ def test_get_voi_by_id_internal_error(mock_get_voi, client):
     data = json.loads(response.data)
     assert data['error'] == "Internal server error"
     assert "Database connection failed" in data['details']
+
+# ==========================================
+# Tests for POST/PATCH /api/v1/vessel_of_interest/<int:vessel_of_interest_id>/update
+# ==========================================
+
+@patch('app.modules.vessel_of_interest.routes.write_audit_log')
+@patch('app.modules.vessel_of_interest.routes.update_vessel_of_interest_data_in_db')
+@patch('app.modules.vessel_of_interest.routes.check_if_vessel_of_interest_name_exists')
+def test_update_voi_success(mock_check_name, mock_update, mock_audit, client):
+    '''
+    Test POST /api/v1/vessel_of_interest/<id>/update with valid params
+    '''
+    mock_check_name.return_value = False
+    mock_update.return_value = True
+
+    response = client.post('/api/v1/vessel_of_interest/1/update', data={
+        'desc_name': 'New Name',
+        'mmsi': '987654321'
+    })
+
+    assert response.status_code == 200
+    data = json.loads(response.data)
+    assert data['status'] == 'success'
+    assert data['vessel_of_interest_id'] == 1
+
+    mock_update.assert_called_once_with(
+        vessel_of_interest_id=1,
+        desc_name='New Name',
+        description=None,
+        mmsi='987654321',
+        imo=None
+    )
+
+@patch('app.modules.vessel_of_interest.routes.write_audit_log')
+@patch('app.modules.vessel_of_interest.routes.update_vessel_of_interest_data_in_db')
+@patch('app.modules.vessel_of_interest.routes.check_if_vessel_of_interest_name_exists')
+def test_update_voi_success_patch_method(mock_check_name, mock_update, mock_audit, client):
+    '''
+    Test PATCH /api/v1/vessel_of_interest/<id>/update to ensure PATCH method is supported
+    '''
+    mock_check_name.return_value = False
+    mock_update.return_value = True
+
+    response = client.patch('/api/v1/vessel_of_interest/1/update', data={
+        'imo': '1234567'
+    })
+
+    assert response.status_code == 200
+    data = json.loads(response.data)
+    assert data['status'] == 'success'
+
+def test_update_voi_no_fields(client):
+    '''
+    Test POST /api/v1/vessel_of_interest/<id>/update without any fields provided
+    '''
+    response = client.post('/api/v1/vessel_of_interest/1/update', data={})
+    assert response.status_code == 400
+    assert json.loads(response.data)['error'] == 'Requires at least 1 field to update.'
+
+@patch('app.modules.vessel_of_interest.routes.check_if_vessel_of_interest_name_exists')
+def test_update_voi_name_exists(mock_check_name, client):
+    '''
+    Test POST /api/v1/vessel_of_interest/<id>/update with an already existing name
+    '''
+    mock_check_name.return_value = True
+
+    response = client.post('/api/v1/vessel_of_interest/1/update', data={
+        'desc_name': 'Existing Name'
+    })
+    assert response.status_code == 403
+    assert 'already exists' in json.loads(response.data)['error']
+
+@patch('app.modules.vessel_of_interest.routes.update_vessel_of_interest_data_in_db')
+@patch('app.modules.vessel_of_interest.routes.check_if_vessel_of_interest_name_exists')
+def test_update_voi_not_found(mock_check_name, mock_update, client):
+    '''
+    Test POST /api/v1/vessel_of_interest/<id>/update when the vessel ID does not exist in DB
+    '''
+    mock_check_name.return_value = False
+    mock_update.return_value = False
+
+    response = client.post('/api/v1/vessel_of_interest/999/update', data={
+        'mmsi': '123456789'
+    })
+    assert response.status_code == 404
+    assert json.loads(response.data)['error'] == 'Vessel of Interest with ID 999 not found.'
+
+@patch('app.modules.vessel_of_interest.routes.update_vessel_of_interest_data_in_db')
+@patch('app.modules.vessel_of_interest.routes.check_if_vessel_of_interest_name_exists')
+def test_update_voi_value_error(mock_check_name, mock_update, client):
+    '''
+    Test POST /api/v1/vessel_of_interest/<id>/update when DB raises ValueError 
+    (e.g., attempting to clear both MMSI and IMO)
+    '''
+    mock_check_name.return_value = False
+    mock_update.side_effect = ValueError("Vessel of Interest must have at least an MMSI or an IMO")
+
+    response = client.post('/api/v1/vessel_of_interest/1/update', data={
+        'desc': 'abc',
+        'mmsi': '',
+        'imo': ''
+    })
+    assert response.status_code == 400
+    assert json.loads(response.data)['error'] == "Vessel of Interest must have at least an MMSI or an IMO"
+
+@patch('app.modules.vessel_of_interest.routes.write_audit_log')
+@patch('app.modules.vessel_of_interest.routes.update_vessel_of_interest_data_in_db')
+@patch('app.modules.vessel_of_interest.routes.check_if_vessel_of_interest_name_exists')
+def test_update_voi_internal_error(mock_check_name, mock_update, mock_audit, client):
+    '''
+    Test POST /api/v1/vessel_of_interest/<id>/update when DB raises a general exception
+    '''
+    mock_check_name.return_value = False
+    mock_update.side_effect = Exception("Database connection failed")
+
+    response = client.post('/api/v1/vessel_of_interest/1/update', data={
+        'desc': 'New Desc'
+    })
+    assert response.status_code == 500
+    data = json.loads(response.data)
+    assert data['error'] == 'Internal server error'
+    assert 'Database connection failed' in data['details']
