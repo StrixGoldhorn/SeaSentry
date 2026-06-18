@@ -35,6 +35,8 @@ Fields are compulsory unless otherwise stated
   - [Alert Rules](#alert-rules)
     - [GET `/api/v1/alerts/rule/all`](#get-apiv1alertsruleall)
     - [POST `/api/v1/alerts/rule/add`](#post-apiv1alertsruleadd)
+    - [POST `/api/v1/alerts/rule/<alert_rule_id>/mark/disable`](#post-apiv1alertsrulealert_rule_idmarkdisable)
+    - [POST `/api/v1/alerts/rule/<alert_rule_id>/mark/enable`](#post-apiv1alertsrulealert_rule_idmarkenable)
 - [Rule Configuration](#rule-configuration)
   - [Explanation](#explanation)
   - [Fields and Operators](#fields-and-operators)
@@ -147,17 +149,8 @@ Returns:
 
 Summary: Adds specified vessel of interest
 
-Returns:
-
-- 201 if successfully added
-
-- 400 if missing/malformed fields
-
-- 403 if name already exsts
-
-- 500 if internal server error
-
 Query Params:
+
 **Note**: Either MMSI, or IMO, or both MMSI and IMO must be present.
 
 - name: str (user-defined name for the vessel of interest)
@@ -168,12 +161,25 @@ Query Params:
 
 - imo: str (IMO of the vessel of interest)
 
+Returns:
+
+- 201 if successfully added
+
+- 400 if missing/malformed fields
+
+- 403 if name already exsts
+
+- 500 if internal server error
+
+
 ### POST/PATCH `/api/v1/vessel_of_interest/<vessel_of_interest_id>/update`
 
 Summary: Updates an existing Vessel of Interest. Supports partial updates.
 
 Query Params (all optional, but at least one required):
+
 **Note**: Either MMSI, or IMO, or both MMSI and IMO must be present in the database after update.
+
 - desc_name: str (new user-defined name of Vessel of Interest)
 
 - desc: str (new description of Vessel of Interest)
@@ -516,8 +522,29 @@ Returns:
 
 - 500 if internal server error
 
+### POST `/api/v1/alerts/rule/<alert_rule_id>/mark/disable`
 
+Summary: Marks the given alert rule as disabled
 
+Returns:
+
+- 200 if successfully marked as disabled
+
+- 404 if no such alert rule with given id exists
+
+- 500 if internal server error
+
+### POST `/api/v1/alerts/rule/<alert_rule_id>/mark/enable`
+
+Summary: Marks the given alert rule as enabled
+
+Returns:
+
+- 200 if successfully marked as enabled
+
+- 404 if no such alert rule with given id exists
+
+- 500 if internal server error
 
 
 # Rule Configuration

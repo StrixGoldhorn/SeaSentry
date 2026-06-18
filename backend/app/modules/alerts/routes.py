@@ -11,6 +11,7 @@ from app.utils.audit_log_helpers import write_audit_log
 from app.utils.alert_helpers import (
     get_all_alert_history, get_all_alert_rule,
     mark_alert_as_read, mark_alert_as_unread,
+    mark_rule_as_disable, mark_rule_as_enable,
     add_alert_rule_to_db
     )
 
@@ -96,7 +97,7 @@ def get_all_alert_history_web():
         }), 200
 
     except Exception as e:
-        logger.error("Error in get_all_alert_history_web: %s", e, exc_info=Settings.EXEC_INFO_API)
+        logger.error("Error in get_all_alert_history_web: %s", str(e), exc_info=Settings.EXEC_INFO_API)
         return jsonify({"error": "Internal server error", "details": str(e)}), 500
 
 @alerts_bp.route('/history/unread', methods=['GET'])
@@ -176,7 +177,7 @@ def get_unread_alert_history():
         }), 200
 
     except Exception as e:
-        logger.error("Error in get_unread_alert_history: %s", e, exc_info=Settings.EXEC_INFO_API)
+        logger.error("Error in get_unread_alert_history: %s", str(e), exc_info=Settings.EXEC_INFO_API)
         return jsonify({"error": "Internal server error", "details": str(e)}), 500
 
 @alerts_bp.route('/history/<int:alert_history_id>/mark/read', methods=['POST'])
@@ -199,7 +200,7 @@ def mark_alert_history_read(alert_history_id: int):
             }), 404
 
     except Exception as e:
-        logger.error("Error in mark_alert_history_read: %s", e, exc_info=Settings.EXEC_INFO_API)
+        logger.error("Error in mark_alert_history_read: %s", str(e), exc_info=Settings.EXEC_INFO_API)
         return jsonify({"error": "Internal server error", "details": str(e)}), 500
 
 @alerts_bp.route('/history/<int:alert_history_id>/mark/unread', methods=['POST'])
@@ -222,7 +223,7 @@ def mark_alert_history_unread(alert_history_id: int):
             }), 404
 
     except Exception as e:
-        logger.error("Error in mark_alert_history_unread: %s", e, exc_info=Settings.EXEC_INFO_API)
+        logger.error("Error in mark_alert_history_unread: %s", str(e), exc_info=Settings.EXEC_INFO_API)
         return jsonify({"error": "Internal server error", "details": str(e)}), 500
 
 @alerts_bp.route('/rule/all', methods=['GET'])
@@ -320,7 +321,7 @@ def add_alert_rule_web():
 
         try:
             validated_params = RuleTreeAdapter.validate_python(rule_params)
-            
+ 
             try:
                 build_sqlalchemy_expression(validated_params)
             except ValueError as e:
@@ -349,4 +350,50 @@ def add_alert_rule_web():
     except Exception as e:
         logger.error("Error in add_alert_rule_web: %s", str(e), exc_info=Settings.EXEC_INFO_API)
         write_audit_log("Error adding alert rule", __name__, {"info": str(e), "payload": str(data)}, "ERROR")
+        return jsonify({"error": "Internal server error", "details": str(e)}), 500
+
+@alerts_bp.route('/rule/<int:alert_rule_id>/mark/disable', methods=['POST'])
+def mark_alert_rule_disable(alert_rule_id: int):
+    '''
+    POST /api/v1/rule/<int:alert_rule_id>/disable
+    Disables the selected alert rule
+    '''
+    try:
+        success = mark_rule_as_disable(alert_rule_id)
+
+        if success:
+            return jsonify({
+                "status": "success"
+            }), 200
+        else:
+            return jsonify({
+                "status": "error",
+                "message": f"Rule with id {alert_rule_id} not found"
+            }), 404
+
+    except Exception as e:
+        logger.error("Error in mark_alert_rule_disable: %s", str(e), exc_info=Settings.EXEC_INFO_API)
+        return jsonify({"error": "Internal server error", "details": str(e)}), 500
+    
+@alerts_bp.route('/rule/<int:alert_rule_id>/mark/enable', methods=['POST'])
+def mark_alert_rule_enable(alert_rule_id: int):
+    '''
+    POST /api/v1/rule/<int:alert_rule_id>/enable
+    Enables the selected alert rule
+    '''
+    try:
+        success = mark_rule_as_enable(alert_rule_id)
+
+        if success:
+            return jsonify({
+                "status": "success"
+            }), 200
+        else:
+            return jsonify({
+                "status": "error",
+                "message": f"Rule with id {alert_rule_id} not found"
+            }), 404
+
+    except Exception as e:
+        logger.error("Error in mark_alert_rule_enable: %s", str(e), exc_info=Settings.EXEC_INFO_API)
         return jsonify({"error": "Internal server error", "details": str(e)}), 500

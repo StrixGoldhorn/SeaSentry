@@ -303,3 +303,95 @@ def test_add_alert_rule_internal_error(mock_validate, mock_add_db, mock_audit, m
     assert "Internal server error" in data['error']
 
     mock_audit.assert_called_once()
+
+# ==========================================
+# Tests for POST /api/v1/alerts/rule/<id>/mark/disable
+# ==========================================
+
+@patch('app.modules.alerts.routes.mark_rule_as_disable')
+def test_mark_alert_rule_disable_success(mock_disable, client):
+    '''
+    Test disabling an alert rule successfully
+    '''
+    mock_disable.return_value = True
+
+    response = client.post('/api/v1/alerts/rule/5/mark/disable')
+
+    assert response.status_code == 200
+    data = json.loads(response.data)
+    assert data['status'] == 'success'
+    mock_disable.assert_called_once_with(5)
+
+@patch('app.modules.alerts.routes.mark_rule_as_disable')
+def test_mark_alert_rule_disable_not_found(mock_disable, client):
+    '''
+    Test disabling a non-existent alert rule
+    '''
+    mock_disable.return_value = False
+
+    response = client.post('/api/v1/alerts/rule/999/mark/disable')
+
+    assert response.status_code == 404
+    data = json.loads(response.data)
+    assert data['status'] == 'error'
+    assert 'not found' in data['message']
+
+@patch('app.modules.alerts.routes.mark_rule_as_disable')
+def test_mark_alert_rule_disable_internal_error(mock_disable, client):
+    '''
+    Test internal server error when disabling an alert rule
+    '''
+    mock_disable.side_effect = Exception("Database connection failed")
+
+    response = client.post('/api/v1/alerts/rule/5/mark/disable')
+
+    assert response.status_code == 500
+    data = json.loads(response.data)
+    assert data['error'] == 'Internal server error'
+    assert 'Database connection failed' in data['details']
+
+# ==========================================
+# Tests for POST /api/v1/alerts/rule/<id>/mark/enable
+# ==========================================
+
+@patch('app.modules.alerts.routes.mark_rule_as_enable')
+def test_mark_alert_rule_enable_success(mock_enable, client):
+    '''
+    Test enabling an alert rule successfully
+    '''
+    mock_enable.return_value = True
+
+    response = client.post('/api/v1/alerts/rule/5/mark/enable')
+
+    assert response.status_code == 200
+    data = json.loads(response.data)
+    assert data['status'] == 'success'
+    mock_enable.assert_called_once_with(5)
+
+@patch('app.modules.alerts.routes.mark_rule_as_enable')
+def test_mark_alert_rule_enable_not_found(mock_enable, client):
+    '''
+    Test enabling a non-existent alert rule
+    '''
+    mock_enable.return_value = False
+
+    response = client.post('/api/v1/alerts/rule/999/mark/enable')
+
+    assert response.status_code == 404
+    data = json.loads(response.data)
+    assert data['status'] == 'error'
+    assert 'not found' in data['message']
+
+@patch('app.modules.alerts.routes.mark_rule_as_enable')
+def test_mark_alert_rule_enable_internal_error(mock_enable, client):
+    '''
+    Test internal server error when enabling an alert rule
+    '''
+    mock_enable.side_effect = Exception("Database connection failed")
+
+    response = client.post('/api/v1/alerts/rule/5/mark/enable')
+
+    assert response.status_code == 500
+    data = json.loads(response.data)
+    assert data['error'] == 'Internal server error'
+    assert 'Database connection failed' in data['details']
