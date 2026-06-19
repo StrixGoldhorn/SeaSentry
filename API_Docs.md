@@ -14,12 +14,14 @@ Fields are compulsory unless otherwise stated
     - [GET `/api/v1/vessel_of_interest/get/all`](#get-apiv1vessel_of_interestgetall)
     - [GET `/api/v1/vessel_of_interest/<vessel_of_interest_id>`](#get-apiv1vessel_of_interestvessel_of_interest_id)
     - [POST `/api/v1/vessel_of_interest/add`](#post-apiv1vessel_of_interestadd)
+    - [POST/PATCH `/api/v1/vessel_of_interest/<vessel_of_interest_id>/update`](#postpatch-apiv1vessel_of_interestvessel_of_interest_idupdate)
   - [AOIs](#aois)
     - [GET `/api/v1/aois/get/all`](#get-apiv1aoisgetall)
     - [GET `/api/v1/aois/<aoi_id>`](#get-apiv1aoisaoi_id)
     - [POST `/api/v1/aois/add/box`](#post-apiv1aoisaddbox)
     - [POST `/api/v1/aois/add/polygon`](#post-apiv1aoisaddpolygon)
     - [POST/PATCH `/api/v1/aois/<aoi_id>/update`](#postpatch-apiv1aoisaoi_idupdate)
+    - [DELETE `/api/v1/aois/<aoi_id>/delete`](#delete-apiv1aoisaoi_iddelete)
   - [Geofences](#geofences)
     - [GET `/api/v1/geofences/get/all`](#get-apiv1geofencesgetall)
     - [GET `/api/v1/geofences/<geofence_id>`](#get-apiv1geofencesgeofence_id)
@@ -34,6 +36,9 @@ Fields are compulsory unless otherwise stated
   - [Alert Rules](#alert-rules)
     - [GET `/api/v1/alerts/rule/all`](#get-apiv1alertsruleall)
     - [POST `/api/v1/alerts/rule/add`](#post-apiv1alertsruleadd)
+    - [POST `/api/v1/alerts/rule/<alert_rule_id>/update`](#post-apiv1alertsrulealert_rule_idupdate)
+    - [POST `/api/v1/alerts/rule/<alert_rule_id>/mark/disable`](#post-apiv1alertsrulealert_rule_idmarkdisable)
+    - [POST `/api/v1/alerts/rule/<alert_rule_id>/mark/enable`](#post-apiv1alertsrulealert_rule_idmarkenable)
 - [Rule Configuration](#rule-configuration)
   - [Explanation](#explanation)
   - [Fields and Operators](#fields-and-operators)
@@ -146,6 +151,18 @@ Returns:
 
 Summary: Adds specified vessel of interest
 
+Query Params:
+
+**Note**: Either MMSI, or IMO, or both MMSI and IMO must be present.
+
+- name: str (user-defined name for the vessel of interest)
+
+- desc: str (optional, description of the vessel of interest)
+
+- mmsi: str (MMSI of the vessel of interest)
+
+- imo: str (IMO of the vessel of interest)
+
 Returns:
 
 - 201 if successfully added
@@ -156,16 +173,34 @@ Returns:
 
 - 500 if internal server error
 
-Query Params:
-**Note**: Either MMSI, or IMO, or both MMSI and IMO must be present.
 
-- name: str (user-defined name for the vessel of interest)
+### POST/PATCH `/api/v1/vessel_of_interest/<vessel_of_interest_id>/update`
 
-- desc: str (optional, description of the vessel of interest)
+Summary: Updates an existing Vessel of Interest. Supports partial updates.
 
-- mmsi: str (MMSI of the vessel of interest)
+Query Params (all optional, but at least one required):
 
-- imo: str (IMO of the vessel of interest)
+**Note**: Either MMSI, or IMO, or both MMSI and IMO must be present in the database after update.
+
+- desc_name: str (new user-defined name of Vessel of Interest)
+
+- desc: str (new description of Vessel of Interest)
+
+- mmsi: str (new mmsi of Vessel of Interest)
+
+- imo: str (new imo of Vessel of Interest)
+    
+Returns:
+
+- 200 if successfully updated
+
+- 400 if missing/malformed fields
+
+- 403 if new user-defined name already exists
+
+- 404 if Vessel of Interest with id does not exist
+
+- 500 if internal server error
 
 
 ## AOIs
@@ -254,6 +289,27 @@ Returns:
 - 200 if successfully updated
 
 - 400 if missing/malformed fields
+
+- 404 if AOI with id does not exist
+
+- 500 if internal server error
+
+### DELETE `/api/v1/aois/<aoi_id>/delete`
+
+Summary: Deletes an existing Area of Interest.
+
+Query Param:
+- aoi_name: Name of the AOI to be deleted.
+
+**Note**: The above is done soley to ensure that the user does not accidentally delete the wrong AOI.
+    
+Returns:
+
+- 200 if successfully deleted
+
+- 400 if missing/malformed fields
+
+- 403 if provided aoi_name is incorrect
 
 - 404 if AOI with id does not exist
 
@@ -489,8 +545,50 @@ Returns:
 
 - 500 if internal server error
 
+### POST `/api/v1/alerts/rule/<alert_rule_id>/update`
 
+Summary: Updates an existing alert rule. Supports partial updates.
 
+Query param:
+
+JSON with the keys:
+- "name": name of alert, must be unique
+- "desc" (optional): description of alert
+- "params": params defining the alert rule
+
+Returns:
+
+- 200 if successfully updated
+
+- 400 if missing/malformed fields
+
+- 404 if alert rule with id does not exist
+
+- 500 if internal server error
+
+### POST `/api/v1/alerts/rule/<alert_rule_id>/mark/disable`
+
+Summary: Marks the given alert rule as disabled
+
+Returns:
+
+- 200 if successfully marked as disabled
+
+- 404 if no such alert rule with given id exists
+
+- 500 if internal server error
+
+### POST `/api/v1/alerts/rule/<alert_rule_id>/mark/enable`
+
+Summary: Marks the given alert rule as enabled
+
+Returns:
+
+- 200 if successfully marked as enabled
+
+- 404 if no such alert rule with given id exists
+
+- 500 if internal server error
 
 
 # Rule Configuration

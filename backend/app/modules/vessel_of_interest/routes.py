@@ -9,6 +9,7 @@ from app.core.config import Settings
 from app.models.vessel import VesselData, VesselLocation
 from app.utils.vessel_of_interest_helpers import (get_all_vessel_of_interest, get_vessel_of_interest_by_vessel_of_interest_id,
                                                   add_vessel_of_interest,
+                                                  update_vessel_of_interest_data_in_db,
                                                   check_if_vessel_of_interest_name_exists)
 from app.utils.audit_log_helpers import write_audit_log
 
@@ -126,4 +127,51 @@ def get_vessel_of_interest_by_vessel_of_interest_id_web(vessel_of_interest_id):
     except Exception as e:
         logger.error("Error in get_vessel_of_interest_by_vessel_of_interest_id: %s", str(e), exc_info=Settings.EXEC_INFO_API)
         write_audit_log("Error in get_vessel_of_interest_by_vessel_of_interest_id", __name__, {"info": str(e)}, "ERROR")
+        return jsonify({"error": "Internal server error", "details": str(e)}), 500
+
+@vessel_of_interest_bp.route('/<int:vessel_of_interest_id>/update', methods=['POST', 'PATCH'])
+def update_vessel_of_interest_by_id(vessel_of_interest_id):
+    '''
+    POST/PATCH /api/v1/aois/<vessel_of_interest_id>/update
+    Updates an existing Vessel of Interest. Supports partial updates.
+    
+    Query Params (all optional, but at least one required):
+    - desc_name: str (new user-defined name of vessel of interest)
+    - desc: str (new description of vessel of interest)
+    - mmsi: str (new mmsi of vessel of interest)
+    - imo: str (new imo of vessel of interest)
+    '''
+
+    try:
+        name_raw = request.form.get("desc_name")
+        desc_raw = request.form.get("desc")
+        mmsi_raw = request.form.get("mmsi")
+        imo_raw = request.form.get("imo")
+
+        if not any([name_raw, desc_raw, mmsi_raw, imo_raw]):
+            return jsonify({"error": "Requires at least 1 field to update."}), 400
+
+        if name_raw is not None and check_if_vessel_of_interest_name_exists(name_raw):
+            return jsonify({"error": f"Vessel of Interest with name '{name_raw}' already exists."}), 403
+
+        success = update_vessel_of_interest_data_in_db(
+            vessel_of_interest_id=vessel_of_interest_id,
+            desc_name=str(name_raw).strip() if name_raw is not None else None,
+            description=str(desc_raw).strip() if desc_raw is not None else None,
+            mmsi=str(mmsi_raw).strip() if mmsi_raw is not None else None,
+            imo=str(imo_raw).strip() if imo_raw is not None else None,
+        )
+
+        if not success:
+            return jsonify({"error": f"Vessel of Interest with ID {vessel_of_interest_id} not found."}), 404
+
+        write_audit_log("Updated Vessel of Interest", __name__, {"vessel_of_interest_id": vessel_of_interest_id, "client-form": str(request.form)}, "INFO")
+        return jsonify({"status": "success", "vessel_of_interest_id": vessel_of_interest_id, "message": "Vessel of Interest updated successfully."}), 200
+
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+
+    except Exception as e:
+        logger.error("Error in update_vessel_of_interest_by_id: %s", str(e), exc_info=Settings.EXEC_INFO_API)
+        write_audit_log("Error in update_vessel_of_interest_by_id", __name__, {"vessel_of_interest_id": vessel_of_interest_id, "info": str(e)}, "ERROR")
         return jsonify({"error": "Internal server error", "details": str(e)}), 500

@@ -64,6 +64,26 @@ def get_all_alert_rule() -> List[AlertRule]:
         if session:
             DBConn.close_session()
 
+def get_alert_rule_by_id(alert_rule_id: int) -> AlertRule:
+    '''
+    Fetches alert rule with given alert_rule_id from DB.
+    Returns list of AlertRule objects.
+    '''
+
+    session = DBConn.get_session()
+    try:
+        query = session.query(AlertRule).filter(AlertRule.alert_rule_id == alert_rule_id)
+        res = query.first()
+        return res
+
+    except Exception as e:
+        logger.error("Error in get_all_alert_rule: %s", e, exc_info=True)
+        return []
+
+    finally:
+        if session:
+            DBConn.close_session()
+
 def add_alert_rule_to_db(name: str, desc: str, params: Dict) -> int:
 
     rule = AlertRule(
@@ -153,32 +173,109 @@ def mark_alert_as_unread(alert_id: int):
     finally:
         DBConn.close_session()
 
-# def DBG_INSERT_DEFAULT_AOI():
-#     logging.warning("ADDING DEFAULT AOI TO DB-------------------------------------")
-#     add_rectangle_aoi_to_db(
-#         "Default Brani",
-#         103.82335160632802,
-#         103.85594676548685,
-#         1.2535264424975803,
-#         1.266477533544827
-#     )
+def mark_rule_as_disable(alert_rule_id: int):
+    '''
+    Disables rule
+    
+    Args:
+        alert_rule_id: id of alert to be disabled
+    
+    Returns:
+        True if successful
+    '''
 
-# if __name__ == "__main__":
-#     # {
-#     #     "long_min": 103.82335160632802,
-#     #     "long_max": 103.85594676548685,
-#     #     "lat_min": 1.2535264424975803,
-#     #     "lat_max": 1.266477533544827
-#     # }
-#     ADD_DEFAULT = False
-#     if ADD_DEFAULT:
-#         import time
-#         time.sleep(15)
-#         logging.warning("ADDING TO DB-------------------------------------")
-#         add_rectangle_aoi_to_db(
-#             "Default Brani",
-#             103.82335160632802,
-#             103.85594676548685,
-#             1.2535264424975803,
-#             1.266477533544827
-#         )
+    session = DBConn.get_session()
+    try:
+        alert = session.query(AlertRule).filter(AlertRule.alert_rule_id == alert_rule_id).first()
+        if not alert:
+            return False
+        alert.alert_rule_enabled = False
+        session.commit()
+        logger.info("Marked alert rule id %d as disabled", alert.alert_rule_id)
+        return True
+
+    except Exception as e:
+        session.rollback()
+        logger.error("Failed to mark rule id %d as disabled: %s", alert_rule_id, str(e), exc_info=True)
+        raise
+
+    finally:
+        DBConn.close_session()
+
+def mark_rule_as_enable(alert_rule_id: int):
+    '''
+    Enables rule
+    
+    Args:
+        alert_rule_id: id of alert to be enabled
+    
+    Returns:
+        True if successful
+    '''
+
+    session = DBConn.get_session()
+    try:
+        alert = session.query(AlertRule).filter(AlertRule.alert_rule_id == alert_rule_id).first()
+        if not alert:
+            return False
+        alert.alert_rule_enabled = True
+        session.commit()
+        logger.info("Marked alert rule id %d as enabled", alert.alert_rule_id)
+        return True
+
+    except Exception as e:
+        session.rollback()
+        logger.error("Failed to mark rule id %d as enabled: %s", alert_rule_id, str(e), exc_info=True)
+        raise
+
+    finally:
+        DBConn.close_session()
+
+def update_alert_rule_in_db(alert_rule_id: int,
+                            name: str = None, desc: str = None,
+                            params: Dict = None) -> bool:
+    '''
+    Updates an existing vessel in the database. Supports partial updates.
+
+    Args:
+        alert_rule_id: int representing vessel_of_interest_id to be updated
+        alert_rule_name: str = None, new name of alert rule
+        alert_rule_description: str = None, new description of alert rule
+        alert_rule_params: Dict = None, new of params alert rule
+
+    Returns:
+        True if successful
+    '''
+
+    session = DBConn.get_session()
+    try:
+        rule = session.query(AlertRule).filter(AlertRule.alert_rule_id == alert_rule_id).first()
+
+        if not rule:
+            return False
+
+        if name is not None:
+            rule.alert_rule_name = name
+
+        if desc is not None:
+            rule.alert_rule_description = desc
+
+        if params is not None:
+            rule.alert_rule_params = params
+
+        session.commit()
+        logger.info("Updated alert rule id %d", alert_rule_id)
+        return True
+
+    except IntegrityError as e:
+        session.rollback()
+        logger.warning("Rule name '%s' already exists or violates unique constraint.", name)
+        raise ValueError(f"Rule name '{name}' must be unique.") from e
+
+    except Exception as e:
+        session.rollback()
+        logger.error("Failed to update rule id %d: %s", alert_rule_id, e, exc_info=True)
+        raise
+
+    finally:
+        DBConn.close_session()

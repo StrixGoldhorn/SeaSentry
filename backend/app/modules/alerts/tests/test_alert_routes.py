@@ -23,10 +23,6 @@ def client(app):
     '''
     return app.test_client()
 
-# ==========================================
-# Helper Mocks
-# ==========================================
-
 def create_mock_alert_history(alert_id=1, is_read=False):
     '''Helper to create a mock AlertHistory object'''
     mock_alert = MagicMock()
@@ -188,18 +184,18 @@ def test_get_all_alert_rule_success(mock_get_rules, client):
 # ==========================================
 # Tests for POST /api/v1/alerts/rule/add/
 # ==========================================
-
+@patch('app.modules.alerts.routes.build_sqlalchemy_expression')
 @patch('app.modules.alerts.routes.add_alert_rule_to_db')
 @patch('app.modules.alerts.routes.RuleTreeAdapter.validate_python')
-def test_add_alert_rule_single_success(mock_validate, mock_add_db, client):
+def test_add_alert_rule_single_success(mock_validate, mock_add_db, mock_build_expr, client):
     '''
     Test adding a single valid alert rule
     '''
-    # Mock the validated params object
     mock_validated_params = MagicMock()
     mock_validated_params.model_dump.return_value = {"field": "speed", "operator": ">", "value": 10.0}
     mock_validate.return_value = mock_validated_params
 
+    mock_build_expr.return_value = True
     mock_add_db.return_value = 42
 
     payload = {
@@ -218,15 +214,17 @@ def test_add_alert_rule_single_success(mock_validate, mock_add_db, client):
     mock_validate.assert_called_once_with(payload['params'])
     mock_add_db.assert_called_once_with("High Speed Alert", "Triggers when speed > 10", mock_validated_params.model_dump.return_value)
 
+@patch('app.modules.alerts.routes.build_sqlalchemy_expression')
 @patch('app.modules.alerts.routes.add_alert_rule_to_db')
 @patch('app.modules.alerts.routes.RuleTreeAdapter.validate_python')
-def test_add_alert_rule_combined_success(mock_validate, mock_add_db, client):
+def test_add_alert_rule_combined_success(mock_validate, mock_add_db, mock_build_expr, client):
     '''
     Test adding a combined (OR/AND) alert rule
     '''
     mock_validated_params = MagicMock()
     mock_validated_params.model_dump.return_value = {"rules": [], "combinator": "or"}
     mock_validate.return_value = mock_validated_params
+    mock_build_expr.return_value = True
     mock_add_db.return_value = 43
 
     payload = {
@@ -282,16 +280,18 @@ def test_add_alert_rule_invalid_params(mock_validate, client):
     data = json.loads(response.data)
     assert "Invalid rule parameters" in data['error']
 
+@patch('app.modules.alerts.routes.build_sqlalchemy_expression')
 @patch('app.modules.alerts.routes.write_audit_log')
 @patch('app.modules.alerts.routes.add_alert_rule_to_db')
 @patch('app.modules.alerts.routes.RuleTreeAdapter.validate_python')
-def test_add_alert_rule_internal_error(mock_validate, mock_add_db, mock_audit, client):
+def test_add_alert_rule_internal_error(mock_validate, mock_add_db, mock_audit, mock_build_expr, client):
     '''
     Test that internal server errors are caught, logged, and return 500
     '''
     mock_validated_params = MagicMock()
     mock_validated_params.model_dump.return_value = {}
     mock_validate.return_value = mock_validated_params
+    mock_build_expr.return_value = True
 
     mock_add_db.side_effect = Exception("Database connection failed")
 
@@ -301,5 +301,253 @@ def test_add_alert_rule_internal_error(mock_validate, mock_add_db, mock_audit, c
     assert response.status_code == 500
     data = json.loads(response.data)
     assert "Internal server error" in data['error']
+
+    mock_audit.assert_called_once()
+
+# ==========================================
+# Tests for POST /api/v1/alerts/rule/<id>/mark/disable
+# ==========================================
+
+@patch('app.modules.alerts.routes.mark_rule_as_disable')
+def test_mark_alert_rule_disable_success(mock_disable, client):
+    '''
+    Test disabling an alert rule successfully
+    '''
+    mock_disable.return_value = True
+
+    response = client.post('/api/v1/alerts/rule/5/mark/disable')
+
+    assert response.status_code == 200
+    data = json.loads(response.data)
+    assert data['status'] == 'success'
+    mock_disable.assert_called_once_with(5)
+
+@patch('app.modules.alerts.routes.mark_rule_as_disable')
+def test_mark_alert_rule_disable_not_found(mock_disable, client):
+    '''
+    Test disabling a non-existent alert rule
+    '''
+    mock_disable.return_value = False
+
+    response = client.post('/api/v1/alerts/rule/999/mark/disable')
+
+    assert response.status_code == 404
+    data = json.loads(response.data)
+    assert data['status'] == 'error'
+    assert 'not found' in data['message']
+
+@patch('app.modules.alerts.routes.mark_rule_as_disable')
+def test_mark_alert_rule_disable_internal_error(mock_disable, client):
+    '''
+    Test internal server error when disabling an alert rule
+    '''
+    mock_disable.side_effect = Exception("Database connection failed")
+
+    response = client.post('/api/v1/alerts/rule/5/mark/disable')
+
+    assert response.status_code == 500
+    data = json.loads(response.data)
+    assert data['error'] == 'Internal server error'
+    assert 'Database connection failed' in data['details']
+
+# ==========================================
+# Tests for POST /api/v1/alerts/rule/<id>/mark/enable
+# ==========================================
+
+@patch('app.modules.alerts.routes.mark_rule_as_enable')
+def test_mark_alert_rule_enable_success(mock_enable, client):
+    '''
+    Test enabling an alert rule successfully
+    '''
+    mock_enable.return_value = True
+
+    response = client.post('/api/v1/alerts/rule/5/mark/enable')
+
+    assert response.status_code == 200
+    data = json.loads(response.data)
+    assert data['status'] == 'success'
+    mock_enable.assert_called_once_with(5)
+
+@patch('app.modules.alerts.routes.mark_rule_as_enable')
+def test_mark_alert_rule_enable_not_found(mock_enable, client):
+    '''
+    Test enabling a non-existent alert rule
+    '''
+    mock_enable.return_value = False
+
+    response = client.post('/api/v1/alerts/rule/999/mark/enable')
+
+    assert response.status_code == 404
+    data = json.loads(response.data)
+    assert data['status'] == 'error'
+    assert 'not found' in data['message']
+
+@patch('app.modules.alerts.routes.mark_rule_as_enable')
+def test_mark_alert_rule_enable_internal_error(mock_enable, client):
+    '''
+    Test internal server error when enabling an alert rule
+    '''
+    mock_enable.side_effect = Exception("Database connection failed")
+
+    response = client.post('/api/v1/alerts/rule/5/mark/enable')
+
+    assert response.status_code == 500
+    data = json.loads(response.data)
+    assert data['error'] == 'Internal server error'
+    assert 'Database connection failed' in data['details']
+
+# ==========================================
+# Tests for POST/PATCH/PUT /api/v1/alerts/rule/<id>/update
+# ==========================================
+
+@patch('app.modules.alerts.routes.update_alert_rule_in_db')
+def test_update_alert_rule_success_name_only(mock_update, client):
+    '''
+    Test updating just the name of an alert rule
+    '''
+    mock_update.return_value = True
+
+    payload = {"name": "Updated Rule Name"}
+    response = client.post('/api/v1/alerts/rule/5/update', json=payload)
+
+    assert response.status_code == 200
+    data = json.loads(response.data)
+    assert data['status'] == 'success'
+    assert data['alert_rule_id'] == 5
+
+    mock_update.assert_called_once_with(
+        alert_rule_id=5,
+        name="Updated Rule Name",
+        desc=None,
+        params=None
+    )
+
+@patch('app.modules.alerts.routes.build_sqlalchemy_expression')
+@patch('app.modules.alerts.routes.update_alert_rule_in_db')
+@patch('app.modules.alerts.routes.RuleTreeAdapter.validate_python')
+def test_update_alert_rule_success_with_params(mock_validate, mock_update, mock_build_expr, client):
+    '''
+    Test updating the params of an alert rule (requires validation and dry-run)
+    '''
+    mock_validated_params = MagicMock()
+    mock_validated_params.model_dump.return_value = {"field": "speed", "operator": ">", "value": 20.0}
+    mock_validate.return_value = mock_validated_params
+    mock_build_expr.return_value = True
+    mock_update.return_value = True
+
+    payload = {
+        "params": {"field": "speed", "operator": ">", "value": 20.0}
+    }
+    response = client.patch('/api/v1/alerts/rule/5/update', json=payload)
+
+    assert response.status_code == 200
+    data = json.loads(response.data)
+    assert data['status'] == 'success'
+
+    mock_validate.assert_called_once_with(payload['params'])
+    mock_update.assert_called_once_with(
+        alert_rule_id=5,
+        name=None,
+        desc=None,
+        params=mock_validated_params.model_dump.return_value
+    )
+
+def test_update_alert_rule_missing_all_fields(client):
+    '''
+    Test updating without providing any fields to update
+    '''
+    payload = {}
+    response = client.post('/api/v1/alerts/rule/5/update', json=payload)
+
+    assert response.status_code == 400
+    data = json.loads(response.data)
+    assert "At least one field" in data['error']
+
+@patch('app.modules.alerts.routes.RuleTreeAdapter.validate_python')
+def test_update_alert_rule_invalid_params_structure(mock_validate, client):
+    '''
+    Test updating params where Pydantic validation fails
+    '''
+    mock_validate.side_effect = ValueError("Invalid structure")
+
+    payload = {"params": {"invalid": "structure"}}
+    response = client.post('/api/v1/alerts/rule/5/update', json=payload)
+
+    assert response.status_code == 400
+    data = json.loads(response.data)
+    assert "Invalid rule parameters" in data['error']
+
+@patch('app.modules.alerts.routes.build_sqlalchemy_expression')
+@patch('app.modules.alerts.routes.RuleTreeAdapter.validate_python')
+def test_update_alert_rule_invalid_params_logic(mock_validate, mock_build_expr, client):
+    '''
+    Test updating params where SQLAlchemy dry-run fails (ValueError)
+    '''
+    mock_validated_params = MagicMock()
+    mock_validate.return_value = mock_validated_params
+    mock_build_expr.side_effect = ValueError("Invalid operator for mmsi")
+
+    payload = {"params": {"field": "mmsi", "operator": "LIKE", "value": "123"}}
+    response = client.post('/api/v1/alerts/rule/5/update', json=payload)
+
+    assert response.status_code == 400
+    data = json.loads(response.data)
+    assert "Invalid rule logic" in data['error']
+
+@patch('app.modules.alerts.routes.build_sqlalchemy_expression')
+@patch('app.modules.alerts.routes.update_alert_rule_in_db')
+@patch('app.modules.alerts.routes.RuleTreeAdapter.validate_python')
+def test_update_alert_rule_not_found(mock_validate, mock_update, mock_build_expr, client):
+    '''
+    Test updating a non-existent alert rule
+    '''
+    mock_validated_params = MagicMock()
+    mock_validated_params.model_dump.return_value = {}
+    mock_validate.return_value = mock_validated_params
+    mock_build_expr.return_value = True
+    mock_update.return_value = False
+
+    payload = {"name": "New Name", "params": {}}
+    response = client.post('/api/v1/alerts/rule/999/update', json=payload)
+
+    assert response.status_code == 404
+    data = json.loads(response.data)
+    assert data['status'] == 'error'
+    assert 'not found' in data['message']
+
+@patch('app.modules.alerts.routes.build_sqlalchemy_expression')
+@patch('app.modules.alerts.routes.update_alert_rule_in_db')
+@patch('app.modules.alerts.routes.RuleTreeAdapter.validate_python')
+def test_update_alert_rule_integrity_error(mock_validate, mock_update, mock_build_expr, client):
+    '''
+    Test updating a rule name to one that already exists (raises ValueError from DB helper)
+    '''
+    mock_validated_params = MagicMock()
+    mock_validated_params.model_dump.return_value = {}
+    mock_validate.return_value = mock_validated_params
+    mock_build_expr.return_value = True
+    mock_update.side_effect = ValueError("Rule name 'New Name' must be unique.")
+
+    payload = {"name": "New Name", "params": {}}
+    response = client.post('/api/v1/alerts/rule/5/update', json=payload)
+
+    assert response.status_code == 400
+    data = json.loads(response.data)
+    assert "must be unique" in data['error']
+
+@patch('app.modules.alerts.routes.write_audit_log')
+@patch('app.modules.alerts.routes.update_alert_rule_in_db')
+def test_update_alert_rule_internal_error(mock_update, mock_audit, client):
+    '''
+    Test internal server error when updating an alert rule
+    '''
+    mock_update.side_effect = Exception("Database connection failed")
+
+    payload = {"name": "New Name"}
+    response = client.post('/api/v1/alerts/rule/5/update', json=payload)
+
+    assert response.status_code == 500
+    data = json.loads(response.data)
+    assert data['error'] == 'Internal server error'
 
     mock_audit.assert_called_once()

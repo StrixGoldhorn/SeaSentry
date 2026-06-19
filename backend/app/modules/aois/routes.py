@@ -12,6 +12,7 @@ from app.core.config import Settings
 from app.utils.aoi_helpers import (add_rectangle_aoi_to_db, add_polygon_aoi_to_db,
                                    get_all_aois, get_aoi_polygon_vertices, get_aoi_by_id,
                                    update_aoi_in_db,
+                                   delete_aoi_in_db,
                                    check_if_aoi_name_exists)
 from app.utils.audit_log_helpers import write_audit_log
 import logging
@@ -257,3 +258,43 @@ def update_aoi_by_id(aoi_id):
         logger.error("Error in update_aoi: %s", e, exc_info=Settings.EXEC_INFO_API)
         write_audit_log("Error in update_aoi", __name__, {"aoi_id": aoi_id, "info": str(e)}, "ERROR")
         return jsonify({"error": "Internal server error", "details": str(e)}), 500
+
+@aois_bp.route('/<int:aoi_id>/delete', methods=['DELETE'])
+def delete_aoi_by_id_web(aoi_id):
+    '''
+    DELETE /api/v1/aois/<aoi_id>/delete
+    Deletes an existing Area of Interest.
+
+    Query Param:
+    - aoi_name: str (Name of AOI to be deleted, so that users can't spam through aoi_ids and accidentally delete)
+    '''
+    try:
+        aoi_name = request.args.get("aoi_name")
+
+        if not aoi_name:
+            return jsonify({"error": "Missing required query parameter: 'aoi_name'."}), 400
+
+        aoi = get_aoi_by_id(aoi_id)
+        if not aoi:
+            return jsonify({"error": f"AOI with ID {aoi_id} not found."}), 404
+
+        if aoi.area_of_interest_name != aoi_name:
+            return jsonify({"error": "'aoi_name' does not match the AOI with the given ID."}), 403
+
+        delete_aoi_in_db(aoi_id)
+
+        checkaoi = get_aoi_by_id(aoi_id)
+        if not checkaoi:
+            return jsonify({
+                "status": "success", 
+                "message": f"AOI '{aoi_name}' (ID: {aoi_id}) deleted successfully."
+            }), 200
+        else:
+            logger.error("Failed to delete AOI with ID %d. User provided %s", aoi_id, str(request.args.get("aoi_name")))
+            return jsonify({"error": "Internal server error: Failed to delete AOI."}), 500
+
+    except Exception as e:
+        logger.error("Error in delete_aoi_by_id_web: %s", str(e), exc_info=Settings.EXEC_INFO_API)
+        write_audit_log("Error in delete_aoi_by_id_web", __name__, {"aoi_id": aoi_id, "info": str(e)}, "ERROR")
+
+        return jsonify({"error": "Internal server error"}), 500
