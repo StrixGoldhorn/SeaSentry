@@ -17,7 +17,7 @@ class Settings():
             "enabled": True,
             # "enabled": False,
             "interval_seconds": (300, 600)
-        }, 
+        },
         "aprs_Scraper": {
             # "enabled": True,
             "enabled": False,
