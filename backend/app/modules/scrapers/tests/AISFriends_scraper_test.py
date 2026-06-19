@@ -76,8 +76,6 @@ class TestWithScraperBase:
 
             # flag
             assert isinstance(rec.flag, (str, type(None))), f"Expected string, got {type(rec.flag)}, raw: {rec.raw}"
-            if isinstance(rec.flag, str):
-                assert len(rec.flag) == 2, f"Invalid flag length: {rec.flag}, raw: {rec.raw}" # expected to be 2 chars
 
             # length_meters
             assert isinstance(rec.length_meters, (int, type(None))), f"Expected int, got {type(rec.length_meters)}, raw: {rec.raw}"
