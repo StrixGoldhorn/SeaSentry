@@ -4,9 +4,13 @@ Perform validation checks
 '''
 
 from app.core.schemas import IngestVesselData, IngestVesselLocation
-from app.utils.audit_log_helpers import write_audit_log, write_data_ingestion_audit_log
+from app.utils.audit_log_helpers import write_audit_log
 from app.core.exceptions import DataValidationError
 from typing import Tuple
+
+import logging
+
+logger = logging.getLogger(__name__)
 
 class IngestValidation:
     '''
@@ -16,9 +20,14 @@ class IngestValidation:
     @classmethod
     def ValidateVesselData(cls, vdata: IngestVesselData) -> IngestVesselData:
         '''
-        Validate data in vessel data
+        Validate data in IngestVesselData
+
+        Args:
+            vloc: IngestVesselData to be validated
+
+        Returns:
+            IngestVesselData
         '''
-        # TODO: Finish implementation
         def basic_validate_MMSI(mmsi: str) -> str:
             if not mmsi: return mmsi
             if len(mmsi) != 9:
@@ -37,14 +46,14 @@ class IngestValidation:
 
         def basic_validate_length_meters(length_meters: int) -> int:
             if not length_meters: return length_meters
-            if length_meters > 500:
-                raise DataValidationError(f"Length expected to be less than 500m, length of {int}m was given instead.")
+            if length_meters > 511:
+                raise DataValidationError(f"Length expected to be less than 511m, length of {length_meters}m was given instead.")
             return length_meters
 
         def basic_validate_beam_meters(beam_meters: int) -> int:
             if not beam_meters: return beam_meters
-            if beam_meters > 500:
-                raise DataValidationError(f"Beam expected to be less than 200m, beam of {int}m was given instead.")
+            if beam_meters > 511:
+                raise DataValidationError(f"Beam expected to be less than 511m, beam of {beam_meters}m was given instead.")
             return beam_meters
         try:
             validated_mmsi = basic_validate_MMSI(vdata.mmsi)
@@ -55,7 +64,8 @@ class IngestValidation:
             validated_length_meters = basic_validate_length_meters(vdata.length_meters)
             validated_beam_meters = basic_validate_beam_meters(vdata.beam_meters)
         except DataValidationError as e:
-            write_audit_log("DataValidationError", __name__, {"data": vdata, "error": e}, "ERROR")
+            write_audit_log("DataValidationError", __name__, {"data": str(vdata), "error": str(e)}, "ERROR")
+            logger.warning("DataValidationError, %s, vdata: %s, error: %s", __name__, str(vdata), str(e))
 
         vdata = IngestVesselData(
             mmsi = validated_mmsi,
@@ -71,32 +81,37 @@ class IngestValidation:
     @classmethod
     def ValidateVesselLocation(cls, vloc: IngestVesselLocation) -> IngestVesselLocation:
         '''
-        Validate data in vessel location
+        Validate data in IngestVesselLocation
+
+        Args:
+            vloc: IngestVesselLocation to be validated
+
+        Returns:
+            IngestVesselLocation
         '''
-        # TODO: Finish implementation
         def basic_validate_coords(lat: float, lon: float) -> Tuple[int, int]:
-            if not -90 <= lat <= 90:
-                raise DataValidationError(f"Latitude expected to be between -90 and 90 degrees, {lat} was given instead")
-            if not -180 <= lon <= 180:
-                raise DataValidationError(f"Longitude expected to be between -180 and 180 degrees, {lon} was given instead")
+            if not -90 <= lat <= 91:
+                raise DataValidationError(f"Latitude expected to be between -90 and 91 degrees, {lat} was given instead")
+            if not -180 <= lon <= 181:
+                raise DataValidationError(f"Longitude expected to be between -180 and 181 degrees, {lon} was given instead")
             return lat, lon
 
         def basic_validate_speed_knots(speed_knots: float) -> float:
             if not speed_knots: return speed_knots
-            if not -150 <= speed_knots <= 300:
-                raise DataValidationError(f"Speed expected to be between -150 and 300 knots, {speed_knots} was given instead")
+            if not -1 <= speed_knots <= 102.4:
+                raise DataValidationError(f"Speed expected to be between 0 and 102.4 knots, {speed_knots} was given instead")
             return speed_knots
 
         def basic_validate_course_deg(course_deg: float) -> float:
             if not course_deg: return course_deg
-            if not 0 <= course_deg <= 360:
-                raise DataValidationError(f"Course expected to be between 0 and 360 deg, {course_deg} was given instead")
+            if not 0 <= course_deg <= 359:
+                raise DataValidationError(f"Course expected to be between 0 and 359 deg, {course_deg} was given instead")
             return course_deg
 
         def basic_validate_heading_deg(heading_deg: float) -> float:
             if not heading_deg: return heading_deg
-            if not 0 <= heading_deg <= 360:
-                raise DataValidationError(f"Heading expected to be between 0 and 360 deg, {heading_deg} was given instead")
+            if not 0 <= heading_deg <= 359 and heading_deg != 511:
+                raise DataValidationError(f"Heading expected to be between 0 and 359 deg, {heading_deg} was given instead")
             return heading_deg
 
         def basic_validate_nav_status(nav_status: int) -> int:
@@ -117,7 +132,8 @@ class IngestValidation:
             validated_rate_of_turn_deg_per_sec = vloc.rate_of_turn_deg_per_sec
             validated_nav_status = basic_validate_nav_status(vloc.nav_status)
         except DataValidationError as e:
-            write_audit_log("DataValidationError", __name__, {"data": vloc, "error": e}, "ERROR")
+            write_audit_log("DataValidationError", __name__, {"data": str(vloc), "error": str(e)}, "ERROR")
+            logger.warning("DataValidationError, %s, vloc: %s, error: %s", __name__, str(vloc), str(e))
 
         vloc = IngestVesselLocation(
             lat = validated_lat,
