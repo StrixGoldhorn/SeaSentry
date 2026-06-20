@@ -22,6 +22,11 @@ class Settings():
             # "enabled": True,
             "enabled": False,
             "interval_seconds": (600, 1800)
+        },
+        "VesselFinder_Scraper": {
+            # "enabled": True,
+            "enabled": False,
+            "interval_seconds": (600, 1800)
         }
     }
 
