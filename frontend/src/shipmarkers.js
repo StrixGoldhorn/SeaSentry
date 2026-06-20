@@ -21,7 +21,7 @@ function shipDegCheck(deg) {
     return deg;
 }
 
-export function ShipMarkers(shipdata) {
+export function ShipMarkers({ shipdata }) {
     if (!Array.isArray(shipdata)) {
         return null;
     }
@@ -51,7 +51,7 @@ export function ShipMarkers(shipdata) {
         )))
 }
 
-export function CourseDirMarkers(shipdata) {
+export function CourseDirMarkers({ shipdata }) {
     if (!Array.isArray(shipdata)) {
         return null;
     }

@@ -5,14 +5,100 @@ import { Icon } from "leaflet";
 import CursorIcon from "./cursor.png";
 import { useEffect, useState } from "react";
 import { ShipMarkers, CourseDirMarkers } from "./shipmarkers";
-import { rectangleOverlay } from "./Polygon.js";
-import {get_ships_past_day} from './utils.js';
-
+import * as utils from './utils.js';
+import { MapBoundsTracker } from "./screenbounds.js";
+import { RenderAOIs, RenderGeofences } from "./Boundsrenders.js";
 
 
 
 
 function App() {
+
+  //useStates
+  const [shipData, setshipData] = useState({});
+  const [aoiData, setaoiData] = useState({});
+  const [geofenceData, setgeofenceData] = useState({});
+  const [mapBounds, setmapBounds] = useState({lat_min:0, lat_max:0, long_min:0, long_max:0});
+
+  //useEffects
+  useEffect(() => {
+    utils.get_ships_on_screen(mapBounds)
+      .then(fetchdata => {
+          if (fetchdata === null) {
+            console.log("API did not return data");
+          } else {
+            setshipData(fetchdata);
+          }
+        })
+  }, [mapBounds]);
+
+  useEffect(() => {
+    utils.get_all_AOI()
+    .then(fetchdata => {
+      if (fetchdata === null) {
+        console.log("API did not return data");
+      } else {
+        setaoiData(fetchdata);
+      }
+    })
+  }, [mapBounds]);
+
+  useEffect(() => {
+    utils.get_all_geofences()
+    .then(fetchdata => {
+      if (fetchdata === null) {
+        console.log("API did not return data");
+      } else {
+        setgeofenceData(fetchdata);
+      }
+    })
+  }, [mapBounds]);
+
+  //HTML return
+  if (Object.keys(shipData).length !== 0){
+    return (
+      <>
+      <MapContainer center={[1.2595764399413216, 103.8335830126783]} zoom={14} scrollWheelZoom={true}>
+        <TileLayer
+        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+        />
+        <MapBoundsTracker onBoundsChange={setmapBounds} />
+        <CourseDirMarkers shipdata={shipData.data} />
+        <ShipMarkers shipdata={shipData.data} />
+        <RenderAOIs aoicoordsdata={aoiData.data} />
+        <RenderGeofences geofencecoordsdata={geofenceData.data} />
+      </MapContainer>
+      </>
+    );
+  }
+}
+
+export default App;
+
+
+//DEPRECATED CODE
+  // const [aoiCoordList, setaoiCoordList] = useState([
+  //   {"lat_min":1.2535264424975803, "lat_max":1.266477533544827, "long_min":103.82335160632802, "long_max":103.85594676548685}
+  // ]);
+
+  // const [counter, setCounter] = useState(0);
+
+  // const [shipDataArray, setShipDataArray] = useState([]);
+
+  // function getAOIcoords(aoicoords) {
+  //   setaoiCoordList([
+  //     ...aoiCoordList,
+  //     aoicoords
+  //   ]);
+  // }
+
+  // function mapArrayToComponents(arrayofShipData) {
+  //   const markers = 
+  // }
+
+
+
 
   // get_ships_past_day({lat_min:1.2535264424975803, lat_max:1.266477533544827, long_min:103.82335160632802, long_max:103.85594676548685});
   // get_ships_past_day({lat_min:1.2535264424975803, lat_max:1.266477533544827, long_min:103.82335160632802, long_max:103.85594676548685, limit:3});
@@ -21,21 +107,61 @@ function App() {
   // get_ships_past_day({lat_min:1.2535264424975803, lat_max:1.266477533544827, long_min:103.82335160632802, long_max:103.85594676548685, time_within:3000});
   // get_ships_past_day({lat_min:1.266477533544827, lat_max:1.2535264424975803, long_min:103.82335160632802, long_max:103.85594676548685});
 
-  const [shipData, setShipData] = useState({});
+
+  // latmin: 1.2550417490810404, latmax: 1.2679667570273256 , longmin: 103.8882165259278 , longmax: 103.90781049237695
+
+  
+  
 
   /* useEffect for API */
 
-  useEffect(() => {
-    get_ships_past_day({lat_min:1.2535264424975803, lat_max:1.266477533544827, long_min:103.82335160632802, long_max:103.85594676548685})
-      .then(fetchdata => {
-        if (fetchdata === null) {
-          console.log("API did not return data");
-        } else {
-          setShipData(fetchdata);
-        }
-      })
-    }, [])
+  // useEffect(
+  //   () => {
+  //     for (let i = 0; i < aoiCoordList.length; i++) {
+  //       get_ships_past_day(aoiCoordList[i])
+  //       .then(fetchdata => {
+  //         if (fetchdata === null) {
+  //           console.log("API did not return data");
+  //         } else {
+  //           setShipData(fetchdata);
+  //           console.log(shipData);
+  //           console.log(shipDataArray);
+  //           console.log(shipDataArray.length);
+  //           console.log(aoiCoordList);
+  //           let index = -1;
+  //           index = shipDataArray.findIndex(x => x?.filters?.bbox == aoiCoordList[i]);
+            
+  //           if (index === -1) {
+  //             setShipDataArray([
+  //               ...shipDataArray,
+  //               fetchdata
+  //             ]);
+  //           } else {
+  //             const newDataArray = shipDataArray.map((c, p) => {
+  //               if (p === index) {
+  //                 return fetchdata;
+  //               } else {
+  //                 return c;
+  //               }
+  //             })
+  //             setShipDataArray(newDataArray);
+  //           }
+  //         }
+  //       })
+  //     }
+  //   }, [aoiCoordList]
+  // )
 
+  // useEffect(() => {
+  //   get_ships_on_screen({lat_min:1.2535264424975803, lat_max:1.266477533544827, long_min:103.82335160632802, long_max:103.85594676548685})
+  //     .then(fetchdata => {
+  //       if (fetchdata === null) {
+  //         console.log("API did not return data");
+  //       } else {
+  //         setshipData(fetchdata);
+  //       }
+  //     })
+  //   }, [])
 
 
   /* useEffect for local JSON */
@@ -47,28 +173,8 @@ function App() {
   //       if (fetchdata === null) {
   //         console.log("API did not return data");
   //       } else {
-  //         setShipData(fetchdata);
+  //         setshipData(fetchdata);
   //       }
   //     })
   //   }, [])
 
-
-  console.log(shipData)
-  
-
-  if (Object.keys(shipData).length !== 0){
-    return (
-      <MapContainer center={[1.2595764399413216, 103.8335830126783]} zoom={15} scrollWheelZoom={true}>
-        <TileLayer
-        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-        />
-        {CourseDirMarkers(shipData.data)}
-        {ShipMarkers(shipData.data)}
-        {rectangleOverlay(shipData.filters.bbox)}
-      </MapContainer>
-    );
-  }
-}
-
-export default App;
