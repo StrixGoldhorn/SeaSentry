@@ -1,3 +1,5 @@
+const config = require('./config');
+
 //VESSELS
 //Query latest vessel positions within a bounding box
 export async function get_ships_on_screen({lat_min, lat_max, long_min, long_max, limit = null, time_within = null}) {
@@ -6,7 +8,7 @@ export async function get_ships_on_screen({lat_min, lat_max, long_min, long_max,
     }
 
 
-    let url = `http://localhost:5000/api/v1/vessels/bbox?`
+    let url = config.api_url + `/api/v1/vessels/bbox?`
     +`lat_min=${lat_min}&lat_max=${lat_max}&`
     +`long_min=${long_min}&long_max=${long_max}`;
 
@@ -32,7 +34,7 @@ export async function get_ship_using_data_id({vessel_data_id}) {
     }
 
 
-    let url = `http://localhost:5000/api/v1/vessels/`
+    let url = config.api_url + `/api/v1/vessels/`
     +`${vessel_data_id}`;
 
     return await fetch(url)
@@ -53,7 +55,7 @@ export async function update_ship_using_data_id({vessel_data_id, ship_name = nul
     }
 
 
-    let url = `http://localhost:5000/api/v1/vessels/`
+    let url = config.api_url + `/api/v1/vessels/`
     +`${vessel_data_id}/update?`;
 
     if (ship_name !== null) {
@@ -91,7 +93,7 @@ export async function update_ship_using_data_id({vessel_data_id, ship_name = nul
 //Query for all vessels of interest
 export async function get_all_VOI() {
 
-    let url = `http://localhost:5000/api/v1/vessel_of_interest/get/all`
+    let url = config.api_url + `/api/v1/vessel_of_interest/get/all`
     
     return await fetch(url)
     .then(res => res.json())
@@ -106,7 +108,7 @@ export async function get_VOI_using_id({voi_id}) {
     }
 
 
-    let url = `http://localhost:5000/api/v1/vessel_of_interest/`
+    let url = config.api_url + `/api/v1/vessel_of_interest/`
     +`${voi_id}`;
 
     return await fetch(url)
@@ -126,7 +128,7 @@ export async function add_VOI({name, desc = null, mmsi, imo}) {
     }
 
 
-    let url = `http://localhost:5000/api/v1/vessel_of_interest/add?`
+    let url = config.api_url + `/api/v1/vessel_of_interest/add?`
     +`name=${name}&`;
 
     if (desc !== null) {
@@ -151,7 +153,7 @@ export async function add_VOI({name, desc = null, mmsi, imo}) {
 //Query for all AOIs
 export async function get_all_AOI() {
 
-    let url = `http://localhost:5000/api/v1/aois/get/all`
+    let url = config.api_url + `/api/v1/aois/get/all`
     
     return await fetch(url)
     .then(res => res.json())
@@ -166,7 +168,7 @@ export async function get_AOI_using_id({aoi_id}) {
     }
 
 
-    let url = `http://localhost:5000/api/v1/aois/`
+    let url = config.api_url + `/api/v1/aois/`
     +`${aoi_id}`;
 
     return await fetch(url)
@@ -183,7 +185,7 @@ export async function add_box_AOI({lat_min, lat_max, long_min, long_max, name, d
     }
 
 
-    let url = `http://localhost:5000/api/v1/aois/add/box?`
+    let url = config.api_url + `/api/v1/aois/add/box?`
     +`lat_min=${lat_min}&lat_max=${lat_max}&`
     +`long_min=${long_min}&long_max=${long_max}`
     +`name=${name}&`;
@@ -207,7 +209,7 @@ export async function add_poly_AOI({coords, name, desc = null}) {
     }
 
 
-    let url = `http://localhost:5000/api/v1/aois/add/polygon?`
+    let url = config.api_url + `/api/v1/aois/add/polygon?`
     +`coords=${coords}&`
     +`name=${name}&`;
 
@@ -234,7 +236,7 @@ export async function update_AOI({aoi_id, name = null, desc = null, coords = nul
     }
 
 
-    let url = `http://localhost:5000/api/v1/aois/${aoi_id}/update?`;
+    let url = config.api_url + `/api/v1/aois/${aoi_id}/update?`;
 
     if (name !== null) {
         url = url + `name=${name}&`;
@@ -274,7 +276,7 @@ export async function update_AOI({aoi_id, name = null, desc = null, coords = nul
 //Query for all Geofences
 export async function get_all_geofences() {
 
-    let url = `http://localhost:5000/api/v1/geofences/get/all`
+    let url = config.api_url + `/api/v1/geofences/get/all`
     
     return await fetch(url)
     .then(res => res.json())
@@ -289,7 +291,7 @@ export async function get_geofence_using_id({geofence_id}) {
     }
 
 
-    let url = `http://localhost:5000/api/v1/geofences/`
+    let url = config.api_url + `/api/v1/geofences/`
     +`${geofence_id}`;
 
     return await fetch(url)
@@ -306,7 +308,7 @@ export async function add_box_geofence({lat_min, lat_max, long_min, long_max, na
     }
 
 
-    let url = `http://localhost:5000/api/v1/geofences/add/box?`
+    let url = config.api_url + `/api/v1/geofences/add/box?`
     +`lat_min=${lat_min}&lat_max=${lat_max}&`
     +`long_min=${long_min}&long_max=${long_max}`
     +`name=${name}&`;
@@ -330,7 +332,7 @@ export async function add_poly_geofence({coords, name, desc = null}) {
     }
 
 
-    let url = `http://localhost:5000/api/v1/geofences/add/polygon?`
+    let url = config.api_url + `/api/v1/geofences/add/polygon?`
     +`coords=${coords}&`
     +`name=${name}&`;
 
@@ -357,7 +359,7 @@ export async function update_geofence({geofence_id, name = null, desc = null, co
     }
 
 
-    let url = `http://localhost:5000/api/v1/geofences/${geofence_id}/update?`;
+    let url = config.api_url + `/api/v1/geofences/${geofence_id}/update?`;
 
     if (name !== null) {
         url = url + `name=${name}&`;
