@@ -28,6 +28,7 @@ Fields are compulsory unless otherwise stated
     - [POST `/api/v1/geofences/add/box`](#post-apiv1geofencesaddbox)
     - [POST `/api/v1/geofences/add/polygon`](#post-apiv1geofencesaddpolygon)
     - [POST/PATCH `/api/v1/geofences/<geofence_id>/update`](#postpatch-apiv1geofencesgeofence_idupdate)
+    - [DELETE `/api/v1/geofences/<geofence_id>/delete`](#delete-apiv1geofencesgeofence_iddelete)
   - [Alert History](#alert-history)
     - [GET `/api/v1/alerts/history/all`](#get-apiv1alertshistoryall)
     - [GET `/api/v1/alerts/history/unread`](#get-apiv1alertshistoryunread)
@@ -401,6 +402,27 @@ Returns:
 - 200 if successfully updated
 
 - 400 if missing/malformed fields
+
+- 404 if Geofence with id does not exist
+
+- 500 if internal server error
+
+### DELETE `/api/v1/geofences/<geofence_id>/delete`
+
+Summary: Deletes an existing Geofence.
+
+Query Param:
+- geofence_name: Name of the AOI to be deleted.
+
+**Note**: The above is done soley to ensure that the user does not accidentally delete the wrong Geofence.
+    
+Returns:
+
+- 200 if successfully deleted
+
+- 400 if missing/malformed fields
+
+- 403 if provided geofence_name is incorrect
 
 - 404 if Geofence with id does not exist
 

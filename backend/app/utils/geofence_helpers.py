@@ -213,6 +213,35 @@ def check_if_geofence_name_exists(name: str):
     finally:
         DBConn.close_session()
 
+
+def delete_geofence_in_db(geofence_id: int):
+    '''
+    Deletes an existing Geofence in the database.
+    
+    Args:
+        geofence_id: int representing geofence_id to be deleted
+
+    Returns:
+        True if successful
+    '''
+
+    session = DBConn.get_session()
+    try:
+        geofence = session.query(Geofence).filter(Geofence.geofence_id == geofence_id).first()
+        if not geofence:
+            return False
+
+        session.delete(geofence)
+        session.commit()
+        return True
+
+    except Exception as e:
+        session.rollback()
+        logger.error("DB Error in delete_geofence_in_db: %s", str(e))
+        raise
+    finally:
+        DBConn.close_session()
+
 def DBG_INSERT_DEFAULT_GEOFENCE():
     logging.warning("ADDING DEFAULT geofence TO DB-------------------------------------")
 
