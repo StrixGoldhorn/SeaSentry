@@ -10,6 +10,7 @@ Fields are compulsory unless otherwise stated
     - [GET `/api/v1/vessels/bbox`](#get-apiv1vesselsbbox)
     - [GET `/api/v1/vessels/<vessel_data_id>`](#get-apiv1vesselsvessel_data_id)
     - [POST/PATCH `/api/v1/vessels/<vessel_data_id>/update`](#postpatch-apiv1vesselsvessel_data_idupdate)
+    - [GET `/api/v1/vessels/history`](#get-apiv1vesselshistory)
   - [Vessel of Interest](#vessel-of-interest)
     - [GET `/api/v1/vessel_of_interest/get/all`](#get-apiv1vessel_of_interestgetall)
     - [GET `/api/v1/vessel_of_interest/<vessel_of_interest_id>`](#get-apiv1vessel_of_interestvessel_of_interest_id)
@@ -95,7 +96,6 @@ Returns:
 
 - 500 if internal server error
 
-
 ### POST/PATCH `/api/v1/vessels/<vessel_data_id>/update`
 
 Summary: Updates an existing Vessel. Supports partial updates.
@@ -123,6 +123,28 @@ Returns:
 - 404 if Vessel with id does not exist
 
 - 500 if internal server error
+
+### GET `/api/v1/vessels/history`
+
+Summary: Query historical vessel positions within a bounding box and time range. Streams exports to JSON, GeoJSON, or CSV to prevent memory overload on large responses.
+
+Returns:
+
+- 200 with JSON, GeoJSON, or CSV containing historical vessel locations and details
+
+- 400 if missing/malformed fields
+
+- 500 if internal server error
+
+Query Params:
+
+- lat_min, lat_max, long_min, long_max: float (bounding box)
+
+- start_time: str (ISO datetime string, e.g., '2023-10-01T12:00:00Z')
+
+- end_time: str (ISO datetime string, e.g., '2023-10-02T12:00:00Z')
+
+- format: str (optional, 'json', 'geojson', or 'csv', default 'json')
 
 ## Vessel of Interest
 
