@@ -64,87 +64,61 @@ Fields are compulsory unless otherwise stated
 
 Summary: Query latest vessel positions within a bounding box
 
-Returns:
-
-- 200 with JSON with latest vessel location and details
-
-- 400 if missing fields
-
-- 500 if internal server error
-
 Query Params:
-
 - lat_min, lat_max, long_min, long_max: float (bounding box)
-
 - time_within: int (optional, time in seconds, default 24hrs ie 60 * 60 * 24)
-
 - limit: int (optional, default 50, max 1000)
 
 E.g. `/api/v1/vessels/bbox?lat_min=1.2535&lat_max=1.2664&long_min=103.8233&long_max=103.8559&limit=25&time_within=670`
 
 This will return the 25 latest vessel locations with its corresponding unique vessels within the given area in the past 670 seconds.
 
+Returns:
+- 200 with JSON with latest vessel location and details
+- 400 if missing fields
+- 500 if internal server error
+
 ### GET `/api/v1/vessels/<vessel_data_id>`
 
 Summary: Query for vessel data with given vessel_data_id
 
 Returns:
-
 - 200 with details of vessel
-
 - 400 if missing fields
-
 - 500 if internal server error
 
 ### POST/PATCH `/api/v1/vessels/<vessel_data_id>/update`
 
 Summary: Updates an existing Vessel. Supports partial updates.
 
-Query Params (all optional, but at least one required):
-
+Request Body (all optional, but at least one required):
 - ship_name: str (new ship name of Vessel)
-
 - ship_type: str (new ship type of Vessel)
-
 - flag: str (new flag of Vessel)
-
 - length_meters: int (new length (in meters) of Vessel)
-
 - beam_meters: int (new beam (in meters) of Vessel)
-
 - user_tags: array of string (new user tags for Vessel)
     
 Returns:
-
 - 200 if successfully updated
-
 - 400 if missing/malformed fields
-
 - 404 if Vessel with id does not exist
-
 - 500 if internal server error
 
 ### GET `/api/v1/vessels/history`
 
 Summary: Query historical vessel positions within a bounding box and time range. Streams exports to JSON, GeoJSON, or CSV to prevent memory overload on large responses.
 
-Returns:
-
-- 200 with JSON, GeoJSON, or CSV containing historical vessel locations and details
-
-- 400 if missing/malformed fields
-
-- 500 if internal server error
-
 Query Params:
-
 - lat_min, lat_max, long_min, long_max: float (bounding box)
-
 - start_time: str (ISO datetime string, e.g., '2023-10-01T12:00:00Z')
-
 - end_time: str (ISO datetime string, e.g., '2023-10-02T12:00:00Z')
-
 - format: str (optional, 'json', 'geojson', or 'csv', default 'json')
+
+Returns:
+- 200 with JSON, GeoJSON, or CSV containing historical vessel locations and details
+- 400 if missing/malformed fields
+- 500 if internal server error
 
 ## Vessel of Interest
 
@@ -153,9 +127,7 @@ Query Params:
 Summary: Query for all vessels of interest
 
 Returns:
-
 - 200 with JSON of all vessels of interest
-
 - 500 if internal server error
 
 ### GET `/api/v1/vessel_of_interest/<vessel_of_interest_id>`
@@ -163,37 +135,26 @@ Returns:
 Summary: Query for vessel of interest with given vessel_of_interest_id
 
 Returns:
-
 - 200 with details of vessel of interest
-
 - 404 if vessel of interest with vessel_of_interest_id does not exist
-
 - 500 if internal server error
 
 ### POST `/api/v1/vessel_of_interest/add`
 
 Summary: Adds specified vessel of interest
 
-Query Params:
+Request Body:
 
 **Note**: Either MMSI, or IMO, or both MMSI and IMO must be present.
-
 - name: str (user-defined name for the vessel of interest)
-
 - desc: str (optional, description of the vessel of interest)
-
 - mmsi: str (MMSI of the vessel of interest)
-
 - imo: str (IMO of the vessel of interest)
 
 Returns:
-
 - 201 if successfully added
-
 - 400 if missing/malformed fields
-
-- 403 if name already exsts
-
+- 403 if name already exists
 - 500 if internal server error
 
 
@@ -201,28 +162,19 @@ Returns:
 
 Summary: Updates an existing Vessel of Interest. Supports partial updates.
 
-Query Params (all optional, but at least one required):
+Request Body (all optional, but at least one required):
 
 **Note**: Either MMSI, or IMO, or both MMSI and IMO must be present in the database after update.
-
 - desc_name: str (new user-defined name of Vessel of Interest)
-
 - desc: str (new description of Vessel of Interest)
-
 - mmsi: str (new mmsi of Vessel of Interest)
-
 - imo: str (new imo of Vessel of Interest)
     
 Returns:
-
 - 200 if successfully updated
-
 - 400 if missing/malformed fields
-
 - 403 if new user-defined name already exists
-
 - 404 if Vessel of Interest with id does not exist
-
 - 500 if internal server error
 
 
@@ -233,9 +185,7 @@ Returns:
 Summary: Query for all AOIs
 
 Returns:
-
 - 200 with JSON of all AOIs
-
 - 500 if internal server error
 
 ### GET `/api/v1/aois/<aoi_id>`
@@ -243,78 +193,54 @@ Returns:
 Summary: Query for AOI with given aoi_id
 
 Returns:
-
 - 200 with details of AOI
-
 - 404 if AOI with aoi_id does not exist
-
 - 500 if internal server error
 
 ### POST `/api/v1/aois/add/box`
 
 Summary: Adds specified bounding box.
 
-Returns:
-
-- 201 if successfully added
-
-- 400 if missing fields
-
-- 403 if name already exsts
-
-- 500 if internal server error
-
-Query Params:
-
+Request Body:
 - lat_min, lat_max, long_min, long_max: float (bounding box)
-
 - name: str (name of AOI)
-
 - desc: str (optional, description of AOI)
+
+Returns:
+- 201 if successfully added
+- 400 if missing fields
+- 403 if name already exists
+- 500 if internal server error
 
 ### POST `/api/v1/aois/add/polygon`
 
 Summary: Adds specified bounding polygon.
 
-Returns:
-
-- 201 if successfully added
-
-- 400 if missing fields
-
-- 403 if name already exsts
-
-- 500 if internal server error
-
-Query Params:
-
+Request Body:
 - coords: [[long1, lat1], [long2, lat2], [long3, lat3], ..., [long1, lat1]] (polygon bounding fence. last coords should be same as first coords. else it will automatically close the loop, which may lead to unexpected behaviours.)
-
 - name: str (name of AOI)
-
 - desc: str (optional, description of AOI)
+
+Returns:
+- 201 if successfully added
+- 400 if missing fields
+- 403 if name already exists
+- 500 if internal server error
 
 ### POST/PATCH `/api/v1/aois/<aoi_id>/update`
 
 Summary: Updates an existing Area of Interest. Supports partial updates.
 
-Query Params (all optional, but at least one required):
+Request Body (all optional, but at least one required):
 - name: str (new name of AOI)
-
 - desc: str (new description of AOI)
-
 - coords: str (JSON array of [[long, lat], ...] for polygon update)
-
 - lat_min, lat_max, long_min, long_max: float (for bounding box update)
     
 Returns:
-
 - 200 if successfully updated
-
 - 400 if missing/malformed fields
-
 - 404 if AOI with id does not exist
-
 - 500 if internal server error
 
 ### DELETE `/api/v1/aois/<aoi_id>/delete`
@@ -324,30 +250,23 @@ Summary: Deletes an existing Area of Interest.
 Query Param:
 - aoi_name: Name of the AOI to be deleted.
 
-**Note**: The above is done soley to ensure that the user does not accidentally delete the wrong AOI.
+**Note**: The above is done solely to ensure that the user does not accidentally delete the wrong AOI.
     
 Returns:
-
 - 200 if successfully deleted
-
 - 400 if missing/malformed fields
-
 - 403 if provided aoi_name is incorrect
-
 - 404 if AOI with id does not exist
-
 - 500 if internal server error
 
 ## Geofences
 
 ### GET `/api/v1/geofences/get/all`
 
-Summary: Query for all AOIs
+Summary: Query for all Geofences
 
 Returns:
-
-- 200 with JSON of all AOIs
-
+- 200 with JSON of all Geofences
 - 500 if internal server error
 
 ### GET `/api/v1/geofences/<geofence_id>`
@@ -355,78 +274,54 @@ Returns:
 Summary: Query for Geofence with given geofence_id
 
 Returns:
-
 - 200 with details of Geofence
-
 - 404 if Geofence with geofence_id does not exist
-
 - 500 if internal server error
-- 
+
 ### POST `/api/v1/geofences/add/box`
 
 Summary: Adds specified bounding box.
 
-Returns:
-
-- 201 if successfully added
-
-- 400 if missing fields
-
-- 403 if name already exsts
-
-- 500 if internal server error
-
-Query Params:
-
+Request Body:
 - lat_min, lat_max, long_min, long_max: float (bounding box)
-
 - name: str (name of geofence)
-
 - desc: str (optional, description of geofence)
+
+Returns:
+- 201 if successfully added
+- 400 if missing fields
+- 403 if name already exists
+- 500 if internal server error
 
 ### POST `/api/v1/geofences/add/polygon`
 
 Summary: Adds specified bounding polygon.
 
-Returns:
-
-- 201 if successfully added
-
-- 400 if missing fields
-
-- 403 if name already exsts
-- 
-- 500 if internal server error
-
-Query Params:
-
+Request Body:
 - coords: [[long1, lat1], [long2, lat2], [long3, lat3], ..., [long1, lat1]] (polygon bounding fence. last coords should be same as first coords. else it will automatically close the loop, which may lead to unexpected behaviours.)
-
 - name: str (name of geofence)
-
 - desc: str (optional, description of geofence)
+
+Returns:
+- 201 if successfully added
+- 400 if missing fields
+- 403 if name already exists
+- 500 if internal server error
 
 ### POST/PATCH `/api/v1/geofences/<geofence_id>/update`
 
 Summary: Updates an existing Geofence. Supports partial updates.
 
-Query Params (all optional, but at least one required):
+Request Body (all optional, but at least one required):
 - name: str (new name of Geofence)
-
 - desc: str (new description of Geofence)
-
 - coords: str (JSON array of [[long, lat], ...] for polygon update)
-
 - lat_min, lat_max, long_min, long_max: float (for bounding box update)
     
 Returns:
-
 - 200 if successfully updated
-
 - 400 if missing/malformed fields
-
 - 404 if Geofence with id does not exist
-
 - 500 if internal server error
 
 ### DELETE `/api/v1/geofences/<geofence_id>/delete`
@@ -434,20 +329,15 @@ Returns:
 Summary: Deletes an existing Geofence.
 
 Query Param:
-- geofence_name: Name of the AOI to be deleted.
+- geofence_name: Name of the Geofence to be deleted.
 
-**Note**: The above is done soley to ensure that the user does not accidentally delete the wrong Geofence.
+**Note**: The above is done solely to ensure that the user does not accidentally delete the wrong Geofence.
     
 Returns:
-
 - 200 if successfully deleted
-
 - 400 if missing/malformed fields
-
 - 403 if provided geofence_name is incorrect
-
 - 404 if Geofence with id does not exist
-
 - 500 if internal server error
 
 ## Alert History
@@ -463,11 +353,8 @@ Query Params (all optional):
 - offset: integer, number of records to skip for pagination (e.g., 0)
 
 Returns:
-
 - 200 with JSON with history of all alerts
-
 - 400 if malformed fields
-
 - 500 if internal server error
 
 ### GET `/api/v1/alerts/history/unread`
@@ -481,11 +368,8 @@ Query Params (all optional):
 - offset: integer, number of records to skip for pagination (e.g., 0)
 
 Returns:
-
 - 200 with JSON with history of all unread alerts
-
 - 400 if malformed fields
-
 - 500 if internal server error
 
 ### POST `/api/v1/alerts/history/<alert_history_id>/mark/read`
@@ -493,11 +377,8 @@ Returns:
 Summary: Marks the given alert history as read
 
 Returns:
-
 - 200 if successfully marked as read
-
 - 404 if no such alert history with given id exists
-
 - 500 if internal server error
 
 ### POST `/api/v1/alerts/history/<alert_history_id>/mark/unread`
@@ -505,11 +386,8 @@ Returns:
 Summary: Marks the given alert history as unread
 
 Returns:
-
 - 200 if successfully marked as unread
-
 - 404 if no such alert history with given id exists
-
 - 500 if internal server error
 
 ## Alert Rules
@@ -519,20 +397,18 @@ Returns:
 Summary: Returns all alert rules
 
 Returns:
-
 - 200 with JSON with all alert rules
-
 - 500 if internal server error
 
 ### POST `/api/v1/alerts/rule/add`
 
 Summary: Adds a new custom alert rule
 
-Query param:
+Request Body:
 
 JSON with the keys:
 - "name": name of alert, must be unique
-- "desc" (optional): description of alert
+- "description" (optional): description of alert
 - "params": params defining the alert rule
 
 Eg. for a single rule,
@@ -582,32 +458,25 @@ Eg. for multiple/combined rules,
 Refer to Rule Configuration below for all allowed fields, operators, combinators.
 
 Returns:
-
 - 201 with the new alert_rule_id if inserted successfully
-
 - 400 if missing/malformed fields
-
 - 500 if internal server error
 
 ### POST `/api/v1/alerts/rule/<alert_rule_id>/update`
 
 Summary: Updates an existing alert rule. Supports partial updates.
 
-Query param:
+Request Body:
 
 JSON with the keys:
 - "name": name of alert, must be unique
-- "desc" (optional): description of alert
+- "description" (optional): description of alert
 - "params": params defining the alert rule
 
 Returns:
-
 - 200 if successfully updated
-
 - 400 if missing/malformed fields
-
 - 404 if alert rule with id does not exist
-
 - 500 if internal server error
 
 ### POST `/api/v1/alerts/rule/<alert_rule_id>/mark/disable`
@@ -615,11 +484,8 @@ Returns:
 Summary: Marks the given alert rule as disabled
 
 Returns:
-
 - 200 if successfully marked as disabled
-
 - 404 if no such alert rule with given id exists
-
 - 500 if internal server error
 
 ### POST `/api/v1/alerts/rule/<alert_rule_id>/mark/enable`
@@ -627,11 +493,8 @@ Returns:
 Summary: Marks the given alert rule as enabled
 
 Returns:
-
 - 200 if successfully marked as enabled
-
 - 404 if no such alert rule with given id exists
-
 - 500 if internal server error
 
 
