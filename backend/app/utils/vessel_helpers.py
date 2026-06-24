@@ -9,9 +9,9 @@ from app.models.vessel import VesselData, VesselLocation
 
 logger = logging.getLogger(__name__)
 
-def get_all_vessels_in_bbox(envelope, time_lower_bound: datetime, limit: int) -> List[tuple]:
+def get_all_vessels_in_bbox(envelope, time_lower_bound: datetime, limit: int) -> List:
     '''
-    Fetches all AOIs in database
+    Fetches all Vessels in given bounding box
 
     Args:
         envelope: The bounding box
@@ -19,7 +19,7 @@ def get_all_vessels_in_bbox(envelope, time_lower_bound: datetime, limit: int) ->
         limit: int, limits to the n most recent locations
 
     Returns:
-        List of AOI objects
+        List of tuples containing VesselLocation and VesselData objects
     '''
 
     session = DBConn.get_session()
@@ -119,3 +119,40 @@ def update_vessel_data_in_db(vessel_data_id: int, ship_name: str = None, ship_ty
         raise
     finally:
         DBConn.close_session()
+
+def get_vessel_history_stream(envelope, start_time: datetime, end_time: datetime) -> List:
+    '''
+    Fetches vessel historical locations in database within a bounding box and time range
+
+    Args:
+        envelope: bounding box
+        start_time: datetime object representing the start of the time range
+        end_time: datetime object representing the end of the time range
+
+    Returns:
+        List of tuples containing VesselLocation and VesselData objects
+    '''
+
+    session = DBConn.get_session()
+    try:
+        query = session.query(VesselLocation, VesselData).join(
+            VesselData,
+            VesselLocation.vessel_location_vessel_data_id == VesselData.vessel_data_id,
+        ).filter(
+            VesselLocation.vessel_location_timestamp >= start_time,
+            VesselLocation.vessel_location_timestamp <= end_time,
+            VesselLocation.vessel_location_coords.ST_Within(envelope)
+        ).order_by(
+            VesselLocation.vessel_location_timestamp.desc()
+        ).yield_per(1000)
+        res = query.yield_per(1000)
+        for location, vessel in res:
+            yield location, vessel
+
+    except Exception as e:
+        logger.error("Error in get_vessel_history_in_bbox: %s", e, exc_info=True)
+        return []
+
+    finally:
+        if session:
+            DBConn.close_session()

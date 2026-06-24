@@ -13,6 +13,7 @@ from app.utils.geofence_helpers import (
     add_rectangle_geofence_to_db, add_polygon_geofence_to_db,
     get_all_geofences, get_geofence_polygon_vertices, get_geofence_by_id,
     update_geofence_in_db,
+    delete_geofence_in_db,
     check_if_geofence_name_exists
     )
 from app.utils.audit_log_helpers import write_audit_log
@@ -259,3 +260,43 @@ def update_geofence_by_id(geofence_id):
         logger.error("Error in update_geofence_by_id: %s", e, exc_info=Settings.EXEC_INFO_API)
         write_audit_log("Error in update_geofence_by_id", __name__, {"geofence_id": geofence_id, "info": str(e)}, "ERROR")
         return jsonify({"error": "Internal server error", "details": str(e)}), 500
+
+@geofences_bp.route('/<int:geofence_id>/delete', methods=['DELETE'])
+def delete_geofence_by_id_web(geofence_id):
+    '''
+    DELETE /api/v1/geofences/<geofence_id>/delete
+    Deletes an existing Geofence.
+
+    Query Param:
+    - geofence_name: str (Name of Geofence to be deleted, so that users can't spam through geofence_ids and accidentally delete)
+    '''
+    try:
+        geofence_name = request.args.get("geofence_name")
+
+        if not geofence_name:
+            return jsonify({"error": "Missing required query parameter: 'geofence_name'."}), 400
+
+        geofence = get_geofence_by_id(geofence_id)
+        if not geofence:
+            return jsonify({"error": f"Geofence with ID {geofence_id} not found."}), 404
+
+        if geofence.geofence_name != geofence_name:
+            return jsonify({"error": "'geofence_name' does not match the Geofence with the given ID."}), 403
+
+        delete_geofence_in_db(geofence_id)
+
+        checkgeofence = get_geofence_by_id(geofence_id)
+        if not checkgeofence:
+            return jsonify({
+                "status": "success", 
+                "message": f"Geofence '{geofence_name}' (ID: {geofence_id}) deleted successfully."
+            }), 200
+        else:
+            logger.error("Failed to delete Geofence with ID %d. User provided %s", geofence_id, str(request.args.get("geofence_name")))
+            return jsonify({"error": "Internal server error: Failed to delete Geofence."}), 500
+
+    except Exception as e:
+        logger.error("Error in delete_geofence_by_id_web: %s", str(e), exc_info=Settings.EXEC_INFO_API)
+        write_audit_log("Error in delete_geofence_by_id_web", __name__, {"geofence_id": geofence_id, "info": str(e)}, "ERROR")
+
+        return jsonify({"error": "Internal server error"}), 500

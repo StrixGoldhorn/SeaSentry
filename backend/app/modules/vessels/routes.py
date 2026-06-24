@@ -1,8 +1,10 @@
 # backend/app/modules/vessels/routes.py
 # for api routes relating to vessel queries, eg /api/v1/vessels, /api/v1/history
 
+import csv
+import io
 import json
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, Response
 from datetime import datetime, timedelta, timezone
 from sqlalchemy import func
 from geoalchemy2.shape import to_shape
@@ -10,7 +12,7 @@ from geoalchemy2.shape import to_shape
 from app.core.config import Settings
 from app.models.vessel import VesselData, VesselLocation
 from app.utils.vessel_helpers import (get_all_vessels_in_bbox, get_vessel_by_vessel_data_id,
-                                      update_vessel_data_in_db)
+                                      update_vessel_data_in_db, get_vessel_history_stream)
 from app.utils.audit_log_helpers import write_audit_log
 
 import logging
@@ -27,7 +29,7 @@ def get_vessels_in_bbox():
     Query Params:
     - time_within: int (time in seconds, default 24hrs ie 60 * 60 * 24)
     - lat_min, lat_max, long_min, long_max: float (bounding box)
-    - limit: int (default 50, max 1000)
+    - limit: int (default 500, max 5000)
     '''
 
     try:
@@ -41,7 +43,7 @@ def get_vessels_in_bbox():
             return jsonify({"error": "Bounding box expected."}), 400
 
         try:
-            limit = min(int(request.args.get("limit", default = 50)), 1000)
+            limit = min(int(request.args.get("limit", default = 500)), 5000)
         except (ValueError, TypeError):
             return jsonify({"error": "Invalid limit format. Must be an integer."}), 400
 
@@ -96,6 +98,184 @@ def get_vessels_in_bbox():
     except Exception as e:
         logger.error("Error in get_vessels_in_bbox: %s", e, exc_info=Settings.EXEC_INFO_API)
         write_audit_log("Error in get_vessels_in_bbox", __name__, {"info": str(e)}, "ERROR")
+        return jsonify({"error": "Internal server error", "details": str(e)}), 500
+
+@vessels_bp.route('/history', methods=['GET'])
+def get_vessel_history_in_bbox_route():
+    '''
+    GET /api/v1/vessels/history
+    Query vessel historical positions within a bounding box and time range.
+    
+    Query Params:
+    - lat_min, lat_max, long_min, long_max: float (bounding box)
+    - start_time: str (datetime, eg '2026-06-07T12:00:00Z')
+    - end_time: str (datetime)
+    - format: str (optional, 'json', 'geojson', or 'csv', default 'json')
+    '''
+
+    try:
+        bbox_params = ["lat_min", "lat_max", "long_min", "long_max"]
+        bbox_values = [request.args.get(p, type=float) for p in bbox_params]
+        has_bbox = all(v is not None for v in bbox_values)
+        bbox = dict(zip(bbox_params, bbox_values)) if has_bbox else None
+
+        if not has_bbox:
+            return jsonify({"error": "Bounding box expected."}), 400
+
+        start_time_str = request.args.get('start_time')
+        end_time_str = request.args.get('end_time')
+
+        if not start_time_str or not end_time_str:
+            return jsonify({"error": "start_time and end_time are required."}), 400
+
+        try:
+            start_time = datetime.fromisoformat(start_time_str.replace('Z', '+00:00'))
+            end_time = datetime.fromisoformat(end_time_str.replace('Z', '+00:00'))
+
+            if start_time.tzinfo is None:
+                start_time = start_time.replace(tzinfo=timezone.utc)
+            if end_time.tzinfo is None:
+                end_time = end_time.replace(tzinfo=timezone.utc)
+
+        except ValueError:
+            return jsonify({"error": "Invalid time format."}), 400
+
+        if start_time >= end_time:
+            return jsonify({"error": "start_time must be before end_time."}), 400
+
+        export_format = request.args.get('format', 'json').lower()
+        if export_format not in ['json', 'geojson', 'csv']:
+            return jsonify({"error": "Invalid format. Choose 'json', 'geojson', or 'csv'."}), 400
+
+        envelope = func.ST_MakeEnvelope(
+            bbox["long_min"], bbox["lat_min"],
+            bbox["long_max"], bbox["lat_max"],
+            4326
+        )
+
+        vessel_stream = get_vessel_history_stream(envelope, start_time, end_time)
+
+        def generate_csv(stream):
+            fieldnames = [
+                "location_id", "vessel_data_id", "mmsi", "imo", "ship_name", 
+                "ship_type", "flag", "latitude", "longitude", "speed_knots", 
+                "course_deg", "heading_deg", "rate_of_turn", "nav_status", "timestamp"
+            ]
+
+            class CSVStream:
+                def __init__(self):
+                    self.buffer = io.StringIO()
+                    self.writer = csv.writer(self.buffer)
+                def write(self, row):
+                    self.writer.writerow(row)
+                    val = self.buffer.getvalue()
+                    self.buffer.seek(0)
+                    self.buffer.truncate(0)
+                    return val
+
+            stream_writer = CSVStream()
+            yield stream_writer.write(fieldnames) 
+
+            for location, vessel in stream:
+                geom_shape = to_shape(location.vessel_location_coords)
+                row = [
+                    location.vessel_location_id, vessel.vessel_data_id,
+                    vessel.vessel_data_mmsi, vessel.vessel_data_imo,
+                    vessel.vessel_data_ship_name, vessel.vessel_data_ship_type,
+                    vessel.vessel_data_flag, geom_shape.y, geom_shape.x,
+                    location.vessel_location_speed_knots, location.vessel_location_course_deg,
+                    location.vessel_location_heading_deg, location.vessel_location_rate_of_turn_deg_per_sec,
+                    location.vessel_location_nav_status,
+                    location.vessel_location_timestamp.isoformat() if location.vessel_location_timestamp else None
+                ]
+                yield stream_writer.write(row)
+
+        def generate_geojson(stream):
+            yield '{"type": "FeatureCollection", "features": ['
+            first = True
+
+            for location, vessel in stream:
+                geom_shape = to_shape(location.vessel_location_coords)
+                feature = {
+                    "type": "Feature",
+                    "geometry": {"type": "Point", "coordinates": [geom_shape.x, geom_shape.y]},
+                    "properties": {
+                        "location_id": location.vessel_location_id,
+                        "vessel_data_id": vessel.vessel_data_id,
+                        "mmsi": vessel.vessel_data_mmsi, 
+                        "imo": vessel.vessel_data_imo,
+                        "ship_name": vessel.vessel_data_ship_name, 
+                        "ship_type": vessel.vessel_data_ship_type,
+                        "flag": vessel.vessel_data_flag,
+                        "speed_knots": location.vessel_location_speed_knots,
+                        "course_deg": location.vessel_location_course_deg,
+                        "heading_deg": location.vessel_location_heading_deg,
+                        "rate_of_turn": location.vessel_location_rate_of_turn_deg_per_sec,
+                        "nav_status": location.vessel_location_nav_status,
+                        "timestamp": location.vessel_location_timestamp.isoformat() if location.vessel_location_timestamp else None
+                    }
+                }
+                if not first:
+                    yield ','
+                else:
+                    first = False
+                yield json.dumps(feature)
+
+            yield ']}'
+
+        def generate_json(stream):
+            yield '{"status": "success", "data": ['
+            first = True
+
+            for location, vessel in stream:
+                geom_shape = to_shape(location.vessel_location_coords)
+                item = {
+                    "location_id": location.vessel_location_id, 
+                    "vessel_data_id": vessel.vessel_data_id,
+                    "mmsi": vessel.vessel_data_mmsi, 
+                    "imo": vessel.vessel_data_imo,
+                    "ship_name": vessel.vessel_data_ship_name, 
+                    "ship_type": vessel.vessel_data_ship_type,
+                    "flag": vessel.vessel_data_flag, 
+                    "latitude": geom_shape.y, 
+                    "longitude": geom_shape.x,
+                    "speed_knots": location.vessel_location_speed_knots,
+                    "course_deg": location.vessel_location_course_deg,
+                    "heading_deg": location.vessel_location_heading_deg,
+                    "rate_of_turn": location.vessel_location_rate_of_turn_deg_per_sec,
+                    "nav_status": location.vessel_location_nav_status,
+                    "timestamp": location.vessel_location_timestamp.isoformat() if location.vessel_location_timestamp else None
+                }
+                if not first:
+                    yield ','
+                else:
+                    first = False
+                yield json.dumps(item)
+            yield ']}'
+
+        if export_format == 'csv':
+            return Response(
+                generate_csv(vessel_stream),
+                mimetype='text/csv',
+                headers={'Content-Disposition': 'attachment;filename=vessel_history.csv'}
+            )
+
+        elif export_format == 'geojson':
+            return Response(
+                generate_geojson(vessel_stream),
+                mimetype='application/geo+json',
+                headers={'Content-Disposition': 'attachment;filename=vessel_history.geojson'}
+            )
+
+        else:
+            return Response(
+                generate_json(vessel_stream),
+                mimetype='application/json'
+            )
+
+    except Exception as e:
+        logger.error("Error in get_vessel_history_in_bbox_route: %s", e, exc_info=Settings.EXEC_INFO_API)
+        write_audit_log("Error in get_vessel_history_in_bbox_route", __name__, {"info": str(e)}, "ERROR")
         return jsonify({"error": "Internal server error", "details": str(e)}), 500
 
 @vessels_bp.route('/<int:vessel_data_id>', methods=['GET'])
