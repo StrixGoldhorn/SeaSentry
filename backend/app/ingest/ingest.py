@@ -63,10 +63,10 @@ class ScraperToIngest():
         if vessel_data_id is None:
             return None
         data_source_id = IngestToDB.InsertDataSource(source)
-        if vessel_data_id is None:
+        if data_source_id is None:
             return None
         raw_data_id = IngestToDB.InsertRawData(raw, data_source_id)
-        if vessel_data_id is not None:
+        if raw_data_id is not None:
             vessel_location_id = IngestToDB.InsertVesselLocation(vloc, vessel_data_id, raw_data_id)
             return (vessel_data_id, data_source_id, raw_data_id, vessel_location_id)
         return None
@@ -152,55 +152,64 @@ class IngestToDB:
 
         session = DBConn.get_session()
 
-        mmsi = vdata.vessel_data_mmsi
-        imo = vdata.vessel_data_imo
+        try:
 
-        # This should NEVER happen due to data validation beforehand
-        if not mmsi and not imo:
-            logger.warning("Skipping vessel upsert: missing both MMSI and IMO")
-            raise Exception("Skipping vessel upsert: missing both MMSI and IMO")
+            mmsi = vdata.vessel_data_mmsi
+            imo = vdata.vessel_data_imo
 
-        # Prioritise IMO first since it is tagged to each ship.
-        # But recall that not all ships have an IMO, so we also do MMSI just in case.
-        query = session.query(VesselData)
-        if imo and imo != "0000000":
-            existing = query.filter(VesselData.vessel_data_imo == imo).first()
-        else:
-            existing = query.filter(VesselData.vessel_data_mmsi == mmsi).first()
+            # This should NEVER happen due to data validation beforehand
+            if not mmsi and not imo:
+                logger.warning("Skipping vessel upsert: missing both MMSI and IMO")
+                raise Exception("Skipping vessel upsert: missing both MMSI and IMO")
 
-        if existing is not None:
-            if existing.vessel_data_mmsi is None:
-                existing.vessel_data_mmsi = vdata.vessel_data_mmsi
-            if existing.vessel_data_imo is None:
-                existing.vessel_data_imo = vdata.vessel_data_imo
-            if existing.vessel_data_ship_name is None:
-                existing.vessel_data_ship_name = vdata.vessel_data_ship_name
-            if existing.vessel_data_ship_type is None:
-                existing.vessel_data_ship_type = vdata.vessel_data_ship_type
-            if existing.vessel_data_flag is None:
-                existing.vessel_data_flag = vdata.vessel_data_flag
-            if existing.vessel_data_length_meters is None:
-                existing.vessel_data_length_meters = vdata.vessel_data_length_meters
-            if existing.vessel_data_beam_meters is None:
-                existing.vessel_data_beam_meters = vdata.vessel_data_beam_meters
+            # Prioritise IMO first since it is tagged to each ship.
+            # But recall that not all ships have an IMO, so we also do MMSI just in case.
+            query = session.query(VesselData)
+            if imo and imo != "0000000":
+                existing = query.filter(VesselData.vessel_data_imo == imo).first()
+            else:
+                existing = query.filter(VesselData.vessel_data_mmsi == mmsi).first()
 
-            # For now, we will take it as IMO is more important
-            if mmsi and imo and existing.vessel_data_imo != imo and existing.vessel_data_mmsi != mmsi:
-                logger.warning("MMSI and IMO conflict. Using IMO match.")
-                write_audit_log("MMSI and IMO conflict", __name__, {"error": "MMSI and IMO conflict. Using IMO match.",
-                                                                    "Scraped MMSI": str(mmsi), "Scraped IMO": str(imo),
-                                                                    "DB MMSI": str(existing.vessel_data_mmsi), "DB IMO": str(existing.vessel_data_imo)
-                                                                    }, "WARNING")
+            if existing is not None:
+                if existing.vessel_data_mmsi is None:
+                    existing.vessel_data_mmsi = vdata.vessel_data_mmsi
+                if existing.vessel_data_imo is None:
+                    existing.vessel_data_imo = vdata.vessel_data_imo
+                if existing.vessel_data_ship_name is None:
+                    existing.vessel_data_ship_name = vdata.vessel_data_ship_name
+                if existing.vessel_data_ship_type is None:
+                    existing.vessel_data_ship_type = vdata.vessel_data_ship_type
+                if existing.vessel_data_flag is None:
+                    existing.vessel_data_flag = vdata.vessel_data_flag
+                if existing.vessel_data_length_meters is None:
+                    existing.vessel_data_length_meters = vdata.vessel_data_length_meters
+                if existing.vessel_data_beam_meters is None:
+                    existing.vessel_data_beam_meters = vdata.vessel_data_beam_meters
 
-            session.commit() # Commit and get PK
+                # For now, we will take it as IMO is more important
+                if mmsi and imo and existing.vessel_data_imo != imo and existing.vessel_data_mmsi != mmsi:
+                    logger.warning("MMSI and IMO conflict. Using IMO match.")
+                    write_audit_log("MMSI and IMO conflict", __name__, {"error": "MMSI and IMO conflict. Using IMO match.",
+                                                                        "Scraped MMSI": str(mmsi), "Scraped IMO": str(imo),
+                                                                        "DB MMSI": str(existing.vessel_data_mmsi), "DB IMO": str(existing.vessel_data_imo)
+                                                                        }, "WARNING")
+
+                session.commit() # Commit and get PK
+                return existing.vessel_data_id
+
+            else:
+                session.add(vdata)
+                session.commit() # Commit and get PK
+                return vdata.vessel_data_id
+
+        except Exception as e:
+            session.rollback()
+            logger.warning("Error upserting vessel data: %s", str(e))
+            write_audit_log("Exception in upsert_vessel_data", __name__, {"error": str(e)}, "ERROR")
+            raise e
+
+        finally:
             DBConn.close_session()
-            return existing.vessel_data_id
-
-        else:
-            session.add(vdata)
-            session.commit() # Commit and get PK
-            DBConn.close_session()
-            return vdata.vessel_data_id
 
     @classmethod
     def InsertDataSource(cls, data_source_name: str) -> Optional[int]:
