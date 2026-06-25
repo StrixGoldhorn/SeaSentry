@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 
 import { get_all_alert_history, get_unread_alert_history, mark_alert_read, mark_alert_unread} from "./utils";
-import { NavigateToAllAlertHistoryButton, NavigateToMapButton } from "./NavigateButtons";
+import { NavigateToMapButton } from "./NavigateButtons";
 
-export default function UnreadAlertHistoryPage() {
+export default function AllAlertHistoryPage() {
 
     const [alerts, setAlerts] = useState([]);
 
@@ -46,14 +46,9 @@ export default function UnreadAlertHistoryPage() {
 
     const toggleReadStatus = async (alert) => {
 
-        const id =
-            alert.alert_history_id ??
-            alert.id;
+        const id = alert.alert_history_id;
 
-        const isRead =
-            alert.is_read ??
-            alert.read ??
-            false;
+        const isRead = alert.alert_history_read;
 
         if (isRead) {
 
@@ -142,14 +137,9 @@ export default function UnreadAlertHistoryPage() {
 
             {alerts.map(alert => {
 
-                const id =
-                    alert.alert_history_id ??
-                    alert.id;
+                const id = alert.alert_history_id;
 
-                const isRead =
-                    alert.is_read ??
-                    alert.read ??
-                    false;
+                const isRead = alert.alert_history_read;
 
                 return (
 
@@ -175,28 +165,28 @@ export default function UnreadAlertHistoryPage() {
                                 : "Unread"}
                         </p>
 
-                        {alert.timestamp && (
-                            <p>
-                                <strong>Timestamp:</strong>
-                                {" "}
-                                {alert.timestamp}
-                            </p>
-                        )}
+                        <p>
+                            <strong>Timestamp:</strong>{" "}
+                            {new Date(alert.alert_history_timestamp).toLocaleString()}
+                        </p>
 
-                        {alert.message && (
-                            <p>
-                                <strong>Message:</strong>
-                                {" "}
-                                {alert.message}
-                            </p>
-                        )}
+                        <p>
+                            <strong>Rule:</strong>{" "}
+                            {alert.alert_history_context?.rule_name}
+                        </p>
 
-                        {alert.alert_name && (
-                            <p>
-                                <strong>Rule:</strong>
-                                {" "}
-                                {alert.alert_name}
-                            </p>
+                        {alert.alert_history_context?.matched_vessels?.length > 0 && (
+                            <>
+                                <strong>Matched Vessels</strong>
+
+                                <ul>
+                                    {alert.alert_history_context.matched_vessels.map(vessel => (
+                                        <li key={vessel.ship_data_id}>
+                                            {vessel.ship_name} ({vessel.mmsi})
+                                        </li>
+                                    ))}
+                                </ul>
+                            </>
                         )}
 
                         <button
@@ -232,7 +222,6 @@ export default function UnreadAlertHistoryPage() {
 
             })}
             <NavigateToMapButton/>
-            <NavigateToAllAlertHistoryButton/>
 
         </div>
         
