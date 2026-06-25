@@ -182,7 +182,7 @@ def test_get_all_alert_rule_success(mock_get_rules, client):
     assert data['data'][0]['alert_rule_name'] == 'Test Rule'
 
 # ==========================================
-# Tests for POST /api/v1/alerts/rule/add/
+# Tests for POST /api/v1/alerts/rule/add
 # ==========================================
 @patch('app.modules.alerts.routes.build_sqlalchemy_expression')
 @patch('app.modules.alerts.routes.add_alert_rule_to_db')
@@ -204,7 +204,7 @@ def test_add_alert_rule_single_success(mock_validate, mock_add_db, mock_build_ex
         "params": {"field": "speed", "operator": ">", "value": 10.0}
     }
 
-    response = client.post('/api/v1/alerts/rule/add/', json=payload)
+    response = client.post('/api/v1/alerts/rule/add', json=payload)
 
     assert response.status_code == 201
     data = json.loads(response.data)
@@ -236,7 +236,7 @@ def test_add_alert_rule_combined_success(mock_validate, mock_add_db, mock_build_
         }
     }
 
-    response = client.post('/api/v1/alerts/rule/add/', json=payload)
+    response = client.post('/api/v1/alerts/rule/add', json=payload)
 
     assert response.status_code == 201
     mock_add_db.assert_called_once()
@@ -246,7 +246,7 @@ def test_add_alert_rule_missing_name(client):
     Test adding a rule without the required 'name' field
     '''
     payload = {"description": "No name", "params": {"field": "speed"}}
-    response = client.post('/api/v1/alerts/rule/add/', json=payload)
+    response = client.post('/api/v1/alerts/rule/add', json=payload)
 
     assert response.status_code == 400
     data = json.loads(response.data)
@@ -257,7 +257,7 @@ def test_add_alert_rule_missing_params(client):
     Test adding a rule without the required 'params' field
     '''
     payload = {"name": "Test Rule", "description": "No params"}
-    response = client.post('/api/v1/alerts/rule/add/', json=payload)
+    response = client.post('/api/v1/alerts/rule/add', json=payload)
 
     assert response.status_code == 400
     data = json.loads(response.data)
@@ -274,7 +274,7 @@ def test_add_alert_rule_invalid_params(mock_validate, client):
         "name": "Bad Rule",
         "params": {"field": "speed", "operator": "INVALID"}
     }
-    response = client.post('/api/v1/alerts/rule/add/', json=payload)
+    response = client.post('/api/v1/alerts/rule/add', json=payload)
 
     assert response.status_code == 400
     data = json.loads(response.data)
@@ -296,7 +296,7 @@ def test_add_alert_rule_internal_error(mock_validate, mock_add_db, mock_audit, m
     mock_add_db.side_effect = Exception("Database connection failed")
 
     payload = {"name": "Test", "params": {}}
-    response = client.post('/api/v1/alerts/rule/add/', json=payload)
+    response = client.post('/api/v1/alerts/rule/add', json=payload)
 
     assert response.status_code == 500
     data = json.loads(response.data)

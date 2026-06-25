@@ -258,7 +258,7 @@ def get_all_alert_rule_web():
         logger.error("Error in get_all_alert_rule_web: %s", e, exc_info=Settings.EXEC_INFO_API)
         return jsonify({"status": "error", "error": "Internal server error", "details": str(e)}), 500
 
-@alerts_bp.route('/rule/add/', methods=['POST'])
+@alerts_bp.route('/rule/add', methods=['POST'])
 def add_alert_rule_web():
     '''
     POST /api/v1/alerts/rule/all
