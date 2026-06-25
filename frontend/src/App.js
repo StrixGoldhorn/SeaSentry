@@ -5,6 +5,7 @@ import DrawAOIPage from "./DrawAOIPage";
 import DrawGeofencePage from "./DrawGeofencePage";
 import SidebarAOIDrawPage from "./SidebarAOIDraw";
 import SidebarGeofenceDrawPage from "./SidebarGeofenceDraw";
+import AlertHistoryPage from "./AlertHistoryPage";
 
 
 function App() {
@@ -16,6 +17,7 @@ function App() {
       <Route path="/drawAOIsidebar" element={<SidebarAOIDrawPage />} />
       <Route path="/drawGeofenceSidebar" element={<SidebarGeofenceDrawPage />} />
       <Route path="/inputs" element={<RequestInputPage />} />
+      <Route path="/alerts/history" element={<AlertHistoryPage/>} />
     </Routes>
   );
 }
