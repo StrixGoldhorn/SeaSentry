@@ -311,6 +311,28 @@ export async function update_AOI({
         .catch(err => console.error(err));
 }
 
+//Deletes an existing Area of Interest.
+export async function delete_AOI({
+    aoi_id,
+    aoi_name
+}) {
+
+    if (aoi_id == null || aoi_name == null) {
+        return null;
+    }
+
+    const url =
+        config.api_url +
+        `/api/v1/aois/${aoi_id}/delete?` + `aoi_name=${aoi_name}`;
+
+    return await fetch(url, {
+        method: "DELETE"
+    })
+    .then(res => res.json())
+    .catch(err => console.error(err));
+}
+
+
 //GEOFENCES
 //Query for all Geofences
 export async function get_all_geofences() {
@@ -469,4 +491,273 @@ export async function update_geofence({
     )
         .then(res => res.json())
         .catch(err => console.error(err));
+}
+
+//Deletes an existing Geofence.
+export async function delete_geofence({
+    geofence_id,
+    geofence_name
+}) {
+
+    if (geofence_id == null || geofence_name == null) {
+        return null;
+    }
+
+
+    const url =
+        config.api_url +
+        `/api/v1/geofences/${geofence_id}/delete?` + `geofence_name=${geofence_name}`;
+
+    return await fetch(url, {
+        method: "DELETE"
+    })
+    .then(res => res.json())
+    .catch(err => console.error(err));
+}
+
+//ALERT HISTORY
+//Returns history of all alerts, both read and unread
+export async function get_all_alert_history({
+    start_time = null,
+    end_time = null,
+    limit = null,
+    offset = null
+}) {
+
+    let url = config.api_url + "/api/v1/alerts/history/all?";
+    let params = [];
+
+    if (start_time !== null) {
+        params.push(`start_time=${encodeURIComponent(start_time)}`);
+    }
+
+    if (end_time !== null) {
+        params.push(`end_time=${encodeURIComponent(end_time)}`);
+    }
+
+    if (limit !== null) {
+        params.push(`limit=${limit}`);
+    }
+
+    if (offset !== null) {
+        params.push(`offset=${offset}`);
+    }
+
+    url += params.join("&");
+
+    return await fetch(url)
+        .then(res => res.json())
+        .catch(err => console.error(err));
+}
+
+
+//Returns history of all unread alerts
+export async function get_unread_alert_history({
+    start_time = null,
+    end_time = null,
+    limit = null,
+    offset = null
+}) {
+
+    let url = config.api_url + "/api/v1/alerts/history/unread?";
+    let params = [];
+
+    if (start_time !== null) {
+        params.push(`start_time=${encodeURIComponent(start_time)}`);
+    }
+
+    if (end_time !== null) {
+        params.push(`end_time=${encodeURIComponent(end_time)}`);
+    }
+
+    if (limit !== null) {
+        params.push(`limit=${limit}`);
+    }
+
+    if (offset !== null) {
+        params.push(`offset=${offset}`);
+    }
+
+    url += params.join("&");
+
+    return await fetch(url)
+        .then(res => res.json())
+        .catch(err => console.error(err));
+}
+
+//Marks the given alert history as read
+export async function mark_alert_read({
+    alert_history_id
+}) {
+
+    if (alert_history_id == null) {
+        return null;
+    }
+
+    const url =
+        config.api_url +
+        `/api/v1/alerts/history/${alert_history_id}/mark/read`;
+
+    return await fetch(url, {
+        method: "POST"
+    })
+    .then(res => res.json())
+    .catch(err => console.error(err));
+}
+
+//Marks the given alert history as unread
+export async function mark_alert_unread({
+    alert_history_id
+}) {
+
+    if (alert_history_id == null) {
+        return null;
+    }
+
+    const url =
+        config.api_url +
+        `/api/v1/alerts/history/${alert_history_id}/mark/unread`;
+
+    return await fetch(url, {
+        method: "POST"
+    })
+    .then(res => res.json())
+    .catch(err => console.error(err));
+}
+
+//ALERT RULES
+//Returns all alert rules
+export async function get_all_alert_rules() {
+
+    const url =
+        config.api_url +
+        "/api/v1/alerts/rule/all";
+
+    return await fetch(url)
+        .then(res => res.json())
+        .catch(err => console.error(err));
+}
+
+//Adds a new custom alert rule. Does NOT support nesting currently.
+export async function add_alert_rule({
+    name,
+    description = null,
+    params
+}) {
+
+    if (name == null || params == null) {
+        return null;
+    }
+
+    const body = {
+        name,
+        params
+    };
+
+    if (description !== null) {
+        body.description = description;
+    }
+
+    const url =
+        config.api_url +
+        "/api/v1/alerts/rule/add";
+
+    return await fetch(url, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify(body)
+    })
+    .then(res => res.json())
+    .catch(err => console.error(err));
+}
+
+//Updates an existing alert rule. Supports partial updates.
+export async function update_alert_rule({
+    alert_rule_id,
+    name = null,
+    description = null,
+    params = null
+}) {
+
+    if (alert_rule_id == null) {
+        return null;
+    }
+
+    if (
+        name == null &&
+        description == null &&
+        params == null
+    ) {
+        return null;
+    }
+
+    const body = {};
+
+    if (name !== null) {
+        body.name = name;
+    }
+
+    if (description !== null) {
+        body.description = description;
+    }
+
+    if (params !== null) {
+        body.params = params;
+    }
+
+    const url =
+        config.api_url +
+        `/api/v1/alerts/rule/${alert_rule_id}/update`;
+
+    return await fetch(url, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify(body)
+    })
+    .then(res => res.json())
+    .catch(err => console.error(err));
+}
+
+//Marks the given alert rule as disabled
+export async function disable_alert_rule({
+    alert_rule_id
+}) {
+
+    if (alert_rule_id == null) {
+        return null;
+    }
+
+    const url =
+        config.api_url +
+        `/api/v1/alerts/rule/${alert_rule_id}/mark/disable`;
+
+    return await fetch(url, {
+        method: "POST"
+    })
+    .then(res => res.json())
+    .catch(err => console.error(err));
+}
+
+//Marks the given alert rule as enabled
+export async function enable_alert_rule({
+    alert_rule_id
+}) {
+
+    if (alert_rule_id == null) {
+        return null;
+    }
+
+    const url =
+        config.api_url +
+        `/api/v1/alerts/rule/${alert_rule_id}/mark/enable`;
+
+    return await fetch(url, {
+        method: "POST"
+    })
+    .then(res => res.json())
+    .catch(err => console.error(err));
 }

@@ -36,14 +36,7 @@ function MapPage() {
   }, [mapBounds]);
 
   useEffect(() => {
-    utils.get_all_AOI()
-    .then(fetchdata => {
-      if (fetchdata === null) {
-        console.log("API did not return data");
-      } else {
-        setaoiData(fetchdata);
-      }
-    })
+      loadAOIs();
   }, [mapBounds]);
 
   useEffect(() => {
@@ -57,6 +50,18 @@ function MapPage() {
     })
   }, [mapBounds]);
 
+
+  const loadAOIs = () => {
+    utils.get_all_AOI()
+    .then(fetchdata => {
+      if (fetchdata === null) {
+        console.log("API did not return data");
+      } else {
+        setaoiData(fetchdata);
+      }
+    })
+  }
+
   //HTML return
   return (
     <>
@@ -68,7 +73,7 @@ function MapPage() {
       <MapBoundsTracker onBoundsChange={setmapBounds} />
       {shipData?.data && (<ShipMarkers shipdata={shipData.data} />)}
       {shipData?.data && (<CourseDirMarkers shipdata={shipData.data} />)}
-      {aoiData?.data && (<RenderAOIs aoicoordsdata={aoiData.data} />)}
+      {aoiData?.data && (<RenderAOIs aoicoordsdata={aoiData.data} refreshAOIs={loadAOIs}/>)}
       {geofenceData?.data && (<RenderGeofences geofencecoordsdata={geofenceData.data} />)}
     </MapContainer>
     <NavigateToInputsButton />

@@ -1,3 +1,4 @@
+import AlertRulePanel from "./AlertRuleForm";
 import AOIPanel from "./AOIForm";
 import GeofencePanel from "./GeofenceForm";
 import { NavigateToMapButton } from "./NavigateButtons";
