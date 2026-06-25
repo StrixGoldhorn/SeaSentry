@@ -76,12 +76,12 @@ export function NavigateToGeofenceDrawButton() {
   );
 }
 
-export function NavigateToAlertHistoryButton() {
+export function NavigateToUnreadAlertHistoryButton() {
   const navigate = useNavigate();
 
   return (
     <button
-      onClick={() => navigate("/alerts/history")}
+      onClick={() => navigate("/alerts/history/unread")}
       style={{
         position: "absolute",
         top: "170px",
@@ -91,6 +91,25 @@ export function NavigateToAlertHistoryButton() {
       }}
     >
       Go to Alert History
+    </button>
+  );
+}
+
+export function NavigateToAllAlertHistoryButton() {
+  const navigate = useNavigate();
+
+  return (
+    <button
+      onClick={() => navigate("/alerts/history/all")}
+      style={{
+        position: "absolute",
+        top: "70px",
+        right: "20px",
+        zIndex: 1000,
+        padding: "10px 15px",
+      }}
+    >
+      Go to All Alert History
     </button>
   );
 }

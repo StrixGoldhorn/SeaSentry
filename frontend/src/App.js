@@ -3,7 +3,8 @@ import MapPage from "./MapPage";
 import { RequestInputPage } from "./RequestInputPage";
 import SidebarAOIDrawPage from "./SidebarAOIDraw";
 import SidebarGeofenceDrawPage from "./SidebarGeofenceDraw";
-import AlertHistoryPage from "./AlertHistoryPage";
+import UnreadAlertHistoryPage from "./UnreadAlertHistoryPage";
+import AllAlertHistoryPage from "./AllAlertHistoryPage";
 
 
 function App() {
@@ -13,7 +14,8 @@ function App() {
       <Route path="/drawAOIsidebar" element={<SidebarAOIDrawPage />} />
       <Route path="/drawGeofenceSidebar" element={<SidebarGeofenceDrawPage />} />
       <Route path="/inputs" element={<RequestInputPage />} />
-      <Route path="/alerts/history" element={<AlertHistoryPage/>} />
+      <Route path="/alerts/history/unread" element={<UnreadAlertHistoryPage/>} />
+      <Route path="/alerts/history/all" element={<AllAlertHistoryPage/>} />
     </Routes>
   );
 }

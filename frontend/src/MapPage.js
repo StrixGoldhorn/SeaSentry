@@ -8,7 +8,7 @@ import { ShipMarkers, CourseDirMarkers } from "./shipmarkers.js";
 import * as utils from './utils.js';
 import { MapBoundsTracker } from "./screenbounds.js";
 import { RenderAOIs, RenderGeofences } from "./Boundsrenders.js";
-import { NavigateToAlertHistoryButton, NavigateToAOIDrawButton, NavigateToGeofenceDrawButton, NavigateToInputsButton } from "./NavigateButtons.js";
+import { NavigateToUnreadAlertHistoryButton, NavigateToAOIDrawButton, NavigateToGeofenceDrawButton, NavigateToInputsButton } from "./NavigateButtons.js";
 
 
 
@@ -78,7 +78,7 @@ function MapPage() {
     <NavigateToInputsButton />
     <NavigateToAOIDrawButton />
     <NavigateToGeofenceDrawButton />
-    <NavigateToAlertHistoryButton />
+    <NavigateToUnreadAlertHistoryButton />
     </>
   );
   

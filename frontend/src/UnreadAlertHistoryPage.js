@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 
-import { get_all_alert_history, mark_alert_read, mark_alert_unread} from "./utils";
-import { NavigateToMapButton } from "./NavigateButtons";
+import { get_all_alert_history, get_unread_alert_history, mark_alert_read, mark_alert_unread} from "./utils";
+import { NavigateToAllAlertHistoryButton, NavigateToMapButton } from "./NavigateButtons";
 
-export default function AlertHistoryPage() {
+export default function UnreadAlertHistoryPage() {
 
     const [alerts, setAlerts] = useState([]);
 
@@ -18,7 +18,7 @@ export default function AlertHistoryPage() {
 
         setLoading(true);
 
-        const data = await get_all_alert_history({
+        const data = await get_unread_alert_history({
 
             start_time:
                 filters.start_time || null,
@@ -232,6 +232,7 @@ export default function AlertHistoryPage() {
 
             })}
             <NavigateToMapButton/>
+            <NavigateToAllAlertHistoryButton/>
 
         </div>
         
