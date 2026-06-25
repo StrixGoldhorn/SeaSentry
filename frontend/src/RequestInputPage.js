@@ -1,5 +1,6 @@
 import AOIPanel from "./AOIForm";
 import GeofencePanel from "./GeofenceForm";
+import { NavigateToMapButton } from "./NavigateButtons";
 import VOIPanel from "./VOIForm";
 
 export function RequestInputPage () {
@@ -8,6 +9,7 @@ export function RequestInputPage () {
             <AOIPanel/>
             <GeofencePanel/>
             <VOIPanel/>
+            <NavigateToMapButton/>
         </div>
     )
 }

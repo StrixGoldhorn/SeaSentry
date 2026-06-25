@@ -8,7 +8,7 @@ import { ShipMarkers, CourseDirMarkers } from "./shipmarkers.js";
 import * as utils from './utils.js';
 import { MapBoundsTracker } from "./screenbounds.js";
 import { RenderAOIs, RenderGeofences } from "./Boundsrenders.js";
-import NavigateToInputsButton from "./NavigateButtons.js";
+import { NavigateToAOIDrawButton, NavigateToGeofenceDrawButton, NavigateToInputsButton } from "./NavigateButtons.js";
 import AOIPolygonDrawer from "./AOIPolygonDrawer";
 import GeofencePolygonDrawer from "./GeofencePolygonDrawer.js";
 
@@ -21,60 +21,6 @@ function MapPage() {
   const [aoiData, setaoiData] = useState({});
   const [geofenceData, setgeofenceData] = useState({});
   const [mapBounds, setmapBounds] = useState({lat_min:0, lat_max:0, long_min:0, long_max:0});
-
-
-  // const [drawMode, setDrawMode] = useState(false);
-
-  // const [polygonPoints, setPolygonPoints] = useState([]);
-
-  // const [name, setName] = useState("");
-
-  // const [desc, setDesc] = useState("");
-
-  // const finishPolygon = async () => {
-
-  //     if (polygonPoints.length < 3) {
-  //         alert("Polygon needs at least 3 points");
-  //         return;
-  //     }
-
-  //     let coords = [...polygonPoints];
-
-  //     const first = coords[0];
-  //     const last = coords[coords.length - 1];
-
-  //     if (
-  //         first[0] !== last[0] ||
-  //         first[1] !== last[1]
-  //     ) {
-  //         coords.push(first);
-  //     }
-
-  //     try {
-
-  //         const result = await utils.add_poly_AOI({
-  //             name,
-  //             desc: desc || null,
-  //             coords: JSON.stringify(coords)
-  //         });
-
-  //         console.log(result);
-
-  //         alert("AOI created");
-
-  //         setPolygonPoints([]);
-  //         setDrawMode(false);
-
-  //     } catch (err) {
-
-  //         console.error(err);
-  //         alert("Failed to create AOI");
-
-  //     }
-  // };
-
-  // const leafletPolygon =
-  //     polygonPoints.map(([lng, lat]) => [lat, lng]);
 
 
   //useEffects
@@ -119,8 +65,6 @@ function MapPage() {
       attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
       url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
-      <AOIPolygonDrawer/>
-      <GeofencePolygonDrawer/>
       <MapBoundsTracker onBoundsChange={setmapBounds} />
       {shipData?.data && (<ShipMarkers shipdata={shipData.data} />)}
       {shipData?.data && (<CourseDirMarkers shipdata={shipData.data} />)}
@@ -128,6 +72,8 @@ function MapPage() {
       {geofenceData?.data && (<RenderGeofences geofencecoordsdata={geofenceData.data} />)}
     </MapContainer>
     <NavigateToInputsButton />
+    <NavigateToAOIDrawButton />
+    <NavigateToGeofenceDrawButton />
     </>
   );
   

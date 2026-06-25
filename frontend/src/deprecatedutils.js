@@ -98,3 +98,164 @@
 //     .then(data => data)
 //     .catch(err => console.error(err));
 // }
+
+// export async function add_poly_AOI({coords, name, desc = null}) {
+
+//     if (coords == null || name == null) {
+//         return null;
+//     }
+
+
+//     let url = config.api_url + `/api/v1/aois/add/polygon?`
+//     +`coords=${coords}&`
+//     +`name=${name}&`;
+
+//     if (desc !== null) {
+//         url = url + `desc=${desc}&`;
+//     }
+
+
+//     return await fetch(url, {method: "POST"})
+//     .then(res => res.json())
+//     .then(data => data)
+//     .catch(err => console.error(err));
+// }
+
+// export async function update_AOI({aoi_id, name = null, desc = null, coords = null, lat_min = null, lat_max = null, long_min = null, long_max = null}) {
+
+//     if (aoi_id == null) {
+//         return null;
+//     }
+
+//     if (name == null && desc == null && coords == null && lat_min == null && lat_max == null && long_min == null && long_max == null) {
+//         return null;
+//     }
+
+
+//     let url = config.api_url + `/api/v1/aois/${aoi_id}/update?`;
+
+//     if (name !== null) {
+//         url = url + `name=${name}&`;
+//     }
+
+//     if (desc !== null) {
+//         url = url + `desc=${desc}&`;
+//     }
+
+//     if (coords !== null) {
+//         url = url + `coords=${coords}&`;
+//     }
+
+//     if (lat_min !== null) {
+//         url = url + `lat_min=${lat_min}&`;
+//     }
+
+//     if (lat_max !== null) {
+//         url = url + `lat_max=${lat_max}&`;
+//     }
+
+//     if (long_min !== null) {
+//         url = url + `long_min=${long_min}&`;
+//     }
+
+//     if (long_max !== null) {
+//         url = url + `long_max=${long_max}&`;
+//     }
+
+//     return await fetch(url, {method: "PATCH"})
+//     .then(res => res.json())
+//     .then(data => data)
+//     .catch(err => console.error(err));
+// }
+
+// export async function add_box_geofence({lat_min, lat_max, long_min, long_max, name, desc = null}) {
+
+//     if (lat_min == null || lat_max == null || long_min == null || long_max == null || name == null) {
+//         return null;
+//     }
+
+
+//     let url = config.api_url + `/api/v1/geofences/add/box?`
+//     +`lat_min=${lat_min}&lat_max=${lat_max}&`
+//     +`long_min=${long_min}&long_max=${long_max}&`
+//     +`name=${name}&`;
+
+//     if (desc !== null) {
+//         url = url + `desc=${desc}&`;
+//     }
+
+
+//     return await fetch(url, {method: "POST"})
+//     .then(res => res.json())
+//     .then(data => data)
+//     .catch(err => console.error(err));
+// }
+
+// export async function add_poly_geofence({coords, name, desc = null}) {
+
+//     if (coords == null || name == null) {
+//         return null;
+//     }
+
+
+//     let url = config.api_url + `/api/v1/geofences/add/polygon?`
+//     +`coords=${coords}&`
+//     +`name=${name}&`;
+
+//     if (desc !== null) {
+//         url = url + `desc=${desc}&`;
+//     }
+
+
+//     return await fetch(url, {method: "POST"})
+//     .then(res => res.json())
+//     .then(data => data)
+//     .catch(err => console.error(err));
+// }
+
+// export async function update_geofence({geofence_id, name = null, desc = null, coords = null, lat_min = null, lat_max = null, long_min = null, long_max = null}) {
+
+//     if (geofence_id == null) {
+//         return null;
+//     }
+
+//     if (name == null && desc == null && coords == null && lat_min == null && lat_max == null && long_min == null && long_max == null) {
+//         return null;
+//     }
+
+
+//     let url = config.api_url + `/api/v1/geofences/${geofence_id}/update?`;
+
+//     if (name !== null) {
+//         url = url + `name=${name}&`;
+//     }
+
+//     if (desc !== null) {
+//         url = url + `desc=${desc}&`;
+//     }
+
+//     if (coords !== null) {
+//         url = url + `coords=${coords}&`;
+//     }
+
+//     if (lat_min !== null) {
+//         url = url + `lat_min=${lat_min}&`;
+//     }
+
+//     if (lat_max !== null) {
+//         url = url + `lat_max=${lat_max}&`;
+//     }
+
+//     if (long_min !== null) {
+//         url = url + `long_min=${long_min}&`;
+//     }
+
+//     if (long_max !== null) {
+//         url = url + `long_max=${long_max}&`;
+//     }
+
+//     return await fetch(url, {method: "PATCH"})
+//     .then(res => res.json())
+//     .then(data => data)
+//     .catch(err => console.error(err));
+// }
