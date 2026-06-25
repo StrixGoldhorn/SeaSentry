@@ -64,16 +64,16 @@ class IngestNormalisation:
         try:
             vesselLoc = VesselLocation()
 
-            if vloc.lat  is not None and vloc.lon is not None:
+            if vloc.lat is not None and vloc.lon is not None:
                 # Default when unavailable
                 if vloc.lat == 91 or vloc.lon == 181:
                     vesselLoc.vessel_location_coords = None
-
-                # NOTE: I don't want to mess with raw text in "user" input, don't know what funny ways people can sqli this
-                vesselLoc.vessel_location_coords = func.ST_SetSRID(
-                    func.ST_MakePoint(vloc.lon, vloc.lat),
-                    4326
-                )
+                else:
+                    # NOTE: I don't want to mess with raw text in "user" input, don't know what funny ways people can sqli this
+                    vesselLoc.vessel_location_coords = func.ST_SetSRID(
+                        func.ST_MakePoint(vloc.lon, vloc.lat),
+                        4326
+                    )
 
             if vloc.timestamp is not None:
                 vesselLoc.vessel_location_timestamp = vloc.timestamp
@@ -81,22 +81,26 @@ class IngestNormalisation:
                 # Default when unavailable
                 if vloc.speed_knots == 102.3:
                     vesselLoc.vessel_location_speed_knots = None
-                vesselLoc.vessel_location_speed_knots = vloc.speed_knots
+                else:
+                    vesselLoc.vessel_location_speed_knots = vloc.speed_knots
             if vloc.course_deg is not None:
                 # Default when unavailable
                 if vloc.course_deg == 360.0:
                     vesselLoc.vessel_location_course_deg = None
-                vesselLoc.vessel_location_course_deg = vloc.course_deg
+                else:
+                    vesselLoc.vessel_location_course_deg = vloc.course_deg
             if vloc.heading_deg is not None:
                 # Default when unavailable
-                if vloc.course_deg == 511:
-                    vesselLoc.vessel_location_course_deg = None
-                vesselLoc.vessel_location_heading_deg = vloc.heading_deg
+                if vloc.heading_deg == 511:
+                    vesselLoc.vessel_location_heading_deg = None
+                else:
+                    vesselLoc.vessel_location_heading_deg = vloc.heading_deg
             if vloc.rate_of_turn_deg_per_sec is not None:
                 # Default when unavailable
                 if vloc.rate_of_turn_deg_per_sec == 127 or vloc.rate_of_turn_deg_per_sec == -127:
                     vesselLoc.vessel_location_rate_of_turn_deg_per_sec = None
-                vesselLoc.vessel_location_rate_of_turn_deg_per_sec = vloc.rate_of_turn_deg_per_sec
+                else:
+                    vesselLoc.vessel_location_rate_of_turn_deg_per_sec = vloc.rate_of_turn_deg_per_sec
             if vloc.nav_status is not None:
                 vesselLoc.vessel_location_nav_status = vloc.nav_status
 
