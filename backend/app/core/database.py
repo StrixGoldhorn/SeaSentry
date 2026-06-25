@@ -29,7 +29,7 @@ class DBConn():
     Base = declarative_base()
 
     @classmethod
-    def init_db(cls):
+    def init_db(cls) -> None:
         '''
         Initialize database connection and session factory.
         Should be called once during application startup.
@@ -48,7 +48,7 @@ class DBConn():
                 time.sleep(_TIMEWAIT)
         else:
             raise RuntimeError("Could not connect to the database.")
-        
+
         # cls.ENGINE = create_engine(Settings.DATABASE_URL)
 
         cls.SESSION_FACTORY = sessionmaker(
@@ -65,17 +65,19 @@ class DBConn():
         logger.debug("Database connection initialized successfully")
 
     @classmethod
-    def get_session(cls):
+    def get_session(cls) -> scoped_session:
         '''
         Get a database session for use.
-        Returns session.
+
+        Returns:
+            scoped_session to be used
         '''
         if cls.DB_SESSION is None:
             cls.init_db()
         return cls.DB_SESSION
 
     @classmethod
-    def close_session(cls):
+    def close_session(cls) -> None:
         '''
         Remove the current session. 
         Should be called at the end of each request (in Flask teardown).
@@ -84,7 +86,7 @@ class DBConn():
             cls.DB_SESSION.remove()
 
     @classmethod
-    def run_init_sql(cls):
+    def run_init_sql(cls) -> None:
         '''
         Execute init.sql to set up PostGIS and create tables.
         Should be called once during initial setup if not in Docker container.
@@ -120,7 +122,7 @@ class DBConn():
             raise
 
     @classmethod
-    def drop_tables(cls, password1 = "qwertyuiop", password2 = "asdfgjkl"):
+    def drop_tables(cls, password1 = "qwertyuiop", password2 = "asdfgjkl") -> None:
         '''
         You have almost **no** reason to call this.
         
@@ -144,10 +146,12 @@ class DBConn():
             logger.critical("Incorrect password to drop all tables")
 
     @classmethod
-    def check_connection(cls):
+    def check_connection(cls) -> bool:
         '''
         Test database connection.
-        Returns True if connection is successful, False otherwise.
+
+        Returns:
+            True if connection is successful, False otherwise.
         '''
         if cls.ENGINE is None:
             return False
@@ -160,9 +164,12 @@ class DBConn():
             return False
 
     @classmethod
-    def get_postgis_version(cls):
+    def get_postgis_version(cls) -> Optional[str]:
         '''
         Gets PostGIS version of DB
+
+        Returns:
+            String indicating PostGIS version 
         '''
         if cls.ENGINE is None:
             cls.init_db()
@@ -172,7 +179,7 @@ class DBConn():
                 result = conn.execute(text("SELECT PostGIS_Version()"))
                 out = result.scalar()
                 return out
-            
+
         except Exception as e:
             print(e)
             return None

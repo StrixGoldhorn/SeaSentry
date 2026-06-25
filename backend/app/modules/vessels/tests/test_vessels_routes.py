@@ -1,5 +1,6 @@
 import pytest
 import json
+from datetime import datetime, timezone
 from unittest.mock import patch, MagicMock
 from flask import Flask
 
@@ -205,4 +206,132 @@ def test_get_vessel_by_vessel_data_id_exception(mock_get_vessel, mock_logger, mo
     assert data['error'] == "Internal server error"
     assert "Database connection failed" in data['details']
 
+    mock_logger.error.assert_called_once()
+
+# ==========================================
+# Tests for GET /api/v1/vessels/history
+# ==========================================
+
+def create_mock_stream():
+    '''Helper to create a mock generator stream for route tests'''
+    fake_loc = MagicMock(spec=VesselLocation)
+    fake_loc.vessel_location_id = 1
+    fake_loc.vessel_location_speed_knots = 10.5
+    fake_loc.vessel_location_course_deg = 90.0
+    fake_loc.vessel_location_heading_deg = 90.0
+    fake_loc.vessel_location_rate_of_turn_deg_per_sec = 0.0
+    fake_loc.vessel_location_nav_status = "Under way"
+    fake_loc.vessel_location_timestamp = datetime(2023, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
+    
+    fake_data = MagicMock(spec=VesselData)
+    fake_data.vessel_data_id = 101
+    fake_data.vessel_data_mmsi = 123456789
+    fake_data.vessel_data_imo = 9876543
+    fake_data.vessel_data_ship_name = "Test Ship"
+    fake_data.vessel_data_ship_type = "Cargo"
+    fake_data.vessel_data_flag = "Panama"
+    
+    return iter([(fake_loc, fake_data)])
+
+@patch('app.modules.vessels.routes.get_vessel_history_stream')
+def test_history_missing_bbox(mock_stream, client):
+    '''Test missing bounding box parameters'''
+    response = client.get('/api/v1/vessels/history?start_time=2023-01-01T00:00:00Z&end_time=2023-01-02T00:00:00Z')
+    assert response.status_code == 400
+    assert "Bounding box expected" in json.loads(response.data)['error']
+
+@patch('app.modules.vessels.routes.get_vessel_history_stream')
+def test_history_missing_times(mock_stream, client):
+    '''Test missing start_time or end_time'''
+    response = client.get('/api/v1/vessels/history?lat_min=10&lat_max=20&long_min=10&long_max=20')
+    assert response.status_code == 400
+    assert "start_time and end_time are required" in json.loads(response.data)['error']
+
+@patch('app.modules.vessels.routes.get_vessel_history_stream')
+def test_history_invalid_time_format(mock_stream, client):
+    '''Test invalid time format'''
+    response = client.get('/api/v1/vessels/history?lat_min=10&lat_max=20&long_min=10&long_max=20&start_time=invalid&end_time=2023-01-02T00:00:00Z')
+    assert response.status_code == 400
+    assert "Invalid time format" in json.loads(response.data)['error']
+
+@patch('app.modules.vessels.routes.get_vessel_history_stream')
+def test_history_start_after_end(mock_stream, client):
+    '''Test start_time is after end_time'''
+    response = client.get('/api/v1/vessels/history?lat_min=10&lat_max=20&long_min=10&long_max=20&start_time=2023-01-02T00:00:00Z&end_time=2023-01-01T00:00:00Z')
+    assert response.status_code == 400
+    assert "start_time must be before end_time" in json.loads(response.data)['error']
+
+@patch('app.modules.vessels.routes.get_vessel_history_stream')
+def test_history_invalid_format(mock_stream, client):
+    '''Test invalid export format parameter'''
+    response = client.get('/api/v1/vessels/history?lat_min=10&lat_max=20&long_min=10&long_max=20&start_time=2023-01-01T00:00:00Z&end_time=2023-01-02T00:00:00Z&format=xml')
+    assert response.status_code == 400
+    assert "Invalid format" in json.loads(response.data)['error']
+
+@patch('app.modules.vessels.routes.to_shape')
+@patch('app.modules.vessels.routes.get_vessel_history_stream')
+def test_history_success_json(mock_stream, mock_to_shape, client):
+    '''Test successful JSON export'''
+    mock_to_shape.return_value.x = 15.0
+    mock_to_shape.return_value.y = 15.0
+    mock_stream.return_value = create_mock_stream()
+
+    response = client.get('/api/v1/vessels/history?lat_min=10&lat_max=20&long_min=10&long_max=20&start_time=2023-01-01T00:00:00Z&end_time=2023-01-02T00:00:00Z&format=json')
+
+    assert response.status_code == 200
+    data = json.loads(response.data)
+    assert data['status'] == 'success'
+    assert len(data['data']) == 1
+    assert data['data'][0]['mmsi'] == 123456789
+    assert data['data'][0]['latitude'] == 15.0
+
+@patch('app.modules.vessels.routes.to_shape')
+@patch('app.modules.vessels.routes.get_vessel_history_stream')
+def test_history_success_geojson(mock_stream, mock_to_shape, client):
+    '''Test successful GeoJSON export'''
+    mock_to_shape.return_value.x = 15.0
+    mock_to_shape.return_value.y = 15.0
+    mock_stream.return_value = create_mock_stream()
+
+    response = client.get('/api/v1/vessels/history?lat_min=10&lat_max=20&long_min=10&long_max=20&start_time=2023-01-01T00:00:00Z&end_time=2023-01-02T00:00:00Z&format=geojson')
+
+    assert response.status_code == 200
+    assert response.mimetype == 'application/geo+json'
+    data = json.loads(response.data)
+    assert data['type'] == 'FeatureCollection'
+    assert len(data['features']) == 1
+    assert data['features'][0]['geometry']['coordinates'] == [15.0, 15.0]
+
+@patch('app.modules.vessels.routes.to_shape')
+@patch('app.modules.vessels.routes.get_vessel_history_stream')
+def test_history_success_csv(mock_stream, mock_to_shape, client):
+    '''Test successful CSV export'''
+    mock_to_shape.return_value.x = 15.0
+    mock_to_shape.return_value.y = 15.0
+    mock_stream.return_value = create_mock_stream()
+
+    response = client.get('/api/v1/vessels/history?lat_min=10&lat_max=20&long_min=10&long_max=20&start_time=2023-01-01T00:00:00Z&end_time=2023-01-02T00:00:00Z&format=csv')
+
+    assert response.status_code == 200
+    assert response.mimetype == 'text/csv'
+    csv_data = response.data.decode('utf-8')
+
+    assert 'location_id,vessel_data_id,mmsi' in csv_data
+
+    assert '123456789' in csv_data
+    assert 'Test Ship' in csv_data
+
+@patch('app.modules.vessels.routes.write_audit_log')
+@patch('app.modules.vessels.routes.logger')
+@patch('app.modules.vessels.routes.func')
+def test_history_exception(mock_func, mock_logger, mock_audit, client):
+    '''Test route exception handling'''
+    mock_func.ST_MakeEnvelope.side_effect = Exception("PostGIS error")
+
+    response = client.get('/api/v1/vessels/history?lat_min=10&lat_max=20&long_min=10&long_max=20&start_time=2023-01-01T00:00:00Z&end_time=2023-01-02T00:00:00Z')
+
+    assert response.status_code == 500
+    data = json.loads(response.data)
+    assert data['error'] == "Internal server error"
+    assert "PostGIS error" in data['details']
     mock_logger.error.assert_called_once()

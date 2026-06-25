@@ -366,3 +366,99 @@ def test_update_geofence_by_id_not_found(mock_update, client):
 
     assert response.status_code == 404
     assert 'not found' in json.loads(response.data)['error']
+
+# ==========================================
+# Tests for DELETE /api/v1/geofences/<int:geofence_id>/delete
+# ==========================================
+
+@patch('app.modules.geofences.routes.delete_geofence_in_db')
+@patch('app.modules.geofences.routes.get_geofence_by_id')
+def test_delete_geofence_success(mock_get_geofence, mock_delete, client):
+    '''
+    Test successful deletion of an Geofence
+    '''
+    mock_geofence = MagicMock()
+    mock_geofence.geofence_name = "TestGeofence"
+
+    mock_get_geofence.side_effect = [mock_geofence, None]
+    mock_delete.return_value = True
+
+    response = client.delete('/api/v1/geofences/1/delete?geofence_name=TestGeofence')
+
+    assert response.status_code == 200
+    data = json.loads(response.data)
+    assert data['status'] == 'success'
+    assert 'deleted successfully' in data['message']
+    mock_delete.assert_called_once_with(1)
+
+def test_delete_geofence_missing_name(client):
+    '''
+    Test deletion without providing the required geofence_name query parameter
+    '''
+    response = client.delete('/api/v1/geofences/1/delete')
+    
+    assert response.status_code == 400
+    data = json.loads(response.data)
+    assert data['error'] == "Missing required query parameter: 'geofence_name'."
+
+@patch('app.modules.geofences.routes.get_geofence_by_id')
+def test_delete_geofence_not_found(mock_get_geofence, client):
+    '''
+    Test deletion of a non-existent Geofence
+    '''
+    mock_get_geofence.return_value = None
+
+    response = client.delete('/api/v1/geofences/999/delete?geofence_name=GhostGeofence')
+
+    assert response.status_code == 404
+    data = json.loads(response.data)
+    assert data['error'] == "Geofence with ID 999 not found."
+
+@patch('app.modules.geofences.routes.get_geofence_by_id')
+def test_delete_geofence_name_mismatch(mock_get_geofence, client):
+    '''
+    Test deletion with an incorrect geofence_name
+    '''
+    mock_geofence = MagicMock()
+    mock_geofence.geofence_name = "RealGeofenceName"
+    mock_get_geofence.return_value = mock_geofence
+
+    response = client.delete('/api/v1/geofences/1/delete?geofence_name=WrongGeofenceName')
+
+    assert response.status_code == 403
+    data = json.loads(response.data)
+    assert data['error'] == "'geofence_name' does not match the Geofence with the given ID."
+
+@patch('app.modules.geofences.routes.delete_geofence_in_db')
+@patch('app.modules.geofences.routes.get_geofence_by_id')
+def test_delete_geofence_db_failure(mock_get_geofence, mock_delete, client):
+    '''
+    Test when the Geofence is not actually deleted from the database 
+    '''
+    mock_geofence = MagicMock()
+    mock_geofence.geofence_name = "TestGeofence"
+
+    mock_get_geofence.return_value = mock_geofence
+    mock_delete.return_value = True
+
+    response = client.delete('/api/v1/geofences/1/delete?geofence_name=TestGeofence')
+
+    assert response.status_code == 500
+    data = json.loads(response.data)
+    assert data['error'] == "Internal server error: Failed to delete Geofence."
+
+@patch('app.modules.geofences.routes.write_audit_log')
+@patch('app.modules.geofences.routes.get_geofence_by_id')
+def test_delete_geofence_internal_error(mock_get_geofence, mock_audit, client):
+    '''
+    Test internal server error during the deletion process
+    '''
+    mock_get_geofence.side_effect = Exception("Database connection failed")
+
+    response = client.delete('/api/v1/geofences/1/delete?geofence_name=TestGeofence')
+
+    assert response.status_code == 500
+    data = json.loads(response.data)
+    assert data['error'] == "Internal server error"
+
+    mock_audit.assert_called_once()
