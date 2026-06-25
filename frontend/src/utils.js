@@ -151,6 +151,28 @@ export async function add_VOI({ name, desc = null, mmsi, imo }) {
         .catch(err => console.error(err));
 }
 
+// Deletes an existing Vessel of Interest.
+export async function delete_VOI({
+    voi_id,
+    voi_name
+}) {
+
+    if (voi_id == null || voi_name == null) {
+        return null;
+    }
+
+    const url =
+        config.api_url +
+        `/api/v1/vessel_of_interest/${voi_id}/delete?` + `voi_name=${encodeURIComponent(voi_name)}`;
+
+    return await fetch(url, {
+        method: "DELETE"
+    })
+    .then(res => res.json())
+    .catch(err => console.error(err));
+}
+
+
 //AOI
 //Query for all AOIs
 export async function get_all_AOI() {
@@ -323,7 +345,7 @@ export async function delete_AOI({
 
     const url =
         config.api_url +
-        `/api/v1/aois/${aoi_id}/delete?` + `aoi_name=${aoi_name}`;
+        `/api/v1/aois/${aoi_id}/delete?` + `aoi_name=${encodeURIComponent(aoi_name)}`;
 
     return await fetch(url, {
         method: "DELETE"
@@ -506,7 +528,7 @@ export async function delete_geofence({
 
     const url =
         config.api_url +
-        `/api/v1/geofences/${geofence_id}/delete?` + `geofence_name=${geofence_name}`;
+        `/api/v1/geofences/${geofence_id}/delete?` + `geofence_name=${encodeURIComponent(geofence_name)}`;
 
     return await fetch(url, {
         method: "DELETE"

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 
 import { get_all_alert_history, mark_alert_read, mark_alert_unread} from "./utils";
+import { NavigateToMapButton } from "./NavigateButtons";
 
 export default function AlertHistoryPage() {
 
@@ -230,8 +231,10 @@ export default function AlertHistoryPage() {
                 );
 
             })}
+            <NavigateToMapButton/>
 
         </div>
+        
 
     );
 }

@@ -75,3 +75,22 @@ export function NavigateToGeofenceDrawButton() {
     </button>
   );
 }
+
+export function NavigateToAlertHistoryButton() {
+  const navigate = useNavigate();
+
+  return (
+    <button
+      onClick={() => navigate("/alerts/history")}
+      style={{
+        position: "absolute",
+        top: "170px",
+        right: "20px",
+        zIndex: 1000,
+        padding: "10px 15px",
+      }}
+    >
+      Go to Alert History
+    </button>
+  );
+}
