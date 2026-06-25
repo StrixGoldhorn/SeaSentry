@@ -181,3 +181,31 @@ def update_vessel_of_interest_data_in_db(vessel_of_interest_id: int,
         raise
     finally:
         DBConn.close_session()
+
+def delete_voi_in_db(voi_id: int):
+    '''
+    Deletes an existing vessel of interest in the database.
+    
+    Args:
+        voi_id: int representing voi_id to be deleted
+
+    Returns:
+        True if successful
+    '''
+
+    session = DBConn.get_session()
+    try:
+        voi = session.query(VesselOfInterest).filter(VesselOfInterest.vessel_of_interest_id == voi_id).first()
+        if not voi:
+            return False
+
+        session.delete(voi)
+        session.commit()
+        return True
+
+    except Exception as e:
+        session.rollback()
+        logger.error("DB Error in delete_voi_in_db: %s", str(e))
+        raise
+    finally:
+        DBConn.close_session()

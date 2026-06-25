@@ -16,6 +16,7 @@ Fields are compulsory unless otherwise stated
     - [GET `/api/v1/vessel_of_interest/<vessel_of_interest_id>`](#get-apiv1vessel_of_interestvessel_of_interest_id)
     - [POST `/api/v1/vessel_of_interest/add`](#post-apiv1vessel_of_interestadd)
     - [POST/PATCH `/api/v1/vessel_of_interest/<vessel_of_interest_id>/update`](#postpatch-apiv1vessel_of_interestvessel_of_interest_idupdate)
+    - [DELETE `/api/v1/vessel_of_interest/<vessel_of_interest_id>/delete`](#delete-apiv1vessel_of_interestvessel_of_interest_iddelete)
   - [AOIs](#aois)
     - [GET `/api/v1/aois/get/all`](#get-apiv1aoisgetall)
     - [GET `/api/v1/aois/<aoi_id>`](#get-apiv1aoisaoi_id)
@@ -157,7 +158,6 @@ Returns:
 - 403 if name already exists
 - 500 if internal server error
 
-
 ### POST/PATCH `/api/v1/vessel_of_interest/<vessel_of_interest_id>/update`
 
 Summary: Updates an existing Vessel of Interest. Supports partial updates.
@@ -177,6 +177,21 @@ Returns:
 - 404 if Vessel of Interest with id does not exist
 - 500 if internal server error
 
+### DELETE `/api/v1/vessel_of_interest/<vessel_of_interest_id>/delete`
+
+Summary: Deletes an existing Vessel of Interest.
+
+Query Param:
+- voi_name: Name of the Vessel of Interest to be deleted.
+
+**Note**: The above is done solely to ensure that the user does not accidentally delete the wrong Vessel of Interest.
+    
+Returns:
+- 200 if successfully deleted
+- 400 if missing/malformed fields
+- 403 if provided voi_name is incorrect
+- 404 if Vessel of Interest with id does not exist
+- 500 if internal server error
 
 ## AOIs
 
