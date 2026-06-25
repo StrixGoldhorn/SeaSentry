@@ -3,6 +3,7 @@ import AlertRulesList from "./AlertRulesDisplay";
 import AOIPanel from "./AOIForm";
 import GeofencePanel from "./GeofenceForm";
 import { NavigateToMapButton } from "./NavigateButtons";
+import VOIList from "./VOIDisplay";
 import VOIPanel from "./VOIForm";
 
 export function RequestInputPage () {
@@ -11,6 +12,7 @@ export function RequestInputPage () {
             <AOIPanel/>
             <GeofencePanel/>
             <VOIPanel/>
+            <VOIList/>
             <AlertRulePanel/>
             <AlertRulesList/>
             <NavigateToMapButton/>

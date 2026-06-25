@@ -30,23 +30,18 @@ export default function AlertRulesList() {
 
     const toggleRule = async (rule) => {
 
-        const enabled =
-            rule.enabled ??
-            rule.is_enabled ??
-            rule.alert_rule_enabled;
+        if (rule.alert_rule_enabled) {
 
-        if (enabled) {
             await disable_alert_rule({
-                alert_rule_id:
-                    rule.alert_rule_id ??
-                    rule.id
+                alert_rule_id: rule.alert_rule_id
             });
+
         } else {
+
             await enable_alert_rule({
-                alert_rule_id:
-                    rule.alert_rule_id ??
-                    rule.id
+                alert_rule_id: rule.alert_rule_id
             });
+
         }
 
         await loadRules();
@@ -67,14 +62,15 @@ export default function AlertRulesList() {
 
             {rules.map(rule => {
 
-                const id =
-                    rule.alert_rule_id ??
-                    rule.id;
+                const id = rule.alert_rule_id;
 
-                const enabled =
-                    rule.enabled ??
-                    rule.is_enabled ??
-                    rule.alert_rule_enabled;
+                const name = rule.alert_rule_name;
+
+                const description = rule.alert_rule_description;
+
+                const enabled = rule.alert_rule_enabled;
+
+                const params = rule.alert_rule_params;
 
                 return (
 
@@ -88,50 +84,35 @@ export default function AlertRulesList() {
                         }}
                     >
 
-                        <h3>
-                            {rule.name}
-                        </h3>
+                        <h3>{name}</h3>
 
                         <p>
-                            {rule.description || "No description"}
+                            {description || "No description"}
                         </p>
 
                         <p>
-                            Status:
-                            {" "}
-                            <strong>
-                                {enabled
-                                    ? "Enabled"
-                                    : "Disabled"}
-                            </strong>
+                            <strong>Status:</strong>{" "}
+                            {enabled ? "Enabled" : "Disabled"}
                         </p>
 
                         <button
                             onClick={() => toggleRule(rule)}
                         >
-                            {enabled
-                                ? "Disable"
-                                : "Enable"}
+                            {enabled ? "Disable" : "Enable"}
                         </button>
 
                         <details style={{ marginTop: "10px" }}>
-                            <summary>
-                                Show Rule JSON
-                            </summary>
+                            <summary>Show Rule JSON</summary>
 
                             <pre>
-                                {JSON.stringify(
-                                    rule.alert_rule_params,
-                                    null,
-                                    2
-                                )}
+                                {JSON.stringify(params, null, 2)}
                             </pre>
-
                         </details>
 
                     </div>
 
                 );
+
             })}
         </div>
     );

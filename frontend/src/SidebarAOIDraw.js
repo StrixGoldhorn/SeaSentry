@@ -9,8 +9,6 @@ import * as utils from './utils.js';
 import { MapBoundsTracker } from "./screenbounds.js";
 import { RenderAOIs, RenderGeofences } from "./Boundsrenders.js";
 import { NavigateToInputsButton,  NavigateToMapButton } from "./NavigateButtons.js";
-import AOIPolygonDrawer from "./AOIPolygonDrawer";
-import GeofencePolygonDrawer from "./GeofencePolygonDrawer.js";
 
 import AOIPolygonDrawerNew from "./AOIPolygonDrawerNew";
 import AOISidebar from "./AOISidebar";
