@@ -39,8 +39,8 @@ export default function AOIPanel(){
     };
 
     return(
-
-        <div>
+        <div className="coord-grid">
+        <div className="form-group">
 
             <h2>Add AOI Box</h2>
 
@@ -75,7 +75,7 @@ export default function AOIPanel(){
             <pre>{response}</pre>
 
         </div>
-
+        </div>
     );
 
 }

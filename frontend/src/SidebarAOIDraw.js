@@ -67,12 +67,15 @@ export default function SidebarAOIDrawPage() {
 
     return (
         <div
+        className="app"
             style={{
                 display: "flex",
                 height: "100vh",
                 width: "100vw"
             }}
         >
+
+            <div className="sidebar">
             <AOISidebar
                 drawing={drawing}
                 setDrawing={setDrawing}
@@ -83,8 +86,11 @@ export default function SidebarAOIDrawPage() {
                 desc={desc}
                 setDesc={setDesc}
             />
+            </div>
+
 
             <div
+            className="map-container"
                 style={{
                     flex: 1
                 }}
@@ -114,7 +120,7 @@ export default function SidebarAOIDrawPage() {
                     />
                 </MapContainer>
                 <NavigateToMapButton/>
-            </div>
-        </div>
+              </div>
+          </div>
     );
 }

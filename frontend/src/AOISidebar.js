@@ -74,7 +74,6 @@ export default function AOISidebar({
                 }
             </button>
 
-            <hr />
 
             <div>
                 Vertices: {coords.length}

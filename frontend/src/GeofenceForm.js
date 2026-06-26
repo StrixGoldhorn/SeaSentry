@@ -37,8 +37,8 @@ export default function GeofencePanel(){
     }
 
     return(
-        <div>
-
+        <div className="coord-grid">
+        <div className="form-group">
             <h2>Add Geofence Box</h2>
 
             <input placeholder="Name"
@@ -71,6 +71,7 @@ export default function GeofencePanel(){
 
             <pre>{response}</pre>
 
+        </div>
         </div>
     );
 

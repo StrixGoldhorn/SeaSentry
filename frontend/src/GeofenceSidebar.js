@@ -74,7 +74,6 @@ export default function GeofenceSidebar({
                 }
             </button>
 
-            <hr />
 
             <div>
                 Vertices: {coords.length}
