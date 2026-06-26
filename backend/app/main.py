@@ -65,7 +65,7 @@ def create_app():
     app.register_blueprint(alerts_bp)
     app.register_blueprint(vessel_of_interest_bp)
 
-    CORS(app, resources={r"/api/*": {"origins": ["http://localhost:3000", "http://127.0.0.1:3000"]}})
+    CORS(app, resources={r"/api/*": {"origins": Settings.CORS_ALLOWED}})
 
     @app.teardown_appcontext
     def teardown_session(exception = None):
@@ -129,11 +129,6 @@ def main():
 
 if __name__ == "__main__":
     _scraper_started = False
-    # try:
-    #     DBConn.run_init_sql()
-    # except:
-    #     pass
-
     try:
         DBG_INSERT_DEFAULT_AOI()
         DBG_INSERT_DEFAULT_GEOFENCE()

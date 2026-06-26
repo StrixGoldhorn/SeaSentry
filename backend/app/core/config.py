@@ -12,6 +12,11 @@ class Settings():
     Global settings
     '''
 
+    CORS_ALLOWED: list = [
+        "http://localhost:3000",
+        "http://127.0.0.1:3000"
+    ]
+
     SCRAPER_CONFIGS: dict = {
         "AISFriends_Scraper": {
             "enabled": True,
