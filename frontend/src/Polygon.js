@@ -64,7 +64,7 @@ export function PolygonOverlay({
             positions={polyBounds}
             pathOptions={polyOptions}
         >
-            <Popup>
+            <Popup autoPan={false}>
 
                 <div style={{ minWidth: "250px" }}>
 
