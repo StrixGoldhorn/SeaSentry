@@ -21,17 +21,19 @@ function shipDegCheck(deg) {
     return deg;
 }
 
-export function ShipMarkers(shipdata) {
+export function ShipMarkers({ shipdata }) {
     if (!Array.isArray(shipdata)) {
         return null;
     }
     
     return (shipdata.map((ship) => (
         <Marker
+        key={ship.vessel_data_id}
         position = {[ship.latitude, ship.longitude]}
         icon = {customIcon}
         rotationOrigin="center"
         rotationAngle={shipDegCheck(ship.heading_deg)}
+        zIndexOffset={600}
         >
             <Popup>
                 <div style={{ padding: '10px' }}>
@@ -51,13 +53,14 @@ export function ShipMarkers(shipdata) {
         )))
 }
 
-export function CourseDirMarkers(shipdata) {
+export function CourseDirMarkers({ shipdata }) {
     if (!Array.isArray(shipdata)) {
         return null;
     }
     
     return (shipdata.map((ship) => (
         <Marker
+        key={ship.vessel_data_id}
         position = {[ship.latitude, ship.longitude]}
         icon = {lineIcon}
         rotationOrigin="center"
