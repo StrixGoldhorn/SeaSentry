@@ -178,8 +178,8 @@ export default function AllAlertHistoryPage() {
 
                         {alert.alert_history_context?.matched_vessels?.length > 0 && (
                             <>
-                                <strong>Matched Vessel</strong>
-
+                                <p><strong>Matched Vessel</strong>
+</p>
                                 <ul>
                                     {alert.alert_history_context.matched_vessels.map(vessel => (
                                         <li key={vessel.ship_data_id}>

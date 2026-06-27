@@ -55,7 +55,6 @@ export default function GeofenceSidebar({
             style={{
                 width: "300px",
                 padding: "20px",
-                borderRight: "1px solid #ccc",
                 background: "#fff",
                 overflowY: "auto"
             }}
@@ -75,9 +74,9 @@ export default function GeofenceSidebar({
             </button>
 
 
-            <div>
+            <p>
                 Vertices: {coords.length}
-            </div>
+            </p>
 
             <input
                 placeholder="Geofence Name"
