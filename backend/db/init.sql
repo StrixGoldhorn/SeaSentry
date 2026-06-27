@@ -168,11 +168,11 @@ CREATE TABLE IF NOT EXISTS alert_rule (
 );
 
 -- RESERVE 2 IDs FOR FUTURE USES
-INSERT INTO alert_rule (alert_rule_id, alert_rule_name, alert_rule_description, alert_rule_params, alert_rule_enabled)
-VALUES (1, 'SYSTEM', 'Reserved for misc system alerts', '{}', true);
+INSERT INTO alert_rule (alert_rule_name, alert_rule_description, alert_rule_params, alert_rule_enabled)
+VALUES ('SYSTEM', 'Reserved for misc system alerts', '{}', true);
 
-INSERT INTO alert_rule (alert_rule_id, alert_rule_name, alert_rule_description, alert_rule_params, alert_rule_enabled)
-VALUES (2, 'BAD_DATA_DETECTION', 'Reserved for alerts regarding inconsistencies in data', '{}', true);
+INSERT INTO alert_rule (alert_rule_name, alert_rule_description, alert_rule_params, alert_rule_enabled)
+VALUES ('BAD_DATA_DETECTION', 'Reserved for alerts regarding inconsistencies in data', '{}', true);
 
 -- Create table to store alert history
 CREATE TABLE IF NOT EXISTS alert_history (
