@@ -10,6 +10,29 @@ from app.models.alert import AlertRule, AlertHistory
 
 logger = logging.getLogger(__name__)
 
+def get_alert_rule_by_id(id: int):
+    '''
+    Returns alert rule with given ID
+    
+    Args:
+        id: id of Alert Rule
+
+    Returns:
+        AlertRule object if exists, None otherwise
+    '''
+
+    session = DBConn.get_session()
+    try:
+        query = session.query(AlertRule).filter(AlertRule.alert_rule_id == id)
+        res = query.first()
+        return res
+    except Exception as e:
+        session.rollback()
+        logger.error("DB Error in get_alert_rule_by_id: %s", str(e))
+        raise
+    finally:
+        DBConn.close_session()
+
 def get_all_alert_history(start_time: Optional[datetime] = None, end_time: Optional[datetime] = None,
                           limit: Optional[int] = None, offset: Optional[int] = None, is_read: Optional[bool] = None) -> List[AlertHistory]:
     '''
@@ -249,6 +272,9 @@ def update_alert_rule_in_db(alert_rule_id: int,
 
     session = DBConn.get_session()
     try:
+        # RESERVED RULES!!!
+        if alert_rule_id == 1 or alert_rule_id == 2:
+            return False
         rule = session.query(AlertRule).filter(AlertRule.alert_rule_id == alert_rule_id).first()
 
         if not rule:
@@ -277,5 +303,36 @@ def update_alert_rule_in_db(alert_rule_id: int,
         logger.error("Failed to update rule id %d: %s", alert_rule_id, e, exc_info=True)
         raise
 
+    finally:
+        DBConn.close_session()
+
+def delete_alert_rule_in_db(alert_rule_id: int):
+    '''
+    Deletes an existing alert rule in the database.
+    
+    Args:
+        alert_rule_id: int representing alert_rule_id to be deleted
+
+    Returns:
+        True if successful
+    '''
+
+    session = DBConn.get_session()
+    try:
+        # RESERVED RULES!!!
+        if alert_rule_id == 1 or alert_rule_id == 2:
+            return False
+        rule = session.query(AlertRule).filter(AlertRule.alert_rule_id == alert_rule_id).first()
+        if not rule:
+            return False
+
+        session.delete(rule)
+        session.commit()
+        return True
+
+    except Exception as e:
+        session.rollback()
+        logger.error("DB Error in delete_aoi_in_db: %s", str(e))
+        raise
     finally:
         DBConn.close_session()
