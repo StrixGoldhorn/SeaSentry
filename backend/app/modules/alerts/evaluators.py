@@ -39,7 +39,12 @@ def complex_evaluator(vessel_data_id: int, vessel_location_id: int):
             return
 
         rules = session.execute(
-            select(AlertRule).where(AlertRule.alert_rule_enabled == True)
+            select(AlertRule).where(
+                AlertRule.alert_rule_enabled == True,
+                # 1 and 2 are reserved, WILL FAIL RULE EVALUATION
+                AlertRule.alert_rule_id != 1,
+                AlertRule.alert_rule_id != 2
+                )
         ).scalars().all()
 
         for rule in rules:

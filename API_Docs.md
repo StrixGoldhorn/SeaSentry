@@ -42,6 +42,7 @@ Fields are compulsory unless otherwise stated
     - [POST `/api/v1/alerts/rule/<alert_rule_id>/update`](#post-apiv1alertsrulealert_rule_idupdate)
     - [POST `/api/v1/alerts/rule/<alert_rule_id>/mark/disable`](#post-apiv1alertsrulealert_rule_idmarkdisable)
     - [POST `/api/v1/alerts/rule/<alert_rule_id>/mark/enable`](#post-apiv1alertsrulealert_rule_idmarkenable)
+    - [DELETE `/api/v1/alerts/rule/<alert_rule_id>/delete`](#delete-apiv1alertsrulealert_rule_iddelete)
 - [Rule Configuration](#rule-configuration)
   - [Explanation](#explanation)
   - [Fields and Operators](#fields-and-operators)
@@ -510,6 +511,22 @@ Summary: Marks the given alert rule as enabled
 Returns:
 - 200 if successfully marked as enabled
 - 404 if no such alert rule with given id exists
+- 500 if internal server error
+
+### DELETE `/api/v1/alerts/rule/<alert_rule_id>/delete`
+
+Summary: Deletes an existing alert rule
+
+Query Param:
+- alert_rule_name: Name of the alert rule to be deleted.
+
+**Note**: The above is done solely to ensure that the user does not accidentally delete the wrong alert rule.
+    
+Returns:
+- 200 if successfully deleted
+- 400 if missing/malformed fields
+- 403 if provided alert_rule_name is incorrect
+- 404 if alert rule with id does not exist
 - 500 if internal server error
 
 

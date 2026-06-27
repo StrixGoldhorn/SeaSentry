@@ -551,3 +551,142 @@ def test_update_alert_rule_internal_error(mock_update, mock_audit, client):
     assert data['error'] == 'Internal server error'
 
     mock_audit.assert_called_once()
+
+def test_update_alert_rule_forbidden_id_1(client):
+    '''
+    Test that updating rule with ID 1 is forbidden
+    '''
+    payload = {"name": "Hacked"}
+    response = client.post('/api/v1/alerts/rule/1/update', json=payload)
+
+    assert response.status_code == 403
+    data = json.loads(response.data)
+    assert data['error'] == 'Forbidden.'
+
+def test_update_alert_rule_forbidden_id_2(client):
+    '''
+    Test that updating rule with ID 2 is forbidden
+    '''
+    payload = {"name": "Hacked"}
+    response = client.post('/api/v1/alerts/rule/2/update', json=payload)
+
+    assert response.status_code == 403
+    data = json.loads(response.data)
+    assert data['error'] == 'Forbidden.'
+
+# ==========================================
+# Tests for DELETE /api/v1/alerts/rule/<int:alert_rule_id>/delete
+# ==========================================
+
+@patch('app.modules.alerts.routes.delete_alert_rule_in_db')
+@patch('app.modules.alerts.routes.get_alert_rule_by_id')
+def test_delete_alert_rule_success(mock_get_alert_rule, mock_delete, client):
+    '''
+    Test successful deletion of an Alert Rule
+    '''
+    mock_alert_rule = MagicMock()
+    mock_alert_rule.alert_rule_name = "TestAlertRule"
+
+    mock_get_alert_rule.side_effect = [mock_alert_rule, None]
+    mock_delete.return_value = True
+
+    response = client.delete('/api/v1/alerts/rule/3/delete?alert_rule_name=TestAlertRule')
+
+    assert response.status_code == 200
+    data = json.loads(response.data)
+    assert data['status'] == 'success'
+    assert 'deleted successfully' in data['message']
+    mock_delete.assert_called_once_with(3)
+
+def test_delete_alert_rule_missing_name(client):
+    '''
+    Test deletion without providing the required alert_rule_name query parameter
+    '''
+    response = client.delete('/api/v1/alerts/rule/3/delete')
+
+    assert response.status_code == 400
+    data = json.loads(response.data)
+    assert data['error'] == "Missing required query parameter: 'alert_rule_name'."
+
+@patch('app.modules.alerts.routes.get_alert_rule_by_id')
+def test_delete_alert_rule_not_found(mock_get_alert_rule, client):
+    '''
+    Test deletion of a non-existent Alert Rule
+    '''
+    mock_get_alert_rule.return_value = None
+
+    response = client.delete('/api/v1/alerts/rule/999/delete?alert_rule_name=GhostAlertRule')
+
+    assert response.status_code == 404
+    data = json.loads(response.data)
+    assert data['error'] == "Alert rule with ID 999 not found."
+
+@patch('app.modules.alerts.routes.get_alert_rule_by_id')
+def test_delete_alert_rule_name_mismatch(mock_get_alert_rule, client):
+    '''
+    Test deletion with an incorrect alert_rule_name
+    '''
+    mock_alert_rule = MagicMock()
+    mock_alert_rule.alert_rule_name = "RealAlertRuleName"
+    mock_get_alert_rule.return_value = mock_alert_rule
+
+    response = client.delete('/api/v1/alerts/rule/3/delete?alert_rule_name=WrongAlertRuleName')
+
+    assert response.status_code == 403
+    data = json.loads(response.data)
+    assert data['error'] == "'alert_rule_name' does not match the Alert rule with the given ID."
+
+@patch('app.modules.alerts.routes.delete_alert_rule_in_db')
+@patch('app.modules.alerts.routes.get_alert_rule_by_id')
+def test_delete_alert_rule_db_failure(mock_get_alert_rule, mock_delete, client):
+    '''
+    Test when the Alert Rule is not actually deleted from the database 
+    '''
+    mock_alert_rule = MagicMock()
+    mock_alert_rule.alert_rule_name = "TestAlertRule"
+
+    # Both calls return the rule, simulating that the DB deletion failed
+    mock_get_alert_rule.return_value = mock_alert_rule
+    mock_delete.return_value = True
+
+    response = client.delete('/api/v1/alerts/rule/3/delete?alert_rule_name=TestAlertRule')
+
+    assert response.status_code == 500
+    data = json.loads(response.data)
+    assert data['error'] == "Internal server error: Failed to delete Alert rule."
+
+@patch('app.modules.alerts.routes.write_audit_log')
+@patch('app.modules.alerts.routes.get_alert_rule_by_id')
+def test_delete_alert_rule_internal_error(mock_get_alert_rule, mock_audit, client):
+    '''
+    Test internal server error during the deletion process
+    '''
+    mock_get_alert_rule.side_effect = Exception("Database connection failed")
+
+    response = client.delete('/api/v1/alerts/rule/3/delete?alert_rule_name=TestAlertRule')
+
+    assert response.status_code == 500
+    data = json.loads(response.data)
+    assert data['error'] == "Internal server error"
+
+    mock_audit.assert_called_once()
+
+def test_delete_alert_rule_forbidden_id_1(client):
+    '''
+    Test that deleting rule with ID 1 is forbidden
+    '''
+    response = client.delete('/api/v1/alerts/rule/1/delete?alert_rule_name=SystemRule')
+
+    assert response.status_code == 403
+    data = json.loads(response.data)
+    assert data['error'] == 'Forbidden.'
+
+def test_delete_alert_rule_forbidden_id_2(client):
+    '''
+    Test that deleting rule with ID 2 is forbidden
+    '''
+    response = client.delete('/api/v1/alerts/rule/2/delete?alert_rule_name=SystemRule')
+
+    assert response.status_code == 403
+    data = json.loads(response.data)
+    assert data['error'] == 'Forbidden.'

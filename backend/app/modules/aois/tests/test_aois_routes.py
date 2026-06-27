@@ -393,7 +393,7 @@ def test_delete_aoi_missing_name(client):
     Test deletion without providing the required aoi_name query parameter
     '''
     response = client.delete('/api/v1/aois/1/delete')
-    
+
     assert response.status_code == 400
     data = json.loads(response.data)
     assert data['error'] == "Missing required query parameter: 'aoi_name'."

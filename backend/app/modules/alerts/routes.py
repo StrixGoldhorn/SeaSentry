@@ -9,11 +9,12 @@ from app.modules.alerts.custom_rules import RuleTreeAdapter, build_sqlalchemy_ex
 
 from app.utils.audit_log_helpers import write_audit_log
 from app.utils.alert_helpers import (
-    get_all_alert_history, get_all_alert_rule,
+    get_all_alert_history, get_all_alert_rule, get_alert_rule_by_id,
     update_alert_rule_in_db,
     mark_alert_as_read, mark_alert_as_unread,
     mark_rule_as_disable, mark_rule_as_enable,
-    add_alert_rule_to_db
+    add_alert_rule_to_db,
+    delete_alert_rule_in_db
     )
 
 import logging
@@ -184,7 +185,7 @@ def get_unread_alert_history():
 @alerts_bp.route('/history/<int:alert_history_id>/mark/read', methods=['POST'])
 def mark_alert_history_read(alert_history_id: int):
     '''
-    POST /history/<alert_history_id:int>/mark/read
+    POST /api/v1/alerts/history/<alert_history_id:int>/mark/read
     Marks alert history with given id as read
     '''
     try:
@@ -207,7 +208,7 @@ def mark_alert_history_read(alert_history_id: int):
 @alerts_bp.route('/history/<int:alert_history_id>/mark/unread', methods=['POST'])
 def mark_alert_history_unread(alert_history_id: int):
     '''
-    POST /history/<alert_history_id:int>/mark/unread
+    POST /api/v1/alerts/history/<alert_history_id:int>/mark/unread
     Marks alert history with given id as unread
     '''
     try:
@@ -412,6 +413,9 @@ def update_alert_rule_web(alert_rule_id: int):
         "params": { ... }
     }
     '''
+    if alert_rule_id == 1 or alert_rule_id == 2:
+            return jsonify({"error": "Forbidden."}), 403
+    
     data = None
     try:
         data = request.get_json()
@@ -472,3 +476,46 @@ def update_alert_rule_web(alert_rule_id: int):
         logger.error("Error in update_alert_rule_web: %s", str(e), exc_info=Settings.EXEC_INFO_API)
         write_audit_log("Error updating alert rule", __name__, {"info": str(e), "payload": str(data), "rule_id": alert_rule_id}, "ERROR")
         return jsonify({"status": "error", "error": "Internal server error", "details": str(e)}), 500
+
+@alerts_bp.route('/rule/<int:alert_rule_id>/delete', methods=['DELETE'])
+def delete_alert_rule_by_id_web(alert_rule_id):
+    '''
+    DELETE /api/v1/alerts/rule/<alert_rule_id>/delete
+    Deletes an existing Area of Interest.
+
+    Query Param:
+    - alert_rule_name: str (Name of alert rule to be deleted, so that users can't spam through alert_rule_ids and accidentally delete)
+    '''
+    try:
+        alert_rule_name = request.args.get("alert_rule_name")
+
+        if alert_rule_id == 1 or alert_rule_id == 2:
+            return jsonify({"error": "Forbidden."}), 403
+
+        if not alert_rule_name:
+            return jsonify({"error": "Missing required query parameter: 'alert_rule_name'."}), 400
+
+        alert_rule = get_alert_rule_by_id(alert_rule_id)
+        if not alert_rule:
+            return jsonify({"error": f"Alert rule with ID {alert_rule_id} not found."}), 404
+
+        if alert_rule.alert_rule_name != alert_rule_name:
+            return jsonify({"error": "'alert_rule_name' does not match the Alert rule with the given ID."}), 403
+
+        delete_alert_rule_in_db(alert_rule_id)
+
+        checkalert_rule = get_alert_rule_by_id(alert_rule_id)
+        if not checkalert_rule:
+            return jsonify({
+                "status": "success", 
+                "message": f"Alert rule '{alert_rule_name}' (ID: {alert_rule_id}) deleted successfully."
+            }), 200
+        else:
+            logger.error("Failed to delete Alert rule with ID %d. User provided %s", alert_rule_id, str(request.args.get("alert_rule_name")))
+            return jsonify({"error": "Internal server error: Failed to delete Alert rule."}), 500
+
+    except Exception as e:
+        logger.error("Error in delete_alert_rule_by_id_web: %s", str(e), exc_info=Settings.EXEC_INFO_API)
+        write_audit_log("Error in delete_alert_rule_by_id_web", __name__, {"alert_rule_id": alert_rule_id, "info": str(e)}, "ERROR")
+
+        return jsonify({"error": "Internal server error"}), 500
