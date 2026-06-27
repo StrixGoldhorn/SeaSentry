@@ -63,6 +63,7 @@ services:
     container_name: seasentry-freetakserver
     restart: unless-stopped
 
+
     ports:
       - "8087:8087"
       - "8089:8089"
@@ -72,6 +73,7 @@ services:
 
     environment:
       FTS_DATABASE_TYPE: SQLite
+      FTS_CONNECTION_MESSAGE: "Connected to SeaSentry ATAK-CIV Integration test server. QOTD: At the end of the day, the day ends."
     
     volumes:
       - fts_data:/opt/fts

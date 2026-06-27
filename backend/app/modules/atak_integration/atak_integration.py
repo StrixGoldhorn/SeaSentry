@@ -4,12 +4,11 @@ import pytak
 import threading
 from datetime import datetime, timedelta
 from configparser import ConfigParser
-from sqlalchemy import desc
+from sqlalchemy import desc, func
 from geoalchemy2.functions import ST_X, ST_Y
 
 from app.core.database import DBConn
 from app.models.vessel import VesselData, VesselLocation
-from app.utils.audit_log_helpers import write_audit_log
 
 import logging
 logger = logging.getLogger(__name__)
@@ -52,104 +51,114 @@ def gen_cot_mmsi_imo(lat: float, lon: float, name: str = None,
 
     return ET.tostring(root)
 
-class MySender(pytak.QueueWorker):
-    """
-    Process or generate your Cursor-On-Target Events,
-    then adds the COT Events to a queue for TX to a COT_URL.
-    """
+class PolygonReceiver(pytak.QueueWorker):
+    """Listens to the rx_queue for incoming CoT events and parses polygons."""
+    def __init__(self, rx_queue, tx_queue, config):
+        super().__init__(rx_queue, config)
+        self.tx_queue = tx_queue
 
-    async def handle_data(self, data):
-        """Handle pre-CoT data, serialize to CoT Event, puts on queue."""
-        event = data
-        await self.put_queue(event)
+    async def handle_data(self, data: bytes):
+        """Parse CoT XML and extract polygon vertices."""
+        try:
+            root = ET.fromstring(data)
+            event_type = root.get("type")
 
-    async def run(self):
-        """Run loop for processing or generating pre-CoT data."""
-        while True:
-            data = gen_cot_mmsi_imo()
-            self._logger.info("Sending:\n%s\n", data.decode())
-            await self.handle_data(data)
-            await asyncio.sleep(5)
+            # Ignore events that are not of type "u-d-f" (polygon) or "u-d-r" (rectangle)
+            if event_type not in ["u-d-f", "u-d-r"] :
+                return
 
-class MyReceiver(pytak.QueueWorker):
-    """Handle events from RX Queue."""
+            uid = root.get("uid")
+            detail = root.find("detail")
+            coords = []
 
-    async def handle_data(self, data):
-        """Handle data from the receive queue."""
-        self._logger.info("Received:\n%s\n", data.decode())
+            poly_name = detail.find("contact").get("callsign")
+
+            if "AOI" not in poly_name:
+                return
+
+            if detail is not None:
+                links = detail.findall("link")
+                for link in links:
+                    point_str = link.get("point")
+                    if point_str:
+                        parts = point_str.split(",")
+                        if len(parts) >= 2:
+                            lat = float(parts[0])
+                            lon = float(parts[1])
+                            coords.append((lon, lat))
+
+            if len(coords) >= 3:
+                if coords[0] != coords[-1]:
+                    coords.append(coords[0])
+
+                print(f"Received Polygon - UID: {uid}, Type: {event_type}")
+                print(f"Name: {poly_name}")
+                print(f"Points: {coords}")
+                logger.info(f"Received Polygon - UID: {uid}, Type: {event_type}, Vertices: {len(coords)}")
+
+                await self.query_and_send_vessels(coords, poly_name)
+
+        except ET.ParseError:
+            pass # Ignore non-XML data or heartbeats
+        except Exception as e:
+            logger.error(f"Error parsing ATAK polygon: {e}")
+
+    async def query_and_send_vessels(self, coords, poly_name):
+        """Queries the database for vessels inside the polygon and sends them to the TAK server."""
+        session = DBConn.get_session()
+        try:
+            wkt_coords = ", ".join([f"{lon} {lat}" for lon, lat in coords])
+            wkt_polygon = f"POLYGON(({wkt_coords}))"
+            polygon_geom = func.ST_GeomFromText(wkt_polygon, 4326)
+            threshold_time = datetime.now() - timedelta(minutes=15)
+            results = session.query(
+                VesselData.vessel_data_ship_name,
+                VesselData.vessel_data_mmsi,
+                VesselData.vessel_data_imo,
+                ST_X(VesselLocation.vessel_location_coords).label('lon'),
+                ST_Y(VesselLocation.vessel_location_coords).label('lat')
+            )\
+            .join(VesselLocation, VesselData.vessel_data_id == VesselLocation.vessel_location_vessel_data_id)\
+            .filter(
+                VesselLocation.vessel_location_timestamp >= threshold_time,
+                func.ST_Within(VesselLocation.vessel_location_coords, polygon_geom)
+            )\
+            .distinct(VesselData.vessel_data_mmsi) \
+            .order_by(
+                VesselData.vessel_data_mmsi,
+                desc(VesselLocation.vessel_location_timestamp)
+            )\
+            .all()
+
+            logger.info(f"ATAK-Integration: Found {len(results)} vessels inside polygon '{poly_name}'")
+
+            for name, mmsi, imo, lon, lat in results:
+                if lon is not None and lat is not None:
+                    cot_event = gen_cot_mmsi_imo(float(lat), float(lon), name, str(mmsi), str(imo))
+                    await self.tx_queue.put(cot_event)
+                    logger.info(f"ATAK-Integration: Sent CoT for vessel '{name}' (MMSI: {mmsi}) inside '{poly_name}'")
+                    
+        except Exception as e:
+            logger.error(f"ATAK-Integration: Error querying vessels for polygon '{poly_name}': {e}")
+        finally:
+            session.close()
 
     async def run(self):
         """Read from the receive queue, put data onto handler."""
         while True:
-            data = (
-                await self.queue.get()
-            )
+            data = await self.queue.get()
             await self.handle_data(data)
-
-class VesselScheduler(pytak.QueueWorker):
-    """Periodically checks for vessel updates and sends to ATAK."""
-    async def run(self):
-        while True:
-            try:
-                await check_all_vessels(15, self.queue)
-            except Exception as e:
-                self._logger.error(f"Error in VesselScheduler: {e}")
-
-            await asyncio.sleep(60)
-
-async def check_all_vessels(n: int, tx_queue: asyncio.Queue):
-    '''
-    Function that scheduler should call, checks alert rules for all vessel locations within the past n minutes.
-    
-    Args:
-        n: int, checks for all vessels within the past n minutes
-        tx_queue: asyncio.Queue, queue to send CoT events to ATAK server
-    '''
-    session = DBConn.get_session()
-    try:
-        threshold_time = datetime.now() - timedelta(minutes=n)
-
-        results = session.query(
-            VesselData.vessel_data_ship_name,
-            VesselData.vessel_data_mmsi,
-            VesselData.vessel_data_imo,
-            ST_X(VesselLocation.vessel_location_coords).label('lon'),
-            ST_Y(VesselLocation.vessel_location_coords).label('lat')
-        )\
-        .join(VesselLocation, VesselData.vessel_data_id == VesselLocation.vessel_location_vessel_data_id)\
-        .filter(VesselLocation.vessel_location_timestamp >= threshold_time)\
-        .distinct(VesselData.vessel_data_mmsi) \
-        .order_by(
-            VesselData.vessel_data_mmsi,
-            desc(VesselLocation.vessel_location_timestamp)
-        )\
-        .all()
-
-        logger.debug("ATAK-Integration: Processing %d unique vessels", len(results))
-
-        for name, mmsi, imo, lon, lat in results:
-            logger.debug(f"ATAK-Integration: Processing Name: {str(name)} MMSI: {mmsi}, IMO: {imo}")
-            if lon is not None and lat is not None:
-                cot_event = gen_cot_mmsi_imo(float(lat), float(lon), name, str(mmsi), str(imo))
-                await tx_queue.put(cot_event)
-                logger.info(f"ATAK-Integration: Sent CoT event for Name: {str(name)} MMSI: {mmsi}, IMO: {imo}")
-            else:
-                logger.warning(f"ATAK-Integration: Skipping MMSI {mmsi} due to missing coordinates.")
-
-    except Exception as e:
-        logger.error("ATAK-Integration: Error in check_all_vessels: %s", str(e))
-        write_audit_log("ATAK-Integration: Error in check_all_vessels", __name__, {"info": str(e)}, "ERROR")
-
-    finally:
-        session.close()
 
 async def main():
     """
     Sets config params and adds serializer to task list
     """
     config = ConfigParser()
-    # +wo will discard all incoming cos we don't need incoming data (yet)
-    config["mycottool"] = {"COT_URL": "tcp+wo://192.168.1.17:8087"} 
+    config["mycottool"] = {
+            "COT_URL": "tcp://192.168.1.17:8087",
+            "MAX_OUT_QUEUE": "1000",
+            "MAX_IN_QUEUE": "1000"
+        }
     config = config["mycottool"]
 
     while True:
@@ -160,7 +169,7 @@ async def main():
 
             clitool.add_tasks(
                 [
-                    VesselScheduler(clitool.tx_queue, config)
+                    PolygonReceiver(clitool.rx_queue, clitool.tx_queue, config)
                 ]
             )
             await clitool.run()
