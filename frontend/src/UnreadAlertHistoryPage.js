@@ -88,7 +88,7 @@ export default function AllAlertHistoryPage() {
 
                 <div>
 
-                    <div>Start Time</div>
+                    <p>Start Time</p>
 
                     <input
                         type="datetime-local"
@@ -105,7 +105,7 @@ export default function AllAlertHistoryPage() {
 
                 <div>
 
-                    <div>End Time</div>
+                    <p>End Time</p>
 
                     <input
                         type="datetime-local"
@@ -178,7 +178,7 @@ export default function AllAlertHistoryPage() {
 
                         {alert.alert_history_context?.matched_vessels?.length > 0 && (
                             <>
-                                <strong>Matched Vessel</strong>
+                                <p><strong>Matched Vessel:</strong></p>
 
                                 <ul>
                                     {alert.alert_history_context.matched_vessels.map(vessel => (

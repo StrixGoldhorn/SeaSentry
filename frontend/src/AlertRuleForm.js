@@ -198,7 +198,6 @@ export default function AlertRulePanel() {
 
             <label>Field</label>
 
-            <br />
 
             <select
                 value={form.field}
@@ -242,7 +241,6 @@ export default function AlertRulePanel() {
 
             <label>Operator</label>
 
-            <br />
 
             <select
                 value={form.operator}
@@ -275,7 +273,6 @@ export default function AlertRulePanel() {
                 <>
                     <label>Value</label>
 
-                    <br />
 
                     <input
                         value={form.value}
