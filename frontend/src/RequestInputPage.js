@@ -1,3 +1,4 @@
+import './styles.css';
 import AlertRulePanel from "./AlertRuleForm";
 import AlertRulesList from "./AlertRulesDisplay";
 import AOIPanel from "./AOIForm";

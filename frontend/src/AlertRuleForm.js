@@ -4,6 +4,7 @@ import {
     get_all_geofences
 } from "./utils";
 
+
 const FIELD_CONFIG = {
 
     shipname: {
@@ -163,7 +164,8 @@ export default function AlertRulePanel() {
 
     return (
 
-        <div>
+        <div className="coord-grid">
+        <div className="form-group">
 
             <h2>Add Alert Rule</h2>
 
@@ -396,6 +398,7 @@ export default function AlertRulePanel() {
 
             <pre>{response}</pre>
 
+        </div>
         </div>
 
     );

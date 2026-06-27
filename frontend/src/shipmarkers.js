@@ -35,7 +35,7 @@ export function ShipMarkers({ shipdata }) {
         rotationAngle={shipDegCheck(ship.heading_deg)}
         zIndexOffset={600}
         >
-            <Popup>
+            <Popup autoPan={false}>
                 <div style={{ padding: '10px' }}>
                 <h4>{ship.ship_name}</h4>
                 <ul>

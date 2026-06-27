@@ -68,12 +68,14 @@ export default function SidebarGeofenceDrawPage() {
 
     return (
         <div
+        className="app"
             style={{
                 display: "flex",
                 height: "100vh",
                 width: "100vw"
             }}
         >
+            <div className="sidebar">
             <GeofenceSidebar
                 drawing={drawing}
                 setDrawing={setDrawing}
@@ -84,8 +86,10 @@ export default function SidebarGeofenceDrawPage() {
                 desc={desc}
                 setDesc={setDesc}
             />
+            </div>
 
             <div
+            className="map-container"
                 style={{
                     flex: 1
                 }}

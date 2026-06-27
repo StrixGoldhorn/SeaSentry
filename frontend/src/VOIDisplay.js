@@ -44,7 +44,7 @@ export default function VOIList() {
 
     return (
 
-        <div>
+        <div className="alert-rule">
 
             <h2>Vessels of Interest</h2>
 

@@ -52,7 +52,7 @@ export default function AlertRulesList() {
     }
 
     return (
-        <div>
+        <div className="alert-rule">
 
             <h2>Alert Rules</h2>
 

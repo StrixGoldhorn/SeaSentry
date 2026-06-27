@@ -32,7 +32,8 @@ export default function VOIPanel(){
 
     return(
 
-        <div>
+        <div className="coord-grid">
+        <div className="form-group">
 
             <h2>Add Vessel Of Interest</h2>
 
@@ -58,6 +59,7 @@ export default function VOIPanel(){
 
             <pre>{response}</pre>
 
+        </div>
         </div>
 
     );

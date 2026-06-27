@@ -1,3 +1,4 @@
+import './styles.css';
 import { useEffect, useState } from "react";
 
 import { get_all_alert_history, get_unread_alert_history, mark_alert_read, mark_alert_unread} from "./utils";
@@ -145,12 +146,12 @@ export default function AllAlertHistoryPage() {
 
                     <div
                         key={id}
-                        style={{
-                            border: "1px solid gray",
-                            borderRadius: "8px",
-                            padding: "12px",
-                            marginBottom: "12px"
-                        }}
+
+                        className={
+                            isRead
+                            ? "alert-card read"
+                            : "alert-card"
+                        }
                     >
 
                         <h3>
@@ -177,7 +178,7 @@ export default function AllAlertHistoryPage() {
 
                         {alert.alert_history_context?.matched_vessels?.length > 0 && (
                             <>
-                                <strong>Matched Vessels</strong>
+                                <strong>Matched Vessel</strong>
 
                                 <ul>
                                     {alert.alert_history_context.matched_vessels.map(vessel => (
