@@ -1,8 +1,10 @@
 # backend/app/utils/vessel_helpers.py
 
 import logging
-from typing import List
-from datetime import datetime
+from typing import List, Tuple, Dict, Any
+from datetime import datetime, timedelta
+from sqlalchemy import desc, func
+from geoalchemy2.functions import ST_X, ST_Y
 
 from app.core.database import DBConn
 from app.models.vessel import VesselData, VesselLocation
@@ -44,6 +46,55 @@ def get_all_vessels_in_bbox(envelope, time_lower_bound: datetime, limit: int) ->
     finally:
         if session:
             DBConn.close_session()
+
+def get_vessels_in_polygon(coords: List[Tuple[float, float]], time_threshold_minutes: int = 15) -> List:
+    """
+    Queries the database for vessels located within a given polygon and updated within a specific time threshold.
+
+    Args:
+        coords: List of (longitude, latitude) tuples defining the polygon vertices.
+        time_threshold_minutes: How far back to look for vessel location updates.
+
+    Returns:
+        A list of dictionaries containing vessel information.
+    """
+    if not coords or len(coords) < 3:
+        logger.warning("Invalid polygon coordinates provided.")
+        return []
+
+    session = DBConn.get_session()
+    try:
+        closed_coords = list(coords)
+        if closed_coords[0] != closed_coords[-1]:
+            closed_coords.append(closed_coords[0])
+
+        wkt_coords = ", ".join([f"{lon} {lat}" for lon, lat in closed_coords])
+        wkt_polygon = f"POLYGON(({wkt_coords}))"
+
+        polygon_geom = func.ST_GeomFromText(wkt_polygon, 4326)
+
+        threshold_time = datetime.now() - timedelta(minutes=time_threshold_minutes)
+
+        query = session.query(VesselLocation, VesselData).join(
+            VesselLocation, VesselData.vessel_data_id == VesselLocation.vessel_location_vessel_data_id
+        ).filter(
+            VesselLocation.vessel_location_timestamp >= threshold_time,
+            func.ST_Within(VesselLocation.vessel_location_coords, polygon_geom)
+        ).distinct(
+            VesselData.vessel_data_mmsi
+        ).order_by(
+            VesselData.vessel_data_mmsi,
+            desc(VesselLocation.vessel_location_timestamp)
+        )
+
+        return query.all()
+
+    except Exception as e:
+        logger.error(f"Error in get_vessels_in_polygon: {e}")
+        return []
+
+    finally:
+        session.close()
 
 def get_vessel_by_vessel_data_id(vessel_data_id: int) -> VesselData:
     '''

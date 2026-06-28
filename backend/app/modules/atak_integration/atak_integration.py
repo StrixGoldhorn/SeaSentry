@@ -4,10 +4,10 @@ import pytak
 import threading
 from datetime import datetime, timedelta
 from configparser import ConfigParser
-from sqlalchemy import desc, func
-from geoalchemy2.functions import ST_X, ST_Y
+from shapely import wkb
+from geoalchemy2.shape import to_shape
 
-from app.core.database import DBConn
+from app.utils.vessel_helpers import get_vessels_in_polygon
 from app.models.vessel import VesselData, VesselLocation
 
 import logging
@@ -99,49 +99,35 @@ class PolygonReceiver(pytak.QueueWorker):
                 await self.query_and_send_vessels(coords, poly_name)
 
         except ET.ParseError:
-            pass # Ignore non-XML data or heartbeats
+            pass
         except Exception as e:
             logger.error(f"Error parsing ATAK polygon: {e}")
 
-    async def query_and_send_vessels(self, coords, poly_name):
-        """Queries the database for vessels inside the polygon and sends them to the TAK server."""
-        session = DBConn.get_session()
-        try:
-            wkt_coords = ", ".join([f"{lon} {lat}" for lon, lat in coords])
-            wkt_polygon = f"POLYGON(({wkt_coords}))"
-            polygon_geom = func.ST_GeomFromText(wkt_polygon, 4326)
-            threshold_time = datetime.now() - timedelta(minutes=15)
-            results = session.query(
-                VesselData.vessel_data_ship_name,
-                VesselData.vessel_data_mmsi,
-                VesselData.vessel_data_imo,
-                ST_X(VesselLocation.vessel_location_coords).label('lon'),
-                ST_Y(VesselLocation.vessel_location_coords).label('lat')
-            )\
-            .join(VesselLocation, VesselData.vessel_data_id == VesselLocation.vessel_location_vessel_data_id)\
-            .filter(
-                VesselLocation.vessel_location_timestamp >= threshold_time,
-                func.ST_Within(VesselLocation.vessel_location_coords, polygon_geom)
-            )\
-            .distinct(VesselData.vessel_data_mmsi) \
-            .order_by(
-                VesselData.vessel_data_mmsi,
-                desc(VesselLocation.vessel_location_timestamp)
-            )\
-            .all()
+    async def query_and_send_vessels(self, coords: list, poly_name: str):
+        """Queries the database using the helper function and sends vessels to the TAK server."""
+        time_lower_bound = 15
 
-            logger.info(f"ATAK-Integration: Found {len(results)} vessels inside polygon '{poly_name}'")
+        results = get_vessels_in_polygon(coords, time_lower_bound)
 
-            for name, mmsi, imo, lon, lat in results:
-                if lon is not None and lat is not None:
-                    cot_event = gen_cot_mmsi_imo(float(lat), float(lon), name, str(mmsi), str(imo))
-                    await self.tx_queue.put(cot_event)
-                    logger.info(f"ATAK-Integration: Sent CoT for vessel '{name}' (MMSI: {mmsi}) inside '{poly_name}'")
-                    
-        except Exception as e:
-            logger.error(f"ATAK-Integration: Error querying vessels for polygon '{poly_name}': {e}")
-        finally:
-            session.close()
+        logger.info(f"ATAK-Integration: Found {len(results)} vessels inside polygon '{poly_name}'")
+
+        for location, vessel in results:
+            name = vessel.vessel_data_ship_name
+            mmsi = str(vessel.vessel_data_mmsi)
+            imo = str(vessel.vessel_data_imo)
+
+            try:
+                geom_shape = to_shape(location.vessel_location_coords)
+                lon, lat = geom_shape.x, geom_shape.y
+
+            except Exception as e:
+                logger.warning(f"Could not extract coordinates for MMSI {mmsi}: {e}")
+                continue
+
+            if lon is not None and lat is not None:
+                cot_event = gen_cot_mmsi_imo(lat=lat, lon=lon, name=name, mmsi=mmsi, imo=imo)
+                await self.tx_queue.put(cot_event)
+                logger.info(f"ATAK-Integration: Sent CoT for vessel '{name}' (MMSI: {mmsi}) inside '{poly_name}'")
 
     async def run(self):
         """Read from the receive queue, put data onto handler."""
