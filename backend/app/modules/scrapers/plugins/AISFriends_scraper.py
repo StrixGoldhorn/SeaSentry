@@ -1,4 +1,7 @@
 # backend/app/modules/scrapers/plugins/AISFriends_scraper.py
+'''
+Scrape AISFriends
+'''
 
 from app.modules.scrapers.registry import ScraperRegistry
 from app.modules.scrapers import AbstractScraper
@@ -24,7 +27,7 @@ class AISFriendsScraper(AbstractScraper):
         Args:
             coords (Dict[str, float]): A dict containing the queried coords.
         '''
-        req_url = f"{self.base_url}?lon_min={coords['long_min']}&lat_min={coords['lat_min']}&lon_max={coords['long_max']}&lat_max={coords['lat_max']}&zoom=13"
+        req_url = f"{self.base_url}?lon_min={coords['long_min']}&lat_min={coords['lat_min']}&lon_max={coords['long_max']}&lat_max={coords['lat_max']}&zoom=15"
         headers = {
             "Referer": "https://www.aisfriends.com/",
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/119.36 (KHTML, like Gecko) Chrome/59.0.3071.115 Safari/537.36"
@@ -33,7 +36,7 @@ class AISFriendsScraper(AbstractScraper):
         try:
             r.raise_for_status()
         except requests.RequestException as e:
-            write_audit_log("Error when scraping bounding box", __name__, {"scraper": self.name, "bbox": coords, "timestamp": datetime.now(), "error": e})
+            write_audit_log("Error when scraping bounding box", __name__, {"scraper": self.name, "bbox": coords, "timestamp": str(datetime.now()), "error": str(e)})
         return r.json()
 
     def parse_data(self, raw):

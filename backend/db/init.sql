@@ -16,6 +16,16 @@ CREATE TABLE IF NOT EXISTS area_of_interest (
 	area_of_interest_polygon GEOMETRY(POLYGON, 4326) NOT NULL
 );
 
+-- Create table for geofences
+CREATE TABLE IF NOT EXISTS geofence (
+	geofence_id SERIAL PRIMARY KEY,
+	geofence_timestamp TIMESTAMPTZ DEFAULT NOW(),
+
+	geofence_name TEXT UNIQUE NOT NULL,
+	geofence_description TEXT,
+	geofence_polygon GEOMETRY(POLYGON, 4326) NOT NULL
+);
+
 -- Create table for vessels of interest
 -- mmsi and imo whacky behaviour, so no foriegn key to vessel_data
 CREATE TABLE IF NOT EXISTS vessel_of_interest(
@@ -157,6 +167,13 @@ CREATE TABLE IF NOT EXISTS alert_rule (
 	alert_rule_enabled BOOLEAN NOT NULL
 );
 
+-- RESERVE 2 IDs FOR FUTURE USES
+INSERT INTO alert_rule (alert_rule_name, alert_rule_description, alert_rule_params, alert_rule_enabled)
+VALUES ('SYSTEM', 'Reserved for misc system alerts', '{}', true);
+
+INSERT INTO alert_rule (alert_rule_name, alert_rule_description, alert_rule_params, alert_rule_enabled)
+VALUES ('BAD_DATA_DETECTION', 'Reserved for alerts regarding inconsistencies in data', '{}', true);
+
 -- Create table to store alert history
 CREATE TABLE IF NOT EXISTS alert_history (
 	alert_history_id SERIAL PRIMARY KEY,
@@ -165,7 +182,11 @@ CREATE TABLE IF NOT EXISTS alert_history (
 	alert_history_read BOOLEAN NOT NULL,
 	alert_history_read_at TIMESTAMPTZ,
 	
-	alert_history_alert_rule_id INT NOT NULL,
+	alert_history_context JSONB NOT NULL,
+
+	alert_history_alert_rule_id INT,
 	CONSTRAINT fk_alert_history_alert_rule_id FOREIGN KEY (alert_history_alert_rule_id)
 	REFERENCES alert_rule(alert_rule_id)
 );
+
+CREATE INDEX alert_history_context_index ON alert_history USING gin (alert_history_context);

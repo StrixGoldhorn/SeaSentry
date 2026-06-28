@@ -1,11 +1,26 @@
 # Project SeaSentry
 
-## Motivation 
+# Table of Contents
+- [Project SeaSentry](#project-seasentry)
+- [Table of Contents](#table-of-contents)
+- [Motivation](#motivation)
+- [Aim](#aim)
+- [Tech Stack](#tech-stack)
+- [How to run](#how-to-run)
+  - [Docker (Strongly Recommended)](#docker-strongly-recommended)
+  - [Locally](#locally)
+    - [Database](#database)
+    - [Backend](#backend)
+    - [Frontend](#frontend)
+- [API Endpoints](#api-endpoints)
+
+
+# Motivation 
 
 Maritime traffic data is currently spread out across multiple sites, each with differing coverage, with limited options for free tiers (eg unable to view historical data for vessels , paywall for specific vessel details, etc.). SeaSentry acts as a data aggregator, scraping and combining data from multiple different sources to get a unified view, combining the data gained from various different sources into a locally hosted API. This allows users to freely track and record historical data of vessels without having to pay. Exposing our own API will allow users to better make use of the data in different ways, be it via plugins or integrating it into their own applications.
 
 
-## Aim 
+# Aim 
 
 We hope to build a locally hosted server that provides an API endpoint and a UI where users can query for data such as current location, historical tracks, etc of different vessels.
 
@@ -15,95 +30,59 @@ In the backend, the application will be scraping data from different sites and f
 
 We aim to provide a plugin based system for data sources, to allow users to add their own data sources to the DB.
 
-## Tech Stack
+# Tech Stack
 
 - Database: PostgreSQL (with PostGIS extension)
 - Backend + Web Server + API Server: Flask
 - Frontend: HTML, React.js, Tailwind CSS, Leaflet.js 
 - Version Control: Git + GitHub
 
-## How to run
+# How to run
 
-### Locally
-Install PostgreSQL and PostGIS extension
+## Docker (Strongly Recommended)
 
-Set up your `.env.local` file, you may refer to the `.env.docker` file included in the repo (it is stripped of sensitive data)
+If this is your first time, you have to install Docker first.
 
-Modify scraper configs in `\backend\app\core\config.py` if required
+1. Ensure you have started Docker Desktop
+2. In the SeaSentry folder, run `docker compose build`
+3. In the SeaSentry folder, run `docker compose up`
+4. After it finishes starting,
+  - Access http://127.0.0.1:3000/ for the frontend
+  - Access the API via http://127.0.0.1:5000/ 
+5. To stop the service, run `docker compose down`
 
-In `\backend`:
-1. `pip install -r requirements.txt` (if first time starting)
-2. `python -m app.main`
 
-Using another terminal, in `\frontend`
-1. `npm install` (if first time starting)
-2. `npm start`
+## Locally
+After you start the backend and frontend services,
+- Access http://127.0.0.1:3000/ for the frontend
+- Access the API via http://127.0.0.1:5000/ 
 
-Done! Open `localhost:3000` in your browser to view the webpage. For the API, send queries to `localhost:5000`.
 
-### Docker container
+### Database
+YOU MUST DELETE THE EXISTING DATABASE, BREAKING CHANGES WERE MADE (If unsure, just drop all tables.)
 
-Start up Docker Desktop
+If this is your first time, install PostgreSQL and the PostGIS extension
 
-In the SeaSentry folder, run `docker compose up --build`
+### Backend
+All commands are to be performed in the SeaSentry/backend folder.
+1. (Optional, recommended) Create a virtual environment and activate it.
+2. `pip install -r requirements.txt` to install required packages
+3. If you have not installed Playwright, run `playwright install` after step 2.
+4. If the database has not been set up, in the SeaSentry/backend directory, run `python -m app.firsttime`
+5. Adjust any params required in SeaSentry/backend/app/core/config.py
+6. Set up your SeaSentry/.env.local
+  - You can copy most of the info from .env.docker
+  - You have to change the POSTGRES_HOST value to localhost
+  - You have to change the POSTGRES_USER and POSTGRES_PASSWORD to your own Postgres username and password
+7. Run `python -m app.main` to start the scraping and API service
 
-To stop, run `docker compose down`
+### Frontend
+All commands are to be performed in the SeaSentry/frontend folder.
+1. `npm install`
+2. Run `npm start` to start the frontend service
 
-## API Endpoints
-All APIs are requested on localhost port 5000. Otherwise, CORS only allowed on http://localhost:3000 and http://127.0.0.1:3000 for the web application.
 
-Fields are compulsory unless otherwise stated
+# API Endpoints
+All APIs are accessed via localhost port 5000. Otherwise, CORS only allowed on http://localhost:3000 and http://127.0.0.1:3000 for the web application.
 
-### GET `/api/v1/vessels/bbox`
-
-Summary: Query latest vessel positions within a bounding box
-
-Returns:
-
-- 200 with JSON with latest vessel location and details
-
-- 400 if missing fields
-
-- 500 if internal server error
-
-Query Params:
-
-- lat_min, lat_max, long_min, long_max: float (bounding box)
-
-- time_within: int (optional, time in seconds, default 24hrs ie 60 * 60 * 24)
-
-- limit: int (optional, default 50, max 1000)
-
-E.g. `/api/v1/vessels/bbox?lat_min=1.2535&lat_max=1.2664&long_min=103.8233&long_max=103.8559&limit=25&time_within=670`
-
-This will return the 25 latest vessel locations with its corresponding unique vessels within the given area in the past 670 seconds.
-
-### GET `/api/v1/aois/get/all`
-
-Summary: Query for all AOIs
-
-Returns:
-
-- 200 with JSON of all AOIs
-
-- 500 if internal server error
-
-### POST `/api/v1/aois/add/box`
-
-Summary: Adds specified bounding box.
-
-Returns:
-
-- 201 if successfully added
-
-- 400 if missing fields
-
-- 500 if internal server error
-
-Query Params:
-
-- lat_min, lat_max, long_min, long_max: float (bounding box)
-
-- name: str (name of AOI)
-
-- desc: str (optional)
+Refer to [API Docs](./API_Docs.md) for the documentation.

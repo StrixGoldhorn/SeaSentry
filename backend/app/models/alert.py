@@ -29,6 +29,7 @@ class AlertHistory(Base):
     alert_history_read = Column(Boolean, nullable=False)
     alert_history_read_at = Column(DateTime(timezone=True), nullable=True)
     alert_history_alert_rule_id = Column(Integer, ForeignKey('alert_rule.alert_rule_id'), nullable=False)
+    alert_history_context = Column(JSONB, nullable=False)
 
     rule = relationship("AlertRule", back_populates="history")
 
