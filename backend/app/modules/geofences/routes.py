@@ -46,7 +46,7 @@ def add_geofence_box():
             return jsonify({"error": "Bounding box expected."}), 400
 
         name = str(request.form.get("name"))
-        if name is None:
+        if name is None or name.strip() == "":
             return jsonify({"error": "Name of geofence expected."}), 400
 
         desc = str(request.form.get("desc"))
@@ -85,7 +85,7 @@ def add_geofence_polygon():
 
     try:
         name = str(request.form.get("name"))
-        if name is None:
+        if name is None or name.strip() == "":
             return jsonify({"error": "Name of geofence expected."}), 400
 
         desc = str(request.form.get("desc"))
