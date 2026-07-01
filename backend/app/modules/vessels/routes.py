@@ -100,16 +100,16 @@ def get_vessels_in_bbox():
         write_audit_log("Error in get_vessels_in_bbox", __name__, {"info": str(e)}, "ERROR")
         return jsonify({"error": "Internal server error", "details": str(e)}), 500
 
-@vessels_bp.route('/history', methods=['GET'])
+@vessels_bp.route('/exportArea', methods=['GET'])
 def get_vessel_history_in_bbox_route():
     '''
-    GET /api/v1/vessels/history
+    GET /api/v1/vessels/exportArea
     Query vessel historical positions within a bounding box and time range.
     
     Query Params:
-    - lat_min, lat_max, long_min, long_max: float (bounding box)
-    - start_time: str (datetime, eg '2026-06-07T12:00:00Z')
-    - end_time: str (datetime)
+    - lat_min, lat_max, long_min, long_max: float (optional, bounding box, default whole Earth)
+    - start_time: str (optional, datetime, eg '2026-06-07T12:00:00Z', default datetime.min)
+    - end_time: str (optional, datetime, default datetime.now)
     - format: str (optional, 'json', 'geojson', or 'csv', default 'json')
     '''
 
@@ -120,17 +120,28 @@ def get_vessel_history_in_bbox_route():
         bbox = dict(zip(bbox_params, bbox_values)) if has_bbox else None
 
         if not has_bbox:
-            return jsonify({"error": "Bounding box expected."}), 400
+            bbox = {
+                "lat_min": -90.0,
+                "lat_max": 90.0,
+                "long_min": -180.0,
+                "long_max": 180.0
+            }
+        else:
+            bbox = dict(zip(bbox_params, bbox_values))
 
         start_time_str = request.args.get('start_time')
         end_time_str = request.args.get('end_time')
 
-        if not start_time_str or not end_time_str:
-            return jsonify({"error": "start_time and end_time are required."}), 400
-
         try:
-            start_time = datetime.fromisoformat(start_time_str.replace('Z', '+00:00'))
-            end_time = datetime.fromisoformat(end_time_str.replace('Z', '+00:00'))
+            if not start_time_str:
+                start_time = datetime.min
+            else:
+                start_time = datetime.fromisoformat(start_time_str.replace('Z', '+00:00'))
+
+            if not end_time_str:
+                end_time = datetime.now(timezone.utc)
+            else:
+                end_time = datetime.fromisoformat(end_time_str.replace('Z', '+00:00')) 
 
             if start_time.tzinfo is None:
                 start_time = start_time.replace(tzinfo=timezone.utc)
