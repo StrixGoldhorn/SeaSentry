@@ -342,3 +342,95 @@ def test_history_exception(mock_func, mock_logger, mock_audit, client):
     assert data['error'] == "Internal server error"
     assert "PostGIS error" in data['details']
     mock_logger.error.assert_called_once()
+
+# ==========================================
+# Tests for GET /api/v1/vessels/<int:vessel_data_id>/history
+# ==========================================
+
+def create_mock_locations():
+    '''Helper to create a mock list of VesselLocation objects'''
+    fake_loc = MagicMock()
+    fake_loc.vessel_location_id = 1
+    fake_loc.vessel_location_speed_knots = 10.5
+    fake_loc.vessel_location_course_deg = 90.0
+    fake_loc.vessel_location_heading_deg = 90.0
+    fake_loc.vessel_location_rate_of_turn_deg_per_sec = 0.0
+    fake_loc.vessel_location_nav_status = "Under way"
+    fake_loc.vessel_location_timestamp = datetime(2023, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
+    fake_loc.vessel_location_coords = MagicMock()
+    return [fake_loc]
+
+@patch('app.modules.vessels.routes.to_shape')
+@patch('app.modules.vessels.routes.get_vessel_history_by_vessel_data_id')
+def test_vessel_history_success(mock_get_history, mock_to_shape, client):
+    '''Test successful retrieval of vessel history'''
+    mock_to_shape.return_value.x = 15.0
+    mock_to_shape.return_value.y = 15.0
+    mock_get_history.return_value = create_mock_locations()
+
+    response = client.get('/api/v1/vessels/101/history?start_time=2067-01-01T00:00:00Z&end_time=2067-01-02T00:00:00Z')
+
+    assert response.status_code == 200
+    data = json.loads(response.data)
+    assert data['status'] == 'success'
+    assert data['count'] == 1
+    assert data['data'][0]['location_id'] == 1
+    assert data['data'][0]['latitude'] == 15.0
+    assert data['data'][0]['longitude'] == 15.0
+    assert data['data'][0]['speed_knots'] == 10.5
+    assert data['data'][0]['nav_status'] == "Under way"
+
+@patch('app.modules.vessels.routes.to_shape')
+@patch('app.modules.vessels.routes.get_vessel_history_by_vessel_data_id')
+def test_vessel_history_default_times(mock_get_history, mock_to_shape, client):
+    '''Test default times when start_time and end_time are missing'''
+    mock_to_shape.return_value.x = 15.0
+    mock_to_shape.return_value.y = 15.0
+    mock_get_history.return_value = create_mock_locations()
+
+    response = client.get('/api/v1/vessels/101/history')
+
+    assert response.status_code == 200
+    args, _ = mock_get_history.call_args
+    assert args[0] == 101
+    assert args[1] == datetime.min.replace(tzinfo=timezone.utc)
+    assert isinstance(args[2], datetime)
+
+def test_vessel_history_invalid_time_format(client):
+    '''Test invalid time format returns 400'''
+    response = client.get('/api/v1/vessels/101/history?start_time=invalid-date&end_time=2067-01-02T00:00:00Z')
+
+    assert response.status_code == 400
+    assert "Invalid time format" in json.loads(response.data)['error']
+
+def test_vessel_history_start_after_end(client):
+    '''Test start_time after end_time returns 400'''
+    response = client.get('/api/v1/vessels/101/history?start_time=2069-01-01T00:00:00Z&end_time=2067-01-01T00:00:00Z')
+
+    assert response.status_code == 400
+    assert "start_time must be before end_time" in json.loads(response.data)['error']
+
+@patch('app.modules.vessels.routes.get_vessel_history_by_vessel_data_id')
+def test_vessel_history_not_found(mock_get_history, client):
+    '''Test empty history returns 404'''
+    mock_get_history.return_value = []
+
+    response = client.get('/api/v1/vessels/101/history?start_time=2069-01-01T00:00:00Z&end_time=2069-01-02T00:00:00Z')
+
+    assert response.status_code == 404
+    assert "No history exists" in json.loads(response.data)['error']
+
+@patch('app.modules.vessels.routes.write_audit_log')
+@patch('app.modules.vessels.routes.logger')
+@patch('app.modules.vessels.routes.get_vessel_history_by_vessel_data_id')
+def test_vessel_history_exception(mock_get_history, mock_logger, mock_audit, client):
+    '''Test internal server error handling'''
+    mock_get_history.side_effect = Exception("Database connection failed")
+
+    response = client.get('/api/v1/vessels/101/history?start_time=2069-01-01T00:00:00Z&end_time=2069-01-02T00:00:00Z')
+
+    assert response.status_code == 500
+    data = json.loads(response.data)
+    assert data['error'] == "Internal server error"
+    assert "Database connection failed" in data['details']
+    mock_logger.error.assert_called_once()

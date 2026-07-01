@@ -9,6 +9,7 @@ Fields are compulsory unless otherwise stated
   - [Vessels](#vessels)
     - [GET `/api/v1/vessels/bbox`](#get-apiv1vesselsbbox)
     - [GET `/api/v1/vessels/<vessel_data_id>`](#get-apiv1vesselsvessel_data_id)
+    - [GET `/api/v1/vessels/<vessel_data_id>`](#get-apiv1vesselsvessel_data_id-1)
     - [POST/PATCH `/api/v1/vessels/<vessel_data_id>/update`](#postpatch-apiv1vesselsvessel_data_idupdate)
     - [GET `/api/v1/vessels/exportArea`](#get-apiv1vesselsexportarea)
   - [Vessel of Interest](#vessel-of-interest)
@@ -87,6 +88,20 @@ Summary: Query for vessel data with given vessel_data_id
 Returns:
 - 200 with details of vessel
 - 400 if missing fields
+- 500 if internal server error
+
+### GET `/api/v1/vessels/<vessel_data_id>`
+
+Summary: Returns list of vessel locations tagged to the vessel
+
+Query Params (all optional):
+- start_time_str: (optional, datetime, eg '2026-06-07T12:00:00Z', default datetime.min)
+- end_time_str: (optional, datetime, eg '2026-06-07T12:00:00Z', default datetime.now)
+
+Returns:
+- 200 with list of vessel locations
+- 400 if missing/malformed fields
+- 404 if no such history
 - 500 if internal server error
 
 ### POST/PATCH `/api/v1/vessels/<vessel_data_id>/update`
