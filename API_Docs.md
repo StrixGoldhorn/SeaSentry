@@ -25,6 +25,7 @@ Fields are compulsory unless otherwise stated
     - [POST `/api/v1/aois/add/polygon`](#post-apiv1aoisaddpolygon)
     - [POST/PATCH `/api/v1/aois/<aoi_id>/update`](#postpatch-apiv1aoisaoi_idupdate)
     - [DELETE `/api/v1/aois/<aoi_id>/delete`](#delete-apiv1aoisaoi_iddelete)
+    - [POST `/api/v1/aois/<aoi_id>/scrape`](#post-apiv1aoisaoi_idscrape)
   - [Geofences](#geofences)
     - [GET `/api/v1/geofences/get/all`](#get-apiv1geofencesgetall)
     - [GET `/api/v1/geofences/<geofence_id>`](#get-apiv1geofencesgeofence_id)
@@ -288,6 +289,16 @@ Returns:
 - 400 if missing/malformed fields
 - 403 if provided aoi_name is incorrect
 - 404 if AOI with id does not exist
+- 500 if internal server error
+
+
+### POST `/api/v1/aois/<aoi_id>/scrape`
+
+Summary: Forces enabled scrapers to start scanning the selected AOI instantly. Does not affect scheduled scrapes.
+
+Returns:
+- 200 if function triggers
+- 404 if AOI with given id does not exist
 - 500 if internal server error
 
 ## Geofences
