@@ -395,10 +395,31 @@ Query Params (all optional):
 - limit: integer, max number of records to return (e.g., 50)
 - offset: integer, number of records to skip for pagination (e.g., 0)
 
+**Note**: Offset is the number of **records** skipped, NOT pages skipped.
+
 Returns:
 - 200 with JSON with history of all alerts
 - 400 if malformed fields
 - 500 if internal server error
+
+eg, for 25 per page,
+Page 1:
+```
+limit = 25
+offset = 0
+```
+
+Page 2:
+```
+limit = 25
+offset = 25
+```
+
+Page 3:
+```
+limit = 25
+offset = 50
+```
 
 ### GET `/api/v1/alerts/history/unread`
 
