@@ -24,19 +24,22 @@ class Settings():
             "interval_seconds": (300, 600)
         },
         "aprs_Scraper": {
-            "enabled": True,
-            # "enabled": False,
+            # "enabled": True,
+            "enabled": False,
             "interval_seconds": (600, 1800)
         },
         "VesselFinder_Scraper": {
-            "enabled": True,
-            # "enabled": False,
+            # "enabled": True,
+            "enabled": False,
             "interval_seconds": (600, 1800)
         }
     }
 
+    # ATAK
+    ENABLE_ATAK_INTEGRATION: bool =  False
+
     # Alerts
-    ALERT_RECHECK_MINUTES: int = 1
+    ALERT_RECHECK_MINUTES: int = 10
     ALERT_CHECK_PREVIOUS_MINUTES: int = 180
 
     # env
