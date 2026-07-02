@@ -124,8 +124,9 @@ def test_get_aoi_by_id_not_found(mock_get_aoi, client):
     data = json.loads(response.data)
     assert data['error'] == "AOI with ID 999 not found."
 
+@patch('app.modules.aois.routes.write_audit_log')
 @patch('app.modules.aois.routes.get_aoi_by_id')
-def test_get_aoi_by_id_internal_error(mock_get_aoi, client):
+def test_get_aoi_by_id_internal_error(mock_get_aoi, mock_audit, client):
     '''
     Test GET /api/v1/aois/<int:aoi_id> when an exception occurs
     '''
@@ -266,13 +267,13 @@ def test_update_aoi_by_id_success_name_desc(mock_update, mock_audit, client):
     assert data['aoi_id'] == 1
     mock_update.assert_called_once_with(aoi_id=1, name='NewName', desc='NewDesc', geometry_wkb=None)
 
+@patch('app.modules.aois.routes.write_audit_log')
 @patch('app.modules.aois.routes.update_aoi_in_db')
-def test_update_aoi_by_id_success_coords(mock_update, client):
+def test_update_aoi_by_id_success_coords(mock_update, mock_audit, client):
     '''
     Test updating AOI with new coordinates
     '''
     mock_update.return_value = True
-    # Use a valid polygon (a square) to avoid Shapely invalid geometry errors
     coords = json.dumps([[0.0, 0.0], [0.0, 1.0], [1.0, 1.0], [1.0, 0.0], [0.0, 0.0]])
 
     response = client.patch('/api/v1/aois/2/update', data={
@@ -287,8 +288,9 @@ def test_update_aoi_by_id_success_coords(mock_update, client):
     assert call_kwargs['desc'] is None
     assert call_kwargs['geometry_wkb'] is not None
 
+@patch('app.modules.aois.routes.write_audit_log')
 @patch('app.modules.aois.routes.update_aoi_in_db')
-def test_update_aoi_by_id_success_bbox(mock_update, client):
+def test_update_aoi_by_id_success_bbox(mock_update, mock_audit, client):
     '''
     Test updating AOI with new bounding box
     '''

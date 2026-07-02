@@ -232,8 +232,9 @@ def test_get_geofence_by_id_not_found(mock_get_geofence, client):
     data = json.loads(response.data)
     assert data['error'] == "Geofence with ID 999 not found."
 
+@patch('app.modules.geofences.routes.write_audit_log')
 @patch('app.modules.geofences.routes.get_geofence_by_id')
-def test_get_geofence_by_id_internal_error(mock_get_geofence, client):
+def test_get_geofence_by_id_internal_error(mock_get_geofence, mock_audit, client):
     '''
     Test GET /api/v1/geofences/<int:geofence_id> when an exception occurs
     '''
@@ -268,13 +269,13 @@ def test_update_geofence_by_id_success_name_desc(mock_update, mock_audit, client
     assert data['geofence_id'] == 1
     mock_update.assert_called_once_with(geofence_id=1, name='NewName', desc='NewDesc', geometry_wkb=None)
 
+@patch('app.modules.geofences.routes.write_audit_log')
 @patch('app.modules.geofences.routes.update_geofence_in_db')
-def test_update_geofence_by_id_success_coords(mock_update, client):
+def test_update_geofence_by_id_success_coords(mock_update, mock_audit, client):
     '''
     Test updating Geofence with new coordinates
     '''
     mock_update.return_value = True
-    # Use a valid polygon (a square) to avoid Shapely invalid geometry errors
     coords = json.dumps([[0.0, 0.0], [0.0, 1.0], [1.0, 1.0], [1.0, 0.0], [0.0, 0.0]])
 
     response = client.patch('/api/v1/geofences/2/update', data={
@@ -289,8 +290,9 @@ def test_update_geofence_by_id_success_coords(mock_update, client):
     assert call_kwargs['desc'] is None
     assert call_kwargs['geometry_wkb'] is not None
 
+@patch('app.modules.geofences.routes.write_audit_log')
 @patch('app.modules.geofences.routes.update_geofence_in_db')
-def test_update_geofence_by_id_success_bbox(mock_update, client):
+def test_update_geofence_by_id_success_bbox(mock_update, mock_audit, client):
     '''
     Test updating Geofence with new bounding box
     '''

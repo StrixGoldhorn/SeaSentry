@@ -349,8 +349,9 @@ def test_history_exception(mock_func, mock_logger, mock_audit, client):
 # Tests for POST/PATCH /api/v1/vessels/<int:vessel_data_id>/update
 # ==========================================
 
+@patch('app.modules.vessels.routes.write_audit_log')
 @patch('app.modules.vessels.routes.update_vessel_data_in_db')
-def test_update_vessel_success_all_fields(mock_update, client):
+def test_update_vessel_success_all_fields(mock_update, mock_audit, client):
     '''Test successful update with all fields provided'''
     mock_update.return_value = True
 
@@ -381,8 +382,9 @@ def test_update_vessel_success_all_fields(mock_update, client):
         user_tags=["tag1", "tag2"]
     )
 
+@patch('app.modules.vessels.routes.write_audit_log')
 @patch('app.modules.vessels.routes.update_vessel_data_in_db')
-def test_update_vessel_success_partial_fields(mock_update, client):
+def test_update_vessel_success_partial_fields(mock_update, mock_audit, client):
     '''Test successful update with only some fields provided'''
     mock_update.return_value = True
     form_data = {
