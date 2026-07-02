@@ -65,9 +65,9 @@ def test_get_all_alert_history_success(mock_get_history, client):
     assert data['filters_applied']['limit'] == 10
 
     mock_get_history.assert_called_once_with(
-        datetime.fromisoformat('2023-10-27T10:00:00'),
-        datetime.fromisoformat('2023-10-28T10:00:00'),
-        10, 0
+        start_time=datetime.fromisoformat('2023-10-27T10:00:00'),
+        end_time=datetime.fromisoformat('2023-10-28T10:00:00'),
+        limit=10, offset=0, by_alert_rule_id=None
     )
 
 @patch('app.modules.alerts.routes.get_all_alert_history')
@@ -92,6 +92,17 @@ def test_get_all_alert_history_invalid_limit(mock_get_history, client):
     assert response.status_code == 400
     data = json.loads(response.data)
     assert 'Limit must be a positive integer' in data['error']
+
+@patch('app.modules.alerts.routes.get_all_alert_history')
+def test_get_all_alert_history_invalid_by_alert_rule_id(mock_get_history, client):
+    '''
+    Test /api/v1/alerts/history/all with negative by_alert_rule_id
+    '''
+    response = client.get('/api/v1/alerts/history/all?by_alert_rule_id=-5')
+
+    assert response.status_code == 400
+    data = json.loads(response.data)
+    assert 'by_alert_rule_id must be a non-negative integer' in data['error']
 
 # ==========================================
 # Tests for GET /api/v1/alerts/history/unread
