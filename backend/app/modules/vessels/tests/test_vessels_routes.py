@@ -346,6 +346,131 @@ def test_history_exception(mock_func, mock_logger, mock_audit, client):
     mock_logger.error.assert_called_once()
 
 # ==========================================
+# Tests for POST/PATCH /api/v1/vessels/<int:vessel_data_id>/update
+# ==========================================
+
+@patch('app.modules.vessels.routes.update_vessel_data_in_db')
+def test_update_vessel_success_all_fields(mock_update, client):
+    '''Test successful update with all fields provided'''
+    mock_update.return_value = True
+
+    form_data = {
+        "ship_name": "New Ship Name",
+        "ship_type": "Tanker",
+        "flag": "Liberia",
+        "length_meters": "200",
+        "beam_meters": "30",
+        "user_tags": '["tag1", "tag2"]'
+    }
+
+    response = client.post('/api/v1/vessels/101/update', data=form_data)
+
+    assert response.status_code == 200
+    data = json.loads(response.data)
+    assert data['status'] == 'success'
+    assert data['vessel_data_id'] == 101
+    assert data['message'] == "Vessel updated successfully."
+
+    mock_update.assert_called_once_with(
+        vessel_data_id=101,
+        ship_name="New Ship Name",
+        ship_type="Tanker",
+        flag="Liberia",
+        length_meters=200,
+        beam_meters=30,
+        user_tags=["tag1", "tag2"]
+    )
+
+@patch('app.modules.vessels.routes.update_vessel_data_in_db')
+def test_update_vessel_success_partial_fields(mock_update, client):
+    '''Test successful update with only some fields provided'''
+    mock_update.return_value = True
+    form_data = {
+        "ship_name": "Updated Name Only"
+    }
+    response = client.patch('/api/v1/vessels/101/update', data=form_data)
+
+    assert response.status_code == 200
+    data = json.loads(response.data)
+    assert data['status'] == 'success'
+
+    mock_update.assert_called_once_with(
+        vessel_data_id=101,
+        ship_name="Updated Name Only",
+        ship_type=None,
+        flag=None,
+        length_meters=None,
+        beam_meters=None,
+        user_tags=None
+    )
+
+def test_update_vessel_no_fields_provided(client):
+    '''Test update fails when no fields are provided'''
+    response = client.post('/api/v1/vessels/101/update', data={})
+
+    assert response.status_code == 400
+    data = json.loads(response.data)
+    assert data['error'] == "Requires at least 1 field to update."
+
+@patch('app.modules.vessels.routes.update_vessel_data_in_db')
+def test_update_vessel_invalid_length_meters(mock_update, client):
+    '''Test update fails when length_meters is not a valid integer'''
+    form_data = {
+        "length_meters": "not_a_number"
+    }
+    response = client.post('/api/v1/vessels/101/update', data=form_data)
+
+    assert response.status_code == 400
+    data = json.loads(response.data)
+    assert "Invalid data format: length_meters and beam_meters must be valid integers." in data['error']
+    mock_update.assert_not_called()
+
+@patch('app.modules.vessels.routes.update_vessel_data_in_db')
+def test_update_vessel_invalid_user_tags_json(mock_update, client):
+    '''Test update fails when user_tags is an invalid JSON string'''
+    form_data = {
+        "user_tags": "this is not valid json"
+    }
+    response = client.post('/api/v1/vessels/101/update', data=form_data)
+
+    assert response.status_code == 400
+    data = json.loads(response.data)
+    assert "Invalid data format: user_tags should be an array of strings." in data['error']
+    mock_update.assert_not_called()
+
+@patch('app.modules.vessels.routes.update_vessel_data_in_db')
+def test_update_vessel_not_found(mock_update, client):
+    '''Test update returns 404 when the vessel does not exist in the DB'''
+    mock_update.return_value = False
+    form_data = {
+        "ship_name": "Boaty McBoatface"
+    }
+    response = client.post('/api/v1/vessels/999/update', data=form_data)
+
+    assert response.status_code == 404
+    data = json.loads(response.data)
+    assert data['error'] == "Vessel with ID 999 not found."
+
+@patch('app.modules.vessels.routes.write_audit_log')
+@patch('app.modules.vessels.routes.logger')
+@patch('app.modules.vessels.routes.update_vessel_data_in_db')
+def test_update_vessel_exception(mock_update, mock_logger, mock_audit, client):
+    '''Test internal server error handling during update'''
+    mock_update.side_effect = Exception("Database write failed")
+    form_data = {
+        "ship_name": "Shippy McShipface"
+    }
+    response = client.post('/api/v1/vessels/101/update', data=form_data)
+
+    assert response.status_code == 500
+    data = json.loads(response.data)
+    assert data['error'] == "Internal server error"
+    assert "Database write failed" in data['details']
+
+    mock_logger.error.assert_called_once()
+    mock_audit.assert_called_once()
+
+# ==========================================
 # Tests for GET /api/v1/vessels/<int:vessel_data_id>/history
 # ==========================================
 
