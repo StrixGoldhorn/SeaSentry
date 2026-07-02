@@ -690,3 +690,59 @@ def test_delete_alert_rule_forbidden_id_2(client):
     assert response.status_code == 403
     data = json.loads(response.data)
     assert data['error'] == 'Forbidden.'
+
+# ==========================================
+# Tests for POST /api/v1/alerts/rescan
+# ==========================================
+
+@patch('app.modules.alerts.routes.check_all_vessels')
+@patch('app.modules.alerts.routes.threading.Thread')
+def test_rescan_alerts_success(mock_thread, mock_check_vessels, client):
+    '''
+    Test POST /api/v1/alerts/rescan with valid n
+    '''
+    mock_thread_instance = MagicMock()
+    mock_thread.return_value = mock_thread_instance
+
+    response = client.post('/api/v1/alerts/rescan', data={'n': '67'})
+
+    assert response.status_code == 202
+    data = json.loads(response.data)
+    assert data['status'] == 'success'
+
+    mock_thread.assert_called_once_with(target=mock_check_vessels, args=(67,))
+    mock_thread_instance.start.assert_called_once()
+
+def test_rescan_alerts_missing_n(client):
+    '''
+    Test POST /api/v1/alerts/rescan without providing n
+    '''
+    response = client.post('/api/v1/alerts/rescan', data={})
+
+    assert response.status_code == 400
+    data = json.loads(response.data)
+    assert data['error'] == "Integer n is required."
+
+def test_rescan_alerts_invalid_n(client):
+    '''
+    Test POST /api/v1/alerts/rescan with a non-integer value for n
+    '''
+    response = client.post('/api/v1/alerts/rescan', data={'n': 'not_a_number'})
+
+    assert response.status_code == 400
+    data = json.loads(response.data)
+    assert data['error'] == "Integer n is required."
+
+@patch('app.modules.alerts.routes.threading.Thread')
+def test_rescan_alerts_internal_error(mock_thread, client):
+    '''
+    Test POST /api/v1/alerts/rescan when an internal error occurs
+    '''
+    mock_thread.side_effect = Exception("Thread creation failed")
+
+    response = client.post('/api/v1/alerts/rescan', data={'n': '69'})
+
+    assert response.status_code == 500
+    data = json.loads(response.data)
+    assert data['error'] == "Internal server error"
+    assert "Thread creation failed" in data['details']

@@ -3,9 +3,11 @@
 
 from flask import Blueprint, request, jsonify
 import json
+import threading
 from datetime import datetime
 from app.core.config import Settings
 from app.modules.alerts.custom_rules import RuleTreeAdapter, build_sqlalchemy_expression 
+from app.modules.alerts.engine import check_all_vessels
 
 from app.utils.audit_log_helpers import write_audit_log
 from app.utils.alert_helpers import (
@@ -519,3 +521,24 @@ def delete_alert_rule_by_id_web(alert_rule_id):
         write_audit_log("Error in delete_alert_rule_by_id_web", __name__, {"alert_rule_id": alert_rule_id, "info": str(e)}, "ERROR")
 
         return jsonify({"error": "Internal server error"}), 500
+
+@alerts_bp.route('/rescan', methods=['POST'])
+def rescan_alerts():
+    '''
+    POST /api/v1/alerts/rescan
+    Force rescan of all rules for vessel locations within the past n minutes.
+
+    Request body:
+    n: int, number of minutes
+    '''
+    try:
+        n = request.form.get("n")
+        if not n or not str(n).isdigit():
+            return jsonify({"status": "error", "error": "Integer n is required."}), 400
+        thread = threading.Thread(target=check_all_vessels, args=(int(n),))
+        thread.start()
+        return jsonify({"status": "success"}), 202
+
+    except Exception as e:
+        logger.error("Error in rescan_alerts: %s", str(e), exc_info=Settings.EXEC_INFO_API)
+        return jsonify({"status": "error", "error": "Internal server error", "details": str(e)}), 500

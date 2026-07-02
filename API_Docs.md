@@ -59,6 +59,7 @@ Fields are compulsory unless otherwise stated
     - [is\_vessel\_of\_interest](#is_vessel_of_interest)
   - [Using Combinators](#using-combinators)
   - [Nested Rules](#nested-rules)
+    - [POST `/api/v1/alerts/rescan`](#post-apiv1alertsrescan)
 
 
 
@@ -832,3 +833,15 @@ For example, the rule below evaluates true if `(vessel is NOT inside geofence 1)
 ],
 "combinator": "and"
 ```
+
+### POST `/api/v1/alerts/rescan`
+
+Summary: Force rescan of all rules for vessel locations within the past n minutes.
+
+Request Body:
+- n: int (minutes)
+
+Returns:
+- 202 if scan function is called
+- 400 if missing/malformed field
+- 500 if internal server error
