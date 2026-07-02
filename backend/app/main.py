@@ -26,6 +26,7 @@ from app.utils.aoi_helpers import DBG_INSERT_DEFAULT_AOI
 from app.utils.geofence_helpers import DBG_INSERT_DEFAULT_GEOFENCE
 from app.utils.cleaner import clear_data_ingestion_audit_log_thirty_days
 from app.modules.alerts.engine import check_all_vessels
+from app.modules.atak_integration.atak_integration import start_atak_background
 
 logging.basicConfig(level=logging.DEBUG) # NOTE: PLEASE ONLY CONTROL LOGGER LEVEL FROM HERE
 logger = logging.getLogger(__name__)
@@ -117,6 +118,8 @@ def main():
 
     signal.signal(signal.SIGINT, shutdown_handler)
     signal.signal(signal.SIGTERM, shutdown_handler)
+
+    start_atak_background()
 
     logger.info("Starting SeaSentry Backend + Scraper...")
 

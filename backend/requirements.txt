@@ -10,3 +10,6 @@ playwright-stealth
 apscheduler
 load_dotenv
 pydantic
+pytak
+cryptography
+aiohttp

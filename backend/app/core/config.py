@@ -26,12 +26,12 @@ class Settings():
         "aprs_Scraper": {
             "enabled": True,
             # "enabled": False,
-            "interval_seconds": (300, 900)
+            "interval_seconds": (600, 1800)
         },
         "VesselFinder_Scraper": {
             "enabled": True,
             # "enabled": False,
-            "interval_seconds": (300, 900)
+            "interval_seconds": (600, 1800)
         }
     }
 
