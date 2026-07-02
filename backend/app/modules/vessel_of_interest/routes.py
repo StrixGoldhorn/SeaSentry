@@ -1,15 +1,13 @@
 # backend/app/modules/vessel_of_interest/routes.py
 
+import json
+from unittest.mock import patch, MagicMock
 from flask import Blueprint, request, jsonify
-from datetime import datetime, timedelta, timezone
-from sqlalchemy import func
-from geoalchemy2.shape import to_shape
 
 from app.core.config import Settings
-from app.models.vessel import VesselData, VesselLocation
 from app.utils.vessel_of_interest_helpers import (get_all_vessel_of_interest, get_vessel_of_interest_by_vessel_of_interest_id,
                                                   add_vessel_of_interest,
-                                                  update_vessel_of_interest_data_in_db,
+                                                  update_vessel_of_interest_data_in_db, delete_voi_in_db,
                                                   check_if_vessel_of_interest_name_exists)
 from app.utils.audit_log_helpers import write_audit_log
 
@@ -175,3 +173,145 @@ def update_vessel_of_interest_by_id(vessel_of_interest_id):
         logger.error("Error in update_vessel_of_interest_by_id: %s", str(e), exc_info=Settings.EXEC_INFO_API)
         write_audit_log("Error in update_vessel_of_interest_by_id", __name__, {"vessel_of_interest_id": vessel_of_interest_id, "info": str(e)}, "ERROR")
         return jsonify({"error": "Internal server error", "details": str(e)}), 500
+
+@vessel_of_interest_bp.route('/<int:voi_id>/delete', methods=['DELETE'])
+def delete_voi_by_id_web(voi_id):
+    '''
+    DELETE /api/v1/vois/<voi_id>/delete
+    Deletes an existing Area of Interest.
+
+    Query Param:
+    - voi_name: str (Name of Vessel of Interest to be deleted, so that users can't spam through voi_ids and accidentally delete)
+    '''
+    try:
+        voi_name = request.args.get("voi_name")
+
+        if not voi_name:
+            return jsonify({"error": "Missing required query parameter: 'voi_name'."}), 400
+
+        voi = get_vessel_of_interest_by_vessel_of_interest_id(voi_id)
+        if not voi:
+            return jsonify({"error": f"Vessel of Interest with ID {voi_id} not found."}), 404
+
+        if voi.vessel_of_interest_desc_name != voi_name:
+            return jsonify({"error": "'voi_name' does not match the Vessel of Interest with the given ID."}), 403
+
+        delete_voi_in_db(voi_id)
+
+        checkvoi = get_vessel_of_interest_by_vessel_of_interest_id(voi_id)
+        if not checkvoi:
+            return jsonify({
+                "status": "success", 
+                "message": f"Vessel of Interest '{voi_name}' (ID: {voi_id}) deleted successfully."
+            }), 200
+        else:
+            logger.error("Failed to delete Vessel of Interest with ID %d. User provided %s", voi_id, str(request.args.get("voi_name")))
+            return jsonify({"error": "Internal server error: Failed to delete Vessel of Interest."}), 500
+
+    except Exception as e:
+        logger.error("Error in delete_voi_by_id_web: %s", str(e), exc_info=Settings.EXEC_INFO_API)
+        write_audit_log("Error in delete_voi_by_id_web", __name__, {"voi_id": voi_id, "info": str(e)}, "ERROR")
+
+        return jsonify({"error": "Internal server error"}), 500
+
+# ==========================================
+# Tests for DELETE /api/v1/vessel_of_interest/<int:voi_id>/delete
+# ==========================================
+
+@patch('app.modules.vessel_of_interest.routes.delete_voi_in_db')
+@patch('app.modules.vessel_of_interest.routes.get_vessel_of_interest_by_vessel_of_interest_id')
+def test_delete_voi_success(mock_get_voi, mock_delete, client):
+    '''
+    Test successful deletion of a Vessel of Interest
+    '''
+    mock_voi = MagicMock()
+    mock_voi.vessel_of_interest_desc_name = "TestVOI"
+
+    mock_get_voi.side_effect = [mock_voi, None]
+    mock_delete.return_value = True
+
+    response = client.delete('/api/v1/vessel_of_interest/1/delete?voi_name=TestVOI')
+
+    assert response.status_code == 200
+    data = json.loads(response.data)
+    assert data['status'] == 'success'
+    assert 'deleted successfully' in data['message']
+    mock_delete.assert_called_once_with(1)
+
+
+def test_delete_voi_missing_name(client):
+    '''
+    Test deletion without providing the required voi_name query parameter
+    '''
+    response = client.delete('/api/v1/vessel_of_interest/1/delete')
+    
+    assert response.status_code == 400
+    data = json.loads(response.data)
+    assert data['error'] == "Missing required query parameter: 'voi_name'."
+
+
+@patch('app.modules.vessel_of_interest.routes.get_vessel_of_interest_by_vessel_of_interest_id')
+def test_delete_voi_not_found(mock_get_voi, client):
+    '''
+    Test deletion of a non-existent Vessel of Interest
+    '''
+    mock_get_voi.return_value = None
+
+    response = client.delete('/api/v1/vessel_of_interest/999/delete?voi_name=GhostVOI')
+
+    assert response.status_code == 404
+    data = json.loads(response.data)
+    assert data['error'] == "Vessel of Interest with ID 999 not found."
+
+
+@patch('app.modules.vessel_of_interest.routes.get_vessel_of_interest_by_vessel_of_interest_id')
+def test_delete_voi_name_mismatch(mock_get_voi, client):
+    '''
+    Test deletion with an incorrect voi_name
+    '''
+    mock_voi = MagicMock()
+    mock_voi.vessel_of_interest_desc_name = "RealVOIName"
+    mock_get_voi.return_value = mock_voi
+
+    response = client.delete('/api/v1/vessel_of_interest/1/delete?voi_name=WrongVOIName')
+
+    assert response.status_code == 403
+    data = json.loads(response.data)
+    assert data['error'] == "'voi_name' does not match the Vessel of Interest with the given ID."
+
+
+@patch('app.modules.vessel_of_interest.routes.delete_voi_in_db')
+@patch('app.modules.vessel_of_interest.routes.get_vessel_of_interest_by_vessel_of_interest_id')
+def test_delete_voi_db_failure(mock_get_voi, mock_delete, client):
+    '''
+    Test when the Vessel of Interest is not actually deleted from the database 
+    '''
+    mock_voi = MagicMock()
+    mock_voi.vessel_of_interest_desc_name = "TestVOI"
+
+    # Both calls return the mock_voi to simulate that the deletion failed in the DB
+    mock_get_voi.return_value = mock_voi
+    mock_delete.return_value = True
+
+    response = client.delete('/api/v1/vessel_of_interest/1/delete?voi_name=TestVOI')
+
+    assert response.status_code == 500
+    data = json.loads(response.data)
+    assert data['error'] == "Internal server error: Failed to delete Vessel of Interest."
+
+
+@patch('app.modules.vessel_of_interest.routes.write_audit_log')
+@patch('app.modules.vessel_of_interest.routes.get_vessel_of_interest_by_vessel_of_interest_id')
+def test_delete_voi_internal_error(mock_get_voi, mock_audit, client):
+    '''
+    Test internal server error during the deletion process
+    '''
+    mock_get_voi.side_effect = Exception("Database connection failed")
+
+    response = client.delete('/api/v1/vessel_of_interest/1/delete?voi_name=TestVOI')
+
+    assert response.status_code == 500
+    data = json.loads(response.data)
+    assert data['error'] == "Internal server error"
+
+    mock_audit.assert_called_once()

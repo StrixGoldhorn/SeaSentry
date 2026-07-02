@@ -1,5 +1,6 @@
 import pytest
 import json
+from datetime import datetime, timezone
 from unittest.mock import patch, MagicMock
 from flask import Flask
 
@@ -393,7 +394,7 @@ def test_delete_aoi_missing_name(client):
     Test deletion without providing the required aoi_name query parameter
     '''
     response = client.delete('/api/v1/aois/1/delete')
-    
+
     assert response.status_code == 400
     data = json.loads(response.data)
     assert data['error'] == "Missing required query parameter: 'aoi_name'."
@@ -458,4 +459,63 @@ def test_delete_aoi_internal_error(mock_get_aoi, mock_audit, client):
     data = json.loads(response.data)
     assert data['error'] == "Internal server error"
 
+    mock_audit.assert_called_once()
+
+# ==========================================
+# Tests for POST /api/v1/aois/<int:aoi_id>/scrape
+# ==========================================
+
+def create_mock_aoi():
+    '''Helper to create a mock AOI object'''
+    mock_aoi = MagicMock()
+    mock_aoi.area_of_interest_id = 1
+    return mock_aoi
+
+@patch('app.modules.aois.routes.run_force_all_scrapers_for_aoi')
+@patch('app.modules.aois.routes.get_aoi_by_id')
+def test_force_scrape_success(mock_get_aoi, mock_run_scrapers, client):
+    '''Test successful forced scrape of an AOI'''
+    mock_get_aoi.return_value = create_mock_aoi()
+    mock_run_scrapers.return_value = [MagicMock(), MagicMock()]
+
+    response = client.post('/api/v1/aois/1/scrape')
+    assert response.status_code == 200
+    data = json.loads(response.data)
+
+    assert data == {"status": "success"}
+
+    mock_get_aoi.assert_called_once_with(1)
+    mock_run_scrapers.assert_called_once()
+    args, _ = mock_run_scrapers.call_args
+    assert args[0] == 1
+
+@patch('app.modules.aois.routes.get_aoi_by_id')
+def test_force_scrape_not_found(mock_get_aoi, client):
+    '''Test scraping an AOI that does not exist returns 404'''
+    mock_get_aoi.return_value = None
+
+    response = client.post('/api/v1/aois/67/scrape')
+
+    assert response.status_code == 404
+    data = json.loads(response.data)
+    assert data['error'] == "AOI with ID 67 not found."
+
+    mock_get_aoi.assert_called_once_with(67)
+
+@patch('app.modules.aois.routes.write_audit_log')
+@patch('app.modules.aois.routes.logger')
+@patch('app.modules.aois.routes.run_force_all_scrapers_for_aoi')
+@patch('app.modules.aois.routes.get_aoi_by_id')
+def test_force_scrape_exception(mock_get_aoi, mock_run_scrapers, mock_logger, mock_audit, client):
+    '''Test internal server error handling during scrape'''
+    mock_get_aoi.return_value = create_mock_aoi()
+    mock_run_scrapers.side_effect = Exception("Scraper thread failed to start")
+
+    response = client.post('/api/v1/aois/1/scrape')
+
+    assert response.status_code == 500
+    data = json.loads(response.data)
+    assert data['error'] == "Internal server error"
+    assert "Scraper thread failed to start" in data['details']
+    mock_logger.error.assert_called_once()
     mock_audit.assert_called_once()

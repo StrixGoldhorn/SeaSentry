@@ -9,13 +9,15 @@ Fields are compulsory unless otherwise stated
   - [Vessels](#vessels)
     - [GET `/api/v1/vessels/bbox`](#get-apiv1vesselsbbox)
     - [GET `/api/v1/vessels/<vessel_data_id>`](#get-apiv1vesselsvessel_data_id)
+    - [GET `/api/v1/vessels/<vessel_data_id>`](#get-apiv1vesselsvessel_data_id-1)
     - [POST/PATCH `/api/v1/vessels/<vessel_data_id>/update`](#postpatch-apiv1vesselsvessel_data_idupdate)
-    - [GET `/api/v1/vessels/history`](#get-apiv1vesselshistory)
+    - [GET `/api/v1/vessels/exportArea`](#get-apiv1vesselsexportarea)
   - [Vessel of Interest](#vessel-of-interest)
     - [GET `/api/v1/vessel_of_interest/get/all`](#get-apiv1vessel_of_interestgetall)
     - [GET `/api/v1/vessel_of_interest/<vessel_of_interest_id>`](#get-apiv1vessel_of_interestvessel_of_interest_id)
     - [POST `/api/v1/vessel_of_interest/add`](#post-apiv1vessel_of_interestadd)
     - [POST/PATCH `/api/v1/vessel_of_interest/<vessel_of_interest_id>/update`](#postpatch-apiv1vessel_of_interestvessel_of_interest_idupdate)
+    - [DELETE `/api/v1/vessel_of_interest/<vessel_of_interest_id>/delete`](#delete-apiv1vessel_of_interestvessel_of_interest_iddelete)
   - [AOIs](#aois)
     - [GET `/api/v1/aois/get/all`](#get-apiv1aoisgetall)
     - [GET `/api/v1/aois/<aoi_id>`](#get-apiv1aoisaoi_id)
@@ -23,6 +25,7 @@ Fields are compulsory unless otherwise stated
     - [POST `/api/v1/aois/add/polygon`](#post-apiv1aoisaddpolygon)
     - [POST/PATCH `/api/v1/aois/<aoi_id>/update`](#postpatch-apiv1aoisaoi_idupdate)
     - [DELETE `/api/v1/aois/<aoi_id>/delete`](#delete-apiv1aoisaoi_iddelete)
+    - [POST `/api/v1/aois/<aoi_id>/scrape`](#post-apiv1aoisaoi_idscrape)
   - [Geofences](#geofences)
     - [GET `/api/v1/geofences/get/all`](#get-apiv1geofencesgetall)
     - [GET `/api/v1/geofences/<geofence_id>`](#get-apiv1geofencesgeofence_id)
@@ -41,6 +44,7 @@ Fields are compulsory unless otherwise stated
     - [POST `/api/v1/alerts/rule/<alert_rule_id>/update`](#post-apiv1alertsrulealert_rule_idupdate)
     - [POST `/api/v1/alerts/rule/<alert_rule_id>/mark/disable`](#post-apiv1alertsrulealert_rule_idmarkdisable)
     - [POST `/api/v1/alerts/rule/<alert_rule_id>/mark/enable`](#post-apiv1alertsrulealert_rule_idmarkenable)
+    - [DELETE `/api/v1/alerts/rule/<alert_rule_id>/delete`](#delete-apiv1alertsrulealert_rule_iddelete)
 - [Rule Configuration](#rule-configuration)
   - [Explanation](#explanation)
   - [Fields and Operators](#fields-and-operators)
@@ -87,6 +91,20 @@ Returns:
 - 400 if missing fields
 - 500 if internal server error
 
+### GET `/api/v1/vessels/<vessel_data_id>`
+
+Summary: Returns list of vessel locations tagged to the vessel
+
+Query Params (all optional):
+- start_time_str: (optional, datetime, eg '2026-06-07T12:00:00Z', default datetime.min)
+- end_time_str: (optional, datetime, eg '2026-06-07T12:00:00Z', default datetime.now)
+
+Returns:
+- 200 with list of vessel locations
+- 400 if missing/malformed fields
+- 404 if no such history
+- 500 if internal server error
+
 ### POST/PATCH `/api/v1/vessels/<vessel_data_id>/update`
 
 Summary: Updates an existing Vessel. Supports partial updates.
@@ -105,14 +123,14 @@ Returns:
 - 404 if Vessel with id does not exist
 - 500 if internal server error
 
-### GET `/api/v1/vessels/history`
+### GET `/api/v1/vessels/exportArea`
 
 Summary: Query historical vessel positions within a bounding box and time range. Streams exports to JSON, GeoJSON, or CSV to prevent memory overload on large responses.
 
 Query Params:
-- lat_min, lat_max, long_min, long_max: float (bounding box)
-- start_time: str (ISO datetime string, e.g., '2023-10-01T12:00:00Z')
-- end_time: str (ISO datetime string, e.g., '2023-10-02T12:00:00Z')
+- lat_min, lat_max, long_min, long_max: float (optional, bounding box, default whole Earth)
+- start_time: str (optional, ISO datetime string, e.g., '2023-10-01T12:00:00Z', default datetime.min)
+- end_time: str (optional, ISO datetime string, e.g., '2023-10-02T12:00:00Z', default datetime.now)
 - format: str (optional, 'json', 'geojson', or 'csv', default 'json')
 
 Returns:
@@ -157,7 +175,6 @@ Returns:
 - 403 if name already exists
 - 500 if internal server error
 
-
 ### POST/PATCH `/api/v1/vessel_of_interest/<vessel_of_interest_id>/update`
 
 Summary: Updates an existing Vessel of Interest. Supports partial updates.
@@ -177,6 +194,21 @@ Returns:
 - 404 if Vessel of Interest with id does not exist
 - 500 if internal server error
 
+### DELETE `/api/v1/vessel_of_interest/<vessel_of_interest_id>/delete`
+
+Summary: Deletes an existing Vessel of Interest.
+
+Query Param:
+- voi_name: Name of the Vessel of Interest to be deleted.
+
+**Note**: The above is done solely to ensure that the user does not accidentally delete the wrong Vessel of Interest.
+    
+Returns:
+- 200 if successfully deleted
+- 400 if missing/malformed fields
+- 403 if provided voi_name is incorrect
+- 404 if Vessel of Interest with id does not exist
+- 500 if internal server error
 
 ## AOIs
 
@@ -257,6 +289,16 @@ Returns:
 - 400 if missing/malformed fields
 - 403 if provided aoi_name is incorrect
 - 404 if AOI with id does not exist
+- 500 if internal server error
+
+
+### POST `/api/v1/aois/<aoi_id>/scrape`
+
+Summary: Forces enabled scrapers to start scanning the selected AOI instantly. Does not affect scheduled scrapes.
+
+Returns:
+- 200 if function triggers
+- 404 if AOI with given id does not exist
 - 500 if internal server error
 
 ## Geofences
@@ -495,6 +537,22 @@ Summary: Marks the given alert rule as enabled
 Returns:
 - 200 if successfully marked as enabled
 - 404 if no such alert rule with given id exists
+- 500 if internal server error
+
+### DELETE `/api/v1/alerts/rule/<alert_rule_id>/delete`
+
+Summary: Deletes an existing alert rule
+
+Query Param:
+- alert_rule_name: Name of the alert rule to be deleted.
+
+**Note**: The above is done solely to ensure that the user does not accidentally delete the wrong alert rule.
+    
+Returns:
+- 200 if successfully deleted
+- 400 if missing/malformed fields
+- 403 if provided alert_rule_name is incorrect
+- 404 if alert rule with id does not exist
 - 500 if internal server error
 
 

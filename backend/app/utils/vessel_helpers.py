@@ -40,7 +40,7 @@ def get_all_vessels_in_bbox(envelope, time_lower_bound: datetime, limit: int) ->
         return query.all()
 
     except Exception as e:
-        logger.error("Error in get_all_aois: %s", e, exc_info=True)
+        logger.error("Error in get_all_vessels_in_bbox: %s", e, exc_info=True)
         return []
 
     finally:
@@ -201,7 +201,46 @@ def get_vessel_history_stream(envelope, start_time: datetime, end_time: datetime
             yield location, vessel
 
     except Exception as e:
-        logger.error("Error in get_vessel_history_in_bbox: %s", e, exc_info=True)
+        logger.error("Error in get_vessel_history_stream: %s", e, exc_info=True)
+        return []
+
+    finally:
+        if session:
+            DBConn.close_session()
+
+def get_vessel_history_by_vessel_data_id(vessel_data_id: int,
+                                       start_time: datetime = datetime.min, end_time: datetime = datetime.now(timezone.utc)) -> List[VesselLocation]:
+    '''
+    Fetches vessel historical locations in database for vessel
+    with given vessel_data_id and within start_time and end_time
+
+    Args:
+        vessel_data_id: bounding box
+        start_time: datetime object = datetime.min, representing the start of the time range
+        end_time: datetime object = datetime.now, representing the end of the time range
+
+    Returns:
+        List containing VesselLocation objects
+    '''
+
+    session = DBConn.get_session()
+    try:
+        query = session.query(VesselLocation).join(
+            VesselData,
+            VesselLocation.vessel_location_vessel_data_id == VesselData.vessel_data_id,
+        ).filter(
+            VesselLocation.vessel_location_timestamp <= end_time,
+            VesselLocation.vessel_location_timestamp >= start_time,
+            VesselData.vessel_data_id == vessel_data_id
+        ).order_by(
+            VesselLocation.vessel_location_vessel_data_id,
+            VesselLocation.vessel_location_timestamp.desc()
+        )
+
+        return query.all()
+
+    except Exception as e:
+        logger.error("Error in get_vessel_track_by_vessel_data_id: %s", e, exc_info=True)
         return []
 
     finally:
