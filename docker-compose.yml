@@ -57,6 +57,42 @@ services:
       - backend
 
     restart: no
+  
+  freetakserver:
+    image: ghcr.io/freetakteam/freetakserver:latest
+    container_name: seasentry-freetakserver
+    restart: unless-stopped
+
+
+    ports:
+      - "8087:8087"
+      - "8089:8089"
+      - "8080:8080"
+      - "8443:8443"
+      - "19023:19023"
+
+    environment:
+      FTS_DATABASE_TYPE: SQLite
+      FTS_CONNECTION_MESSAGE: "Connected to SeaSentry ATAK-CIV Integration test server. QOTD: At the end of the day, the day ends."
+    
+    volumes:
+      - fts_data:/opt/fts
+
+  freetakserver-ui:
+    image: ghcr.io/freetakteam/ui:latest
+    container_name: seasentry-freetakserver-ui
+    restart: unless-stopped
+    depends_on:
+      - freetakserver
+    ports:
+      - "8000:8000"
+    environment:
+      APIIP: seasentry-freetakserver 
+      APIPORT: 19023
+      APIPROTOCOL: http
+    volumes:
+      - fts_data:/data/
 
 volumes:
   postgres_data:
+  fts_data:
