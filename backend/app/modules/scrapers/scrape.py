@@ -8,7 +8,7 @@ from datetime import datetime
 from requests.exceptions import RequestException, Timeout
 
 from app.modules.scrapers.registry import ScraperRegistry
-from app.utils.aoi_helpers import get_all_aois, get_aoi_polygon_corners
+from app.utils.aoi_helpers import get_all_aois, get_aoi_polygon_corners, get_aoi_by_id
 from app.utils.audit_log_helpers import write_audit_log
 
 logger = logging.getLogger(__name__)
@@ -82,5 +82,62 @@ def run_all_scrapers(stop_event: Event, scraper_configs: Dict[str, dict] = None)
         thread.start()
         threads.append(thread)
         logger.info("[%s] Scraper thread launched (interval: %ss)", scraper_name, interval)
+
+    return threads
+
+
+
+def run_force_single_scraper_for_aoi(scraper_name: str, aoi_id: int, scraper_config: dict = None):
+
+    logger.info("[%s] Thread started.", scraper_name)
+
+    aoi = get_aoi_by_id(aoi_id)
+
+    try:
+        logger.info("[%s] [%s] Starting forced scrape. Scraping %s", scraper_name, datetime.now().isoformat(), aoi.area_of_interest_name)
+        write_audit_log("Starting forced scrape", __name__, {"Scraper name": scraper_name, "AOI": aoi.area_of_interest_name, "Time": str(datetime.now())}, "INFO")
+
+        scraper = ScraperRegistry.instantiate(scraper_name, config=scraper_config or {})
+
+        coords = get_aoi_polygon_corners(aoi)
+        records = scraper.run(coords)
+
+        logger.info("[%s] forced scrape complete. Processed %s location records.", scraper_name, len(records))
+        write_audit_log("Finished forced scrape", __name__, {"Scraper name": scraper_name, "AOI": aoi.area_of_interest_name, "Time": str(datetime.now()), "Number of records": len(records)}, "INFO")
+
+    except (RequestException, Timeout) as e:
+        logger.warning("[%s] Network error: %s.", scraper_name, e)
+        write_audit_log("Network error during forced scrape", __name__, {"Scraper name": scraper_name, "AOI": aoi.area_of_interest_name, "Time": str(datetime.now())}, "ERROR")
+
+    except Exception as e:
+        logger.error("[%s] Unexpected error: %s", scraper_name, e, exc_info=True)
+        write_audit_log("Unexpected error", __name__, {"Scraper name": scraper_name, "AOI": aoi.area_of_interest_name, "Info": str(e)}, "ERROR")
+
+    logger.info("[%s] Thread shutting down.", scraper_name)
+
+def run_force_all_scrapers_for_aoi(aoi_id: int, scraper_configs: Dict[str, dict] = None) -> List[Thread]:
+    '''
+    Force all scrapers to scrape a single AOI
+    '''
+
+    scraper_configs = scraper_configs or {}
+    threads = []
+
+    for scraper_name in ScraperRegistry.list():
+        config = scraper_configs.get(scraper_name, {})
+
+        if config.get('enabled') is False:
+            logger.info("Disabled %s. Skipping.", scraper_name)
+            continue
+
+        thread = Thread(
+            target = run_force_single_scraper_for_aoi,
+            args = (scraper_name, aoi_id, config),
+            name = f"SeaSentry-Scraper-Forced-{scraper_name}-AOI-{aoi_id}",
+            daemon = True
+        )
+        thread.start()
+        threads.append(thread)
+        logger.info("[%s] Scraper thread launched", scraper_name)
 
     return threads
