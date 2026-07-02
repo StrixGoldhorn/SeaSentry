@@ -3,6 +3,7 @@ import json
 from datetime import datetime, timezone
 from unittest.mock import patch, MagicMock
 from flask import Flask
+from shapely.geometry import box
 
 from app.utils.vessel_helpers import get_all_vessels_in_bbox
 from app.models.vessel import VesselData, VesselLocation
@@ -65,7 +66,6 @@ def test_get_all_vessels_in_bbox_success(mock_db_conn):
 
     mock_limit_result.all.return_value = [(fake_vessel_loc, fake_vessel_data)]
 
-    from shapely.geometry import box
     envelope = box(10, 10, 20, 20)
     result = get_all_vessels_in_bbox(envelope, "2023-01-01", limit=10)
 
@@ -104,7 +104,6 @@ def test_get_all_vessels_in_bbox_empty_result(mock_db_conn):
 
     mock_limit.all.return_value = []
 
-    from shapely.geometry import box
     envelope = box(10, 10, 20, 20)
     result = get_all_vessels_in_bbox(envelope, "2023-01-01", limit=10)
 
@@ -173,9 +172,9 @@ def test_get_vessel_by_vessel_data_id_success(mock_get_vessel, client):
     data = json.loads(response.data)
     assert data['status'] == 'success'
     assert data['data']['vessel_data_id'] == 101
-    assert data['data']['vessel_data_mmsi'] == 123456789
-    assert data['data']['vessel_data_ship_name'] == "Test Ship"
-    assert data['data']['vessel_data_user_tags'] == ["tag1", "tag2"]
+    assert data['data']['mmsi'] == 123456789
+    assert data['data']['ship_name'] == "Test Ship"
+    assert data['data']['user_tags'] == ["tag1", "tag2"]
 
 @patch('app.modules.vessels.routes.get_vessel_by_vessel_data_id')
 def test_get_vessel_by_vessel_data_id_not_found(mock_get_vessel, client):
@@ -231,6 +230,9 @@ def create_mock_stream():
     fake_data.vessel_data_ship_name = "Test Ship"
     fake_data.vessel_data_ship_type = "Cargo"
     fake_data.vessel_data_flag = "SG"
+    fake_data.vessel_data_length_meters = 150.5
+    fake_data.vessel_data_beam_meters = 25.0
+    fake_data.vessel_data_user_tags = ["tag1", "tag2"]
 
     return iter([(fake_loc, fake_data)])
 
@@ -240,7 +242,7 @@ def test_history_default_bbox(mock_stream, client):
     mock_stream.return_value = create_mock_stream()
 
     response = client.get('/api/v1/vessels/exportArea?start_time=2026-01-01T00:00:00Z&end_time=2026-01-02T00:00:00Z')
-    
+
     assert response.status_code == 200
 
 @patch('app.modules.vessels.routes.get_vessel_history_stream')
@@ -249,14 +251,14 @@ def test_history_default_times(mock_stream, client):
     mock_stream.return_value = create_mock_stream()
 
     response = client.get('/api/v1/vessels/exportArea?lat_min=10&lat_max=20&long_min=10&long_max=20')
-    
+
     assert response.status_code == 200
 
 @patch('app.modules.vessels.routes.get_vessel_history_stream')
 def test_history_invalid_time_format(mock_stream, client):
     '''Test invalid time format'''
     response = client.get('/api/v1/vessels/exportArea?lat_min=10&lat_max=20&long_min=10&long_max=20&start_time=invalid&end_time=2023-01-02T00:00:00Z')
-    
+
     assert response.status_code == 400
     assert "Invalid time format" in json.loads(response.data)['error']
 
@@ -272,7 +274,7 @@ def test_history_start_after_end(mock_stream, client):
 def test_history_invalid_format(mock_stream, client):
     '''Test invalid export format parameter'''
     response = client.get('/api/v1/vessels/exportArea?lat_min=10&lat_max=20&long_min=10&long_max=20&start_time=2023-01-01T00:00:00Z&end_time=2023-01-02T00:00:00Z&format=xml')
-    
+
     assert response.status_code == 400
     assert "Invalid format" in json.loads(response.data)['error']
 

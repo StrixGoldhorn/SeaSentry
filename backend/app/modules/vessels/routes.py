@@ -68,13 +68,16 @@ def get_vessels_in_bbox():
             lon, lat = geom_shape.x, geom_shape.y
 
             data.append({
-                "location_id": location.vessel_location_id,
+                "vessel_location_id": location.vessel_location_id,
                 "vessel_data_id": vessel.vessel_data_id,
                 "mmsi": vessel.vessel_data_mmsi,
                 "imo": vessel.vessel_data_imo,
                 "ship_name": vessel.vessel_data_ship_name,
                 "ship_type": vessel.vessel_data_ship_type,
                 "flag": vessel.vessel_data_flag,
+                "length_meters": vessel.vessel_data_length_meters,
+                "beam_meters": vessel.vessel_data_beam_meters,
+                "user_tags": vessel.vessel_data_user_tags,
                 "latitude": lat,
                 "longitude": lon,
                 "speed_knots": location.vessel_location_speed_knots,
@@ -102,7 +105,7 @@ def get_vessels_in_bbox():
         return jsonify({"error": "Internal server error", "details": str(e)}), 500
 
 @vessels_bp.route('/exportArea', methods=['GET'])
-def get_vessel_history_in_bbox_route():
+def get_vessel_history_in_bbox():
     '''
     GET /api/v1/vessels/exportArea
     Query vessel historical positions within a bounding box and time range.
@@ -170,7 +173,8 @@ def get_vessel_history_in_bbox_route():
         def generate_csv(stream):
             fieldnames = [
                 "location_id", "vessel_data_id", "mmsi", "imo", "ship_name", 
-                "ship_type", "flag", "latitude", "longitude", "speed_knots", 
+                "ship_type", "length_meters", "beam_meters", "user_tags",
+                "flag", "latitude", "longitude", "speed_knots", 
                 "course_deg", "heading_deg", "rate_of_turn", "nav_status", "timestamp"
             ]
 
@@ -194,7 +198,9 @@ def get_vessel_history_in_bbox_route():
                     location.vessel_location_id, vessel.vessel_data_id,
                     vessel.vessel_data_mmsi, vessel.vessel_data_imo,
                     vessel.vessel_data_ship_name, vessel.vessel_data_ship_type,
-                    vessel.vessel_data_flag, geom_shape.y, geom_shape.x,
+                    vessel.vessel_data_length_meters, vessel.vessel_data_beam_meters,
+                    vessel.vessel_data_user_tags, vessel.vessel_data_flag,
+                    geom_shape.y, geom_shape.x,
                     location.vessel_location_speed_knots, location.vessel_location_course_deg,
                     location.vessel_location_heading_deg, location.vessel_location_rate_of_turn_deg_per_sec,
                     location.vessel_location_nav_status,
@@ -212,13 +218,16 @@ def get_vessel_history_in_bbox_route():
                     "type": "Feature",
                     "geometry": {"type": "Point", "coordinates": [geom_shape.x, geom_shape.y]},
                     "properties": {
-                        "location_id": location.vessel_location_id,
+                        "vessel_location_id": location.vessel_location_id,
                         "vessel_data_id": vessel.vessel_data_id,
-                        "mmsi": vessel.vessel_data_mmsi, 
+                        "mmsi": vessel.vessel_data_mmsi,
                         "imo": vessel.vessel_data_imo,
-                        "ship_name": vessel.vessel_data_ship_name, 
+                        "ship_name": vessel.vessel_data_ship_name,
                         "ship_type": vessel.vessel_data_ship_type,
                         "flag": vessel.vessel_data_flag,
+                        "length_meters": vessel.vessel_data_length_meters,
+                        "beam_meters": vessel.vessel_data_beam_meters,
+                        "user_tags": vessel.vessel_data_user_tags,
                         "speed_knots": location.vessel_location_speed_knots,
                         "course_deg": location.vessel_location_course_deg,
                         "heading_deg": location.vessel_location_heading_deg,
@@ -242,13 +251,16 @@ def get_vessel_history_in_bbox_route():
             for location, vessel in stream:
                 geom_shape = to_shape(location.vessel_location_coords)
                 item = {
-                    "location_id": location.vessel_location_id, 
+                    "vessel_location_id": location.vessel_location_id,
                     "vessel_data_id": vessel.vessel_data_id,
-                    "mmsi": vessel.vessel_data_mmsi, 
+                    "mmsi": vessel.vessel_data_mmsi,
                     "imo": vessel.vessel_data_imo,
-                    "ship_name": vessel.vessel_data_ship_name, 
+                    "ship_name": vessel.vessel_data_ship_name,
                     "ship_type": vessel.vessel_data_ship_type,
-                    "flag": vessel.vessel_data_flag, 
+                    "flag": vessel.vessel_data_flag,
+                    "length_meters": vessel.vessel_data_length_meters,
+                    "beam_meters": vessel.vessel_data_beam_meters,
+                    "user_tags": vessel.vessel_data_user_tags,
                     "latitude": geom_shape.y, 
                     "longitude": geom_shape.x,
                     "speed_knots": location.vessel_location_speed_knots,
@@ -305,14 +317,14 @@ def get_vessel_by_vessel_data_id_web(vessel_data_id):
             "status": "success",
             "data": {
                 "vessel_data_id": vessel.vessel_data_id,
-                "vessel_data_mmsi": vessel.vessel_data_mmsi,
-                "vessel_data_imo": vessel.vessel_data_imo,
-                "vessel_data_ship_name": vessel.vessel_data_ship_name,
-                "vessel_data_ship_type": vessel.vessel_data_ship_type,
-                "vessel_data_flag": vessel.vessel_data_flag,
-                "vessel_data_length_meters": vessel.vessel_data_length_meters,
-                "vessel_data_beam_meters": vessel.vessel_data_beam_meters,
-                "vessel_data_user_tags": vessel.vessel_data_user_tags
+                "mmsi": vessel.vessel_data_mmsi,
+                "imo": vessel.vessel_data_imo,
+                "ship_name": vessel.vessel_data_ship_name,
+                "ship_type": vessel.vessel_data_ship_type,
+                "flag": vessel.vessel_data_flag,
+                "length_meters": vessel.vessel_data_length_meters,
+                "beam_meters": vessel.vessel_data_beam_meters,
+                "user_tags": vessel.vessel_data_user_tags
             }
         }), 200
 
@@ -434,7 +446,7 @@ def get_vessel_history_by_vessel_data_id_web(vessel_data_id):
                 "location_id": loc.vessel_location_id,
                 "latitude": lat,
                 "longitude": lon,
-                "timestamp": loc.vessel_location_timestamp,
+                "timestamp":  loc.vessel_location_timestamp.isoformat() if loc.vessel_location_timestamp else None,
                 "speed_knots": loc.vessel_location_speed_knots,
                 "course_deg": loc.vessel_location_course_deg,
                 "heading_deg": loc.vessel_location_heading_deg,
