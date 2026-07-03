@@ -13,9 +13,9 @@ import tempfile
 import shutil
 import concurrent.futures
 import random
-import json
+import requests
 from playwright.sync_api import sync_playwright
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from playwright_stealth import Stealth
 
 logger = logging.getLogger(__name__)
@@ -175,67 +175,101 @@ class vesselfinderScraper(AbstractScraper):
             pass # Expected for binary data
 
         idx = 12
-        part_header_length = 2
-        mmsi_length = 4
-        lat_length = 4
-        long_length = 4
-        is_selected_length = 1
-        extra_zoom_info_length = 10
         zoomLevel = 15
 
         while idx < len(data):
             try:
-                if idx + part_header_length > len(data): break
-                part_header_data = data[idx:idx+part_header_length]
-                idx += part_header_length
+                if idx + 2 > len(data): break
+                idx += 2
 
-                if idx + mmsi_length > len(data): break
-                mmsi_data = data[idx:idx+mmsi_length]
-                mmsi = int.from_bytes(mmsi_data, "big")
-                idx += mmsi_length
+                if idx + 4 > len(data): break
+                mmsi = int.from_bytes(data[idx:idx+4], "big")
+                idx += 4
 
-                if idx + lat_length > len(data): break
-                lat_data = data[idx:idx+lat_length]
-                lat = int.from_bytes(lat_data, "big") / 600000
-                idx += lat_length
+                if idx + 4 > len(data): break
+                lat = int.from_bytes(data[idx:idx+4], "big", signed=True) / 600000.0
+                idx += 4
 
-                if idx + long_length > len(data): break
-                long_data = data[idx:idx+long_length]
-                long = int.from_bytes(long_data, "big") / 600000
-                idx += long_length
+                if idx + 4 > len(data): break
+                lon = int.from_bytes(data[idx:idx+4], "big", signed=True) / 600000.0
+                idx += 4
 
-                if idx + is_selected_length > len(data): break
-                is_selected = data[idx:idx+is_selected_length]
-                idx += is_selected_length
+                if idx + 1 > len(data): break
+                time_delta_byte = int.from_bytes(data[idx:idx+1], "big", signed=True)
+                idx += 1
+
+                if time_delta_byte < 0:
+                    magnitude = time_delta_byte & 127
+                    if magnitude >= 24:
+                        days = round(magnitude / 24)
+                        minutes_ago = days * 24 * 60
+                    else:
+                        minutes_ago = magnitude * 60
+                else:
+                    minutes_ago = time_delta_byte
+
+                if minutes_ago >= 60:
+                    try:
+                        api_url = f"https://www.vesselfinder.com/api/pub/click/{mmsi}"
+                        headers = {
+                            "User-Agent": f"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/{random.randint(300,600)}.{random.randint(10,99)} (KHTML, like Gecko) Chrome/{random.randint(100,200)}.0.0.0 Safari/{random.randint(300,600)}.{random.randint(10,99)}",
+                            "Host": "www.vesselfinder.com",
+                            "Accept": "*/*",
+                            "Connection": "keep-alive",
+                            "Priority": "u=0, i",
+                            "Sec-Fetch-Dest": "empty",
+                            "Sec-Fetch-Mode": "cors",
+                            "Sec-Fetch-Site": "same-origin",
+                            "Accept-Language": "en-US,en;q=0.9",
+                            "Accept-Encoding": "gzip, deflate, br, zstd",
+                            "Dnt": "1"
+                        }
+                        response = requests.get(api_url, headers=headers, timeout=10)
+
+                        if response.status_code == 200:
+                            data = response.json()
+                            exact_ts = data.get('ts')
+                            if exact_ts and exact_ts > 0:
+                                vessel_timestamp = datetime.fromtimestamp(exact_ts, tz=timezone.utc)
+                            else:
+                                vessel_timestamp = datetime.now(timezone.utc) - timedelta(minutes=minutes_ago)
+                        else:
+                            vessel_timestamp = datetime.now(timezone.utc) - timedelta(minutes=minutes_ago)
+                        time.sleep(random.randint(1, 100) * 0.01)
+
+                    except Exception as e:
+                        vessel_timestamp = datetime.now(timezone.utc) - timedelta(minutes=minutes_ago)
+                else:
+                    vessel_timestamp = datetime.now(timezone.utc) - timedelta(minutes=minutes_ago)
 
                 if idx + 1 > len(data): break
                 ship_name_length = data[idx]
                 idx += 1
 
                 if idx + ship_name_length > len(data): break
-                ship_name = data[idx:idx+ship_name_length]
+                ship_name = data[idx:idx+ship_name_length].decode("utf-8", errors="ignore")
                 idx += ship_name_length
 
                 if zoomLevel >= 14:
-                    if idx + extra_zoom_info_length > len(data): break
-                    idx += extra_zoom_info_length
+                    if idx + 10 > len(data): break
+                    idx += 10
 
                 vessel_dict = {
                     "MMSI": mmsi,
-                    "Ship Name": ship_name.decode("utf-8", errors="ignore"),
+                    "Ship Name": ship_name,
                     "Latitude": lat,
-                    "Longitude": long
+                    "Longitude": lon
                 }
 
                 output.append({
-                    "mmsi": vessel_dict.get("MMSI"),
+                    "mmsi": vessel_dict["MMSI"],
                     "imo": None,
-                    "ship_name": vessel_dict.get("Ship Name"),
+                    "ship_name": vessel_dict["Ship Name"],
                     "length_meters": None,
                     "beam_meters": None,
-                    "lat": vessel_dict.get("Latitude"),
-                    "lon": vessel_dict.get("Longitude"),
-                    "timestamp": datetime.now(timezone.utc),
+                    "lat": vessel_dict["Latitude"],
+                    "lon": vessel_dict["Longitude"],
+                    "timestamp": vessel_timestamp,
                     "nav_status": None,
                     "rawout": str(vessel_dict)
                 })
