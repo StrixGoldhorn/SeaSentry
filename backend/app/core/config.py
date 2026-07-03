@@ -36,7 +36,8 @@ class Settings():
     }
 
     # ATAK
-    ENABLE_ATAK_INTEGRATION: bool =  False
+    ENABLE_ATAK_INTEGRATION: bool =  True
+    # ENABLE_ATAK_INTEGRATION: bool =  False
 
     # Alerts
     ALERT_RECHECK_MINUTES: int = 10
@@ -62,3 +63,6 @@ class Settings():
     DATABASE_URL = f"postgresql://{POSTGRES_USER}:{POSTGRES_PASSWORD}@{POSTGRES_HOST}:{POSTGRES_PORT}/{POSTGRES_DB}"
 
     EXEC_INFO_API: bool = os.getenv("EXEC_INFO_API")
+
+    ENABLE_EASTER_EGG: bool = True
+    EASTER_EGG_TOLERANCE: int = 8

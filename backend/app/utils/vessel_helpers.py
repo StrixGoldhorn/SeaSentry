@@ -1,9 +1,9 @@
 # backend/app/utils/vessel_helpers.py
 
 import logging
-from typing import List, Tuple, Dict, Any
+from typing import List, Tuple, Dict, Any, Optional
 from datetime import datetime, timedelta, timezone
-from sqlalchemy import desc, func
+from sqlalchemy import desc, func, or_
 from geoalchemy2.functions import ST_X, ST_Y
 
 from app.core.database import DBConn
@@ -95,6 +95,53 @@ def get_vessels_in_polygon(coords: List[Tuple[float, float]], time_threshold_min
 
     finally:
         session.close()
+
+def get_all_vessels(querystr: Optional[str] = None, name: Optional[str] = None,
+                    mmsi: Optional[str] = None, imo: Optional[str] = None,
+                    shiptype: Optional[str] = None, flag: Optional[str] = None,
+                    limit: Optional[int] = None, offset: Optional[int] = None) -> List[VesselData]:
+    '''
+    Fetches all vessels from DB.
+    Returns list of VesselData objects.
+    '''
+
+    session = DBConn.get_session()
+    try:
+        query = session.query(VesselData)
+
+        query = query.order_by(VesselData.vessel_data_id.desc())
+
+        if querystr is not None:
+            query = query.filter(or_(
+                VesselData.vessel_data_ship_name.ilike(f"%{querystr}%"),
+                VesselData.vessel_data_mmsi.ilike(f"%{querystr}%"),
+                VesselData.vessel_data_imo.ilike(f"%{querystr}%")
+            ))
+        if name is not None:
+            query = query.filter(VesselData.vessel_data_ship_name.ilike(f"%{name}%"))
+        if mmsi is not None:
+            query = query.filter(VesselData.vessel_data_mmsi.ilike(f"%{mmsi}%"))
+        if imo is not None:
+            query = query.filter(VesselData.vessel_data_imo.ilike(f"%{imo}%"))
+        if shiptype is not None:
+            query = query.filter(VesselData.vessel_data_ship_type.ilike(f"%{shiptype}%"))
+        if flag is not None:
+            query = query.filter(VesselData.vessel_data_flag.ilike(f"%{flag}%"))
+
+        if offset is not None:
+            query = query.offset(offset)
+        if limit is not None:
+            query = query.limit(limit)
+
+        return query.all()
+
+    except Exception as e:
+        logger.error("Error in get_all_vessels: %s", e, exc_info=True)
+        return []
+
+    finally:
+        if session:
+            DBConn.close_session()
 
 def get_vessel_by_vessel_data_id(vessel_data_id: int) -> VesselData:
     '''

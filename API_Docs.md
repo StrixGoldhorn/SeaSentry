@@ -8,6 +8,7 @@ Fields are compulsory unless otherwise stated
   - [Table of Contents](#table-of-contents)
   - [Vessels](#vessels)
     - [GET `/api/v1/vessels/bbox`](#get-apiv1vesselsbbox)
+    - [GET `/api/v1/vessels/all`](#get-apiv1vesselsall)
     - [GET `/api/v1/vessels/<vessel_data_id>`](#get-apiv1vesselsvessel_data_id)
     - [GET `/api/v1/vessels/<vessel_data_id>`](#get-apiv1vesselsvessel_data_id-1)
     - [POST/PATCH `/api/v1/vessels/<vessel_data_id>/update`](#postpatch-apiv1vesselsvessel_data_idupdate)
@@ -77,6 +78,25 @@ Query Params:
 E.g. `/api/v1/vessels/bbox?lat_min=1.2535&lat_max=1.2664&long_min=103.8233&long_max=103.8559&limit=25&time_within=670`
 
 This will return the 25 latest vessel locations with its corresponding unique vessels within the given area in the past 670 seconds.
+
+Returns:
+- 200 with JSON with latest vessel location and details
+- 400 if missing fields
+- 500 if internal server error
+
+### GET `/api/v1/vessels/all`
+
+Summary: Query for all vessels in database, filters available
+
+Query Params:
+  - querystr: string, will be matched with name, mmsi, or imo LIKE given string
+  - name: string, will be matched with name LIKE given string
+  - mmsi: string, will be matched with mmsi LIKE given string
+  - imo: string, will be matched with imo LIKE given string
+  - shiptype: string, will be matched with shiptype LIKE given string
+  - flag: string, will be matched with flag LIKE given string
+  - limit: integer, max number of records to return (e.g., 50)
+  - offset: integer, number of records to skip for pagination (e.g., 0)
 
 Returns:
 - 200 with JSON with latest vessel location and details

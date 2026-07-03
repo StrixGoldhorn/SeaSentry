@@ -563,3 +563,93 @@ def test_vessel_history_exception(mock_get_history, mock_logger, mock_audit, cli
     assert data['error'] == "Internal server error"
     assert "Database connection failed" in data['details']
     mock_logger.error.assert_called_once()
+
+# ==========================================
+# Tests for GET /api/v1/vessels/all
+# ==========================================
+
+@patch('app.modules.vessels.routes.get_all_vessels')
+def test_get_all_vessels_web_success_no_params(mock_get_all, client):
+    '''Test fetching all vessels with no query parameters'''
+    mock_vessel = MagicMock()
+    mock_vessel.vessel_data_id = 1
+    mock_vessel.vessel_data_mmsi = "123"
+    mock_vessel.vessel_data_imo = "456"
+    mock_vessel.vessel_data_ship_name = "Test Ship"
+    mock_vessel.vessel_data_ship_type = "Cargo"
+    mock_vessel.vessel_data_flag = "US"
+    mock_vessel.vessel_data_length_meters = 100
+    mock_vessel.vessel_data_beam_meters = 20
+    mock_vessel.vessel_data_user_tags = []
+
+    mock_get_all.return_value = [mock_vessel]
+
+    response = client.get('/api/v1/vessels/all')
+    assert response.status_code == 200
+    data = json.loads(response.data)
+    assert data['status'] == 'success'
+    assert data['count'] == 1
+    assert data['data'][0]['vessel_data_id'] == 1
+    mock_get_all.assert_called_once_with(
+        querystr=None, name=None, mmsi=None, imo=None, 
+        shiptype=None, flag=None, limit=None, offset=None
+    )
+
+@patch('app.modules.vessels.routes.get_all_vessels')
+def test_get_all_vessels_web_success_with_params(mock_get_all, client):
+    '''Test fetching vessels with various valid parameters'''
+    mock_get_all.return_value = []
+
+    response = client.get('/api/v1/vessels/all?querystr=test&name=ship&mmsi=123&imo=456&shiptype=cargo&flag=us&limit=10&offset=5')
+    assert response.status_code == 200
+    data = json.loads(response.data)
+    assert data['status'] == 'success'
+    assert data['filters']['querystr'] == 'test'
+    assert data['filters']['mmsi'] == '123'
+    assert data['filters']['limit'] == 10
+
+    mock_get_all.assert_called_once_with(
+        querystr='test', name='ship', mmsi='123', imo='456', 
+        shiptype='cargo', flag='us', limit=10, offset=5
+    )
+
+def test_get_all_vessels_web_invalid_mmsi(client):
+    '''Test 400 error when mmsi is not numeric'''
+    response = client.get('/api/v1/vessels/all?mmsi=abc')
+    assert response.status_code == 400
+    data = json.loads(response.data)
+    assert "Invalid mmsi format" in data['error']
+
+def test_get_all_vessels_web_invalid_imo(client):
+    '''Test 400 error when imo is not numeric'''
+    response = client.get('/api/v1/vessels/all?imo=xyz')
+    assert response.status_code == 400
+    data = json.loads(response.data)
+    assert "Invalid imo format" in data['error']
+
+def test_get_all_vessels_web_invalid_limit(client):
+    '''Test 400 error when limit is not an integer'''
+    response = client.get('/api/v1/vessels/all?limit=abc')
+    assert response.status_code == 400
+    data = json.loads(response.data)
+    assert "Invalid limit format" in data['error']
+
+def test_get_all_vessels_web_invalid_offset(client):
+    '''Test 400 error when offset is not an integer'''
+    response = client.get('/api/v1/vessels/all?offset=abc')
+    assert response.status_code == 400
+    data = json.loads(response.data)
+    assert "Invalid offset format" in data['error']
+
+@patch('app.modules.vessels.routes.write_audit_log')
+@patch('app.modules.vessels.routes.logger')
+@patch('app.modules.vessels.routes.get_all_vessels')
+def test_get_all_vessels_web_exception(mock_get_all, mock_logger, mock_audit, client):
+    '''Test 500 error when an exception occurs'''
+    mock_get_all.side_effect = Exception("Database failure")
+
+    response = client.get('/api/v1/vessels/all')
+    assert response.status_code == 500
+    data = json.loads(response.data)
+    assert data['error'] == "Internal server error"
+    mock_logger.error.assert_called_once()
