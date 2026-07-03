@@ -119,7 +119,11 @@ def main():
     signal.signal(signal.SIGINT, shutdown_handler)
     signal.signal(signal.SIGTERM, shutdown_handler)
 
-    start_atak_background()
+    if Settings.ENABLE_ATAK_INTEGRATION:
+        logger.info("ATAK enabled, starting ATAK server")
+        start_atak_background()
+    else:
+        logger.info("ATAK disabled, change in config.py to enable")
 
     logger.info("Starting SeaSentry Backend + Scraper...")
 

@@ -36,8 +36,8 @@ class Settings():
     }
 
     # ATAK
-    ENABLE_ATAK_INTEGRATION: bool =  True
-    # ENABLE_ATAK_INTEGRATION: bool =  False
+    # ENABLE_ATAK_INTEGRATION: bool =  True
+    ENABLE_ATAK_INTEGRATION: bool =  False
 
     # Alerts
     ALERT_RECHECK_MINUTES: int = 10
