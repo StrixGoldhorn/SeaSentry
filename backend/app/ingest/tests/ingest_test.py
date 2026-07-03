@@ -150,8 +150,9 @@ class TestIngestToDB:
         assert existing.vessel_data_ship_name == "New Name"
         mock_session.add.assert_not_called()
 
+    @patch('app.ingest.ingest.write_audit_log')
     @patch('app.ingest.ingest.DBConn')
-    def test_upsert_vessel_data_missing_both_ids(self, mock_db_conn):
+    def test_upsert_vessel_data_missing_both_ids(self, mock_db_conn, mock_audit):
         """If both MMSI and IMO are missing, it should raise an Exception."""
         mock_session = MagicMock()
         mock_db_conn.get_session.return_value = mock_session

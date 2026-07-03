@@ -7,6 +7,8 @@ from configparser import ConfigParser
 from shapely import wkb
 from geoalchemy2.shape import to_shape
 
+from app.core.config import Settings
+
 from app.utils.vessel_helpers import get_vessels_in_polygon
 from app.models.vessel import VesselData, VesselLocation
 
@@ -139,6 +141,9 @@ async def main():
     """
     Sets config params and adds serializer to task list
     """
+    if not Settings.ENABLE_ATAK_INTEGRATION:
+        return
+
     config = ConfigParser()
     config["mycottool"] = {
             "COT_URL": "tcp://192.168.1.17:8087",

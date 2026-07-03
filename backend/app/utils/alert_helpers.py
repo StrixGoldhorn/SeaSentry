@@ -10,31 +10,9 @@ from app.models.alert import AlertRule, AlertHistory
 
 logger = logging.getLogger(__name__)
 
-def get_alert_rule_by_id(id: int):
-    '''
-    Returns alert rule with given ID
-    
-    Args:
-        id: id of Alert Rule
-
-    Returns:
-        AlertRule object if exists, None otherwise
-    '''
-
-    session = DBConn.get_session()
-    try:
-        query = session.query(AlertRule).filter(AlertRule.alert_rule_id == id)
-        res = query.first()
-        return res
-    except Exception as e:
-        session.rollback()
-        logger.error("DB Error in get_alert_rule_by_id: %s", str(e))
-        raise
-    finally:
-        DBConn.close_session()
-
 def get_all_alert_history(start_time: Optional[datetime] = None, end_time: Optional[datetime] = None,
-                          limit: Optional[int] = None, offset: Optional[int] = None, is_read: Optional[bool] = None) -> List[AlertHistory]:
+                          limit: Optional[int] = None, offset: Optional[int] = None, is_read: Optional[bool] = None,
+                          by_alert_rule_id: Optional[int] = None) -> List[AlertHistory]:
     '''
     Fetches all alert history from DB.
     Returns list of AlertHistory objects.
@@ -57,6 +35,8 @@ def get_all_alert_history(start_time: Optional[datetime] = None, end_time: Optio
             query = query.offset(offset)
         if limit is not None:
             query = query.limit(limit)
+        if by_alert_rule_id is not None:
+            query = query.where(AlertHistory.alert_history_alert_rule_id == by_alert_rule_id)
 
         return query.all()
 
@@ -90,7 +70,7 @@ def get_all_alert_rule() -> List[AlertRule]:
 def get_alert_rule_by_id(alert_rule_id: int) -> AlertRule:
     '''
     Fetches alert rule with given alert_rule_id from DB.
-    Returns list of AlertRule objects.
+    Returns an AlertRule object.
     '''
 
     session = DBConn.get_session()
@@ -100,8 +80,9 @@ def get_alert_rule_by_id(alert_rule_id: int) -> AlertRule:
         return res
 
     except Exception as e:
-        logger.error("Error in get_all_alert_rule: %s", e, exc_info=True)
-        return []
+        session.rollback()
+        logger.error("DB Error in get_alert_rule_by_id: %s", str(e), exc_info=True)
+        raise
 
     finally:
         if session:
@@ -332,7 +313,7 @@ def delete_alert_rule_in_db(alert_rule_id: int):
 
     except Exception as e:
         session.rollback()
-        logger.error("DB Error in delete_aoi_in_db: %s", str(e))
+        logger.error("DB Error in delete_alert_rule_in_db: %s", str(e))
         raise
     finally:
         DBConn.close_session()

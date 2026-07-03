@@ -2,7 +2,7 @@
 
 import logging
 from typing import List, Tuple, Dict, Any
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from sqlalchemy import desc, func
 from geoalchemy2.functions import ST_X, ST_Y
 
