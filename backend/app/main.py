@@ -26,6 +26,7 @@ from app.utils.aoi_helpers import DBG_INSERT_DEFAULT_AOI
 from app.utils.geofence_helpers import DBG_INSERT_DEFAULT_GEOFENCE
 from app.utils.cleaner import clear_data_ingestion_audit_log_thirty_days
 from app.modules.alerts.engine import check_all_vessels
+from app.modules.bad_data_detection.engine import bad_data_check
 from app.modules.atak_integration.atak_integration import start_atak_background
 
 logging.basicConfig(level=logging.DEBUG) # NOTE: PLEASE ONLY CONTROL LOGGER LEVEL FROM HERE
@@ -51,6 +52,18 @@ def schedules(scheduler):
         args=[Settings.ALERT_CHECK_PREVIOUS_MINUTES,],
         trigger = IntervalTrigger(minutes=Settings.ALERT_RECHECK_MINUTES),
         id = f"check_all_vessels_{Settings.ALERT_RECHECK_MINUTES}",
+        max_instances = 1,
+        coalesce = True,
+        replace_existing = True,
+        misfire_grace_time = 300
+    )
+
+    bad_data_check(30)
+    scheduler.add_job(
+        func = bad_data_check,
+        args=[Settings.BAD_DATA_CHECK_PREVIOUS_MINUTES,],
+        trigger = IntervalTrigger(minutes=Settings.BAD_DATA_RECHECK_MINUTES),
+        id = f"bad_data_check{Settings.BAD_DATA_RECHECK_MINUTES}",
         max_instances = 1,
         coalesce = True,
         replace_existing = True,

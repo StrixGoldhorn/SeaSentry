@@ -32,8 +32,17 @@ class Settings():
             # "enabled": True,
             "enabled": False,
             "interval_seconds": (600, 1800)
+            # "interval_seconds": (300, 600)
         }
     }
+
+    # Bad data detection
+    BAD_DATA_RECHECK_MINUTES: int = 10
+    BAD_DATA_CHECK_PREVIOUS_MINUTES: int = 30
+    TIME_TOLERANCE_SECONDS: int = 5
+    SPATIAL_TOLERANCE_METERS: float = 100
+    SPEED_CHECK_WINDOW_MINUTES: int = 15
+    SPEED_BUFFER_KNOTS: float = 10
 
     # ATAK
     # ENABLE_ATAK_INTEGRATION: bool =  True
