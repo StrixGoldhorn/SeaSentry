@@ -21,7 +21,8 @@ export function PolygonOverlay({
         weight: 3,
         opacity: 0.3,
         fillColor: color,
-        fillOpacity: 0.03
+        fillOpacity: 0.03,
+        pmIgnore: true
     };
 
     const polyBounds =

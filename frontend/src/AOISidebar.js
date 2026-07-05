@@ -1,8 +1,6 @@
 import { add_poly_AOI } from "./utils";
 
 export default function AOISidebar({
-    drawing,
-    setDrawing,
     coords,
     setCoords,
     name,
@@ -14,7 +12,7 @@ export default function AOISidebar({
     const submitPolygon = async () => {
 
         if (coords.length < 3) {
-            alert("Need at least 3 vertices");
+            alert("Please draw an AOI first.");
             return;
         }
 
@@ -41,38 +39,34 @@ export default function AOISidebar({
             alert("AOI created");
 
             setCoords([]);
-            setDrawing(false);
+            setName("");
+            setDesc("");
 
         } catch (err) {
 
             console.error(err);
+            alert("Failed to create AOI");
 
         }
+
     };
 
     return (
+
         <div
             style={{
-                width: "300px",
-                padding: "20px",
-                background: "#fff",
-                overflowY: "auto"
+                width: 300,
+                padding: 20,
+                background: "white"
             }}
         >
-            <h2>AOI Drawing</h2>
 
-            <button
-                onClick={() =>
-                    setDrawing(!drawing)
-                }
-            >
-                {
-                    drawing
-                        ? "Stop Drawing"
-                        : "Start Drawing"
-                }
-            </button>
+            <h2>Draw AOI</h2>
 
+            <p>
+                <strong>Use Polygon tools on the map.</strong>
+                
+            </p>
 
             <p>
                 Vertices: {coords.length}
@@ -81,32 +75,23 @@ export default function AOISidebar({
             <input
                 placeholder="AOI Name"
                 value={name}
-                onChange={(e) =>
-                    setName(e.target.value)
-                }
-                style={{
-                    width: "100%",
-                    marginTop: "10px"
-                }}
+                onChange={(e) => setName(e.target.value)}
+                style={{ width: "100%" }}
             />
 
             <textarea
                 placeholder="Description"
                 value={desc}
-                onChange={(e) =>
-                    setDesc(e.target.value)
-                }
+                onChange={(e) => setDesc(e.target.value)}
                 style={{
                     width: "100%",
-                    marginTop: "10px"
+                    marginTop: 10
                 }}
             />
 
             <button
                 onClick={submitPolygon}
-                style={{
-                    marginTop: "10px"
-                }}
+                style={{ marginTop: 10 }}
             >
                 Submit AOI
             </button>
@@ -114,12 +99,15 @@ export default function AOISidebar({
             <button
                 onClick={() => setCoords([])}
                 style={{
-                    marginTop: "10px",
-                    marginLeft: "10px"
+                    marginTop: 10,
+                    marginLeft: 10
                 }}
             >
                 Clear
             </button>
+
         </div>
+
     );
+
 }
