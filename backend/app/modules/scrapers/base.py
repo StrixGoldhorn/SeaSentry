@@ -7,6 +7,7 @@ from typing import List, Dict, Any
 
 from app.core.schemas import ScrapedVesselRecord
 from app.ingest.ingest import ScraperToIngest
+from app.utils.audit_log_helpers import write_audit_log
 
 logger = logging.getLogger(__name__)
 
@@ -91,7 +92,8 @@ class AbstractScraper(ABC):
             for rec in normalised:
                 try:
                     ScraperToIngest.processVesselRecord(rec)
-                except:
+                except Exception as e:
+                    write_audit_log("Error in ScraperToIngest.processVesselRecord", __name__, {"Record": str(rec), "Time": str(datetime.now())}, "ERROR")
                     pass # So that we can process the remaining vessels
 
             return normalised
