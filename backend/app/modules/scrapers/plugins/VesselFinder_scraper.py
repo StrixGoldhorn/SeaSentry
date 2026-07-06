@@ -13,7 +13,6 @@ import tempfile
 import shutil
 import concurrent.futures
 import random
-import requests
 from playwright.sync_api import sync_playwright
 from datetime import datetime, timezone, timedelta
 from playwright_stealth import Stealth
@@ -57,7 +56,7 @@ class Playwright_VesselFinder():
         self.page.goto("https://www.vesselfinder.com/", wait_until="networkidle")
 
         try:
-            self.page.wait_for_selector("div#map-container", timeout=15000)
+            self.page.wait_for_selector("div#map-container", timeout=1500)
             time.sleep(10)
         except Exception as e:
             logger.error(f"WAF challenge failed: {e}")
@@ -155,7 +154,7 @@ class vesselfinderScraper(AbstractScraper):
         finally:
             scraper.cleanup()
 
-    def parse_data(self, data: bytes):
+    def parse_data(self, data: bytes, page=None):
         '''
         Parse data from VesselFinder to fit fields in ScrapedVesselRecord
         '''
@@ -195,52 +194,36 @@ class vesselfinderScraper(AbstractScraper):
                 idx += 4
 
                 if idx + 1 > len(data): break
-                time_delta_byte = int.from_bytes(data[idx:idx+1], "big", signed=True)
+                time__delta_byte = int.from_bytes(data[idx:idx+1], "big", signed=False)
                 idx += 1
 
-                if time_delta_byte < 0:
-                    magnitude = time_delta_byte & 127
+                is_negative = (time__delta_byte & 0x80) != 0
+                magnitude = time__delta_byte & 0x7F
+
+                if is_negative:
                     if magnitude >= 24:
                         days = round(magnitude / 24)
                         minutes_ago = days * 24 * 60
                     else:
                         minutes_ago = magnitude * 60
                 else:
-                    minutes_ago = time_delta_byte
+                    minutes_ago = time__delta_byte
+                vessel_timestamp = datetime.now(timezone.utc) - timedelta(minutes=minutes_ago)
 
-                if minutes_ago >= 60:
+                if minutes_ago >= 60 and page is not None:
                     try:
                         api_url = f"https://www.vesselfinder.com/api/pub/click/{mmsi}"
-                        headers = {
-                            "User-Agent": f"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/{random.randint(300,600)}.{random.randint(10,99)} (KHTML, like Gecko) Chrome/{random.randint(100,200)}.0.0.0 Safari/{random.randint(300,600)}.{random.randint(10,99)}",
-                            "Host": "www.vesselfinder.com",
-                            "Accept": "*/*",
-                            "Connection": "keep-alive",
-                            "Priority": "u=0, i",
-                            "Sec-Fetch-Dest": "empty",
-                            "Sec-Fetch-Mode": "cors",
-                            "Sec-Fetch-Site": "same-origin",
-                            "Accept-Language": "en-US,en;q=0.9",
-                            "Accept-Encoding": "gzip, deflate, br, zstd",
-                            "Dnt": "1"
-                        }
-                        response = requests.get(api_url, headers=headers, timeout=10)
+                        response = page.request.get(api_url)
 
-                        if response.status_code == 200:
-                            data = response.json()
-                            exact_ts = data.get('ts')
+                        if response.ok:
+                            click_data = response.json() 
+                            exact_ts = click_data.get('ts')
                             if exact_ts and exact_ts > 0:
                                 vessel_timestamp = datetime.fromtimestamp(exact_ts, tz=timezone.utc)
-                            else:
-                                vessel_timestamp = datetime.now(timezone.utc) - timedelta(minutes=minutes_ago)
-                        else:
-                            vessel_timestamp = datetime.now(timezone.utc) - timedelta(minutes=minutes_ago)
-                        time.sleep(random.randint(1, 100) * 0.01)
 
+                        time.sleep(random.randint(1, 100) * 0.01)
                     except Exception as e:
-                        vessel_timestamp = datetime.now(timezone.utc) - timedelta(minutes=minutes_ago)
-                else:
-                    vessel_timestamp = datetime.now(timezone.utc) - timedelta(minutes=minutes_ago)
+                        logger.debug(f"Failed to fetch exact timestamp for {mmsi}: {e}")
 
                 if idx + 1 > len(data): break
                 ship_name_length = data[idx]
