@@ -47,6 +47,7 @@ class Settings():
     # ATAK
     # ENABLE_ATAK_INTEGRATION: bool =  True
     ENABLE_ATAK_INTEGRATION: bool =  False
+    ATAK_SERVER_IP: str = os.getenv("ATAK_SERVER_IP")
 
     # Alerts
     ALERT_RECHECK_MINUTES: int = 10

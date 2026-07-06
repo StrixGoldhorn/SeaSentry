@@ -143,7 +143,7 @@ async def main():
     """
     config = ConfigParser()
     config["mycottool"] = {
-            "COT_URL": "tcp://192.168.1.17:8087",
+            "COT_URL": Settings.ATAK_SERVER_IP,
             "MAX_OUT_QUEUE": "1000",
             "MAX_IN_QUEUE": "1000"
         }
