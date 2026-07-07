@@ -221,7 +221,7 @@ def update_geofence_by_id(geofence_id):
         if not name and not desc and not coords_raw and not has_bbox:
             return jsonify({"error": "Requires at least 1 field to update."}), 400
 
-        if name is not None and check_if_geofence_name_exists(name):
+        if name is not None and check_if_geofence_name_exists(name, exclude_id=geofence_id):
             return jsonify({"error": f"Geofence with name '{name}' already exists."}), 403
 
         if coords_raw is not None and has_bbox:
