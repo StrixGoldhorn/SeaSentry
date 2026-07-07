@@ -12,7 +12,10 @@ export function PolygonOverlay({
 
     deleteFunction,
     refreshFunction,
+    onEdit,
+    editing,
 
+    editLabel = "Edit",
     deleteLabel = "Delete"
 }) {
 
@@ -64,6 +67,7 @@ export function PolygonOverlay({
         <Polygon
             positions={polyBounds}
             pathOptions={polyOptions}
+            interactive={!editing}
         >
             <Popup autoPan={false}>
 
@@ -106,19 +110,27 @@ export function PolygonOverlay({
                         {item[polygonField].length}
                     </p>
 
-                    {
-                        deleteFunction && (
-                            <button
-                                onClick={handleDelete}
-                                style={{
-                                    width: "100%",
-                                    marginTop: "10px"
-                                }}
-                            >
-                                {deleteLabel}
-                            </button>
-                        )
-                    }
+                    
+
+                    <button
+                        style={{
+                            width: "100%",
+                            marginTop: 10
+                        }}
+                        onClick={() => onEdit(item)}
+                    >
+                        {editLabel}
+                    </button>
+
+                    <button
+                        style={{
+                            width: "100%",
+                            marginTop: 10
+                        }}
+                        onClick={handleDelete}
+                    >
+                        {deleteLabel}
+                    </button>
 
                 </div>
 

@@ -5,7 +5,9 @@ import { delete_AOI, delete_geofence } from "./utils";
 
 export function RenderAOIs({
     aoicoordsdata,
-    refreshAOIs
+    refreshAOIs,
+    onEdit,
+    editing
 }) {
 
     if (!Array.isArray(aoicoordsdata)) {
@@ -34,6 +36,10 @@ export function RenderAOIs({
 
             refreshFunction={refreshAOIs}
 
+            onEdit={onEdit}
+            editing={editing}
+
+            editLabel="Edit AOI"
             deleteLabel="Delete AOI"
         />
 
@@ -42,7 +48,9 @@ export function RenderAOIs({
 
 export function RenderGeofences({
     geofencecoordsdata,
-    refreshGeofences
+    refreshGeofences,
+    onEdit,
+    editing
 }) {
 
     if (!Array.isArray(geofencecoordsdata)) {
@@ -71,6 +79,10 @@ export function RenderGeofences({
 
             refreshFunction={refreshGeofences}
 
+            onEdit={onEdit}
+            editing={editing}
+
+            editLabel="Edit Geofence"
             deleteLabel="Delete Geofence"
         />
 
