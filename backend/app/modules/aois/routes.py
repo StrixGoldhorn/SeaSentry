@@ -210,12 +210,18 @@ def update_aoi_by_id(aoi_id):
         desc_raw = request.form.get("desc")
         coords_raw = request.form.get("coords")
 
+        name = str(name_raw).strip() if name_raw is not None else None
+        desc = str(desc_raw).strip() if desc_raw is not None else None
+
         bbox_params = ["lat_min", "lat_max", "long_min", "long_max"]
         bbox_values = [request.form.get(p, type=float) for p in bbox_params]
         has_bbox = all(v is not None for v in bbox_values)
 
-        if not name_raw and not desc_raw and not coords_raw and not has_bbox:
+        if not name and not desc and not coords_raw and not has_bbox:
             return jsonify({"error": "Requires at least 1 field to update."}), 400
+
+        if name is not None and check_if_aoi_name_exists(name):
+            return jsonify({"error": f"AOI with name '{name}' already exists."}), 403
 
         if coords_raw is not None and has_bbox:
             return jsonify({"error": "Provide either 'coords' for a polygon OR bounding box parameters, not both."}), 400
@@ -244,8 +250,8 @@ def update_aoi_by_id(aoi_id):
 
         success = update_aoi_in_db(
             aoi_id=aoi_id,
-            name=str(name_raw).strip() if name_raw is not None else None,
-            desc=str(desc_raw).strip() if desc_raw is not None else None,
+            name=name,
+            desc=desc,
             geometry_wkb=geom_wkb
         )
 

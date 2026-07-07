@@ -173,6 +173,8 @@ def update_geofence_in_db(geofence_id: int, name: str = None, desc: str = None, 
             return False
 
         if name is not None:
+            if check_if_geofence_name_exists(name): return False
+        if name is not None:
             geofence.geofence_name = name
         if desc is not None:
             geofence.geofence_description = desc
