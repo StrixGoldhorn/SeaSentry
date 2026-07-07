@@ -75,61 +75,37 @@ function MapPage() {
   }
 
   async function finishEditing() {
-
       try {
-
           if (editingType === "aoi") {
-
               await utils.update_AOI({
-
                   aoi_id:
                       editingItem.area_of_interest_id,
-
                   name: editedName,
-
                   desc: editedDescription,
-
                   coords:
                       editedCoords
-
               });
-
               loadAOIs();
-
           }
 
           if (editingType === "geofence") {
-
               await utils.update_geofence({
-
                   geofence_id:
                       editingItem.geofence_id,
-
                   name: editedName,
-
                   desc: editedDescription,
-
                   coords:
                       editedCoords
-
               });
-
               loadGeofences();
-
           }
-
           cancelEditing();
-
       }
 
       catch (err) {
-
           console.error(err);
-
           alert("Failed to update.");
-
       }
-
   }
 
 
@@ -193,8 +169,13 @@ function MapPage() {
       url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
       <MapBoundsTracker onBoundsChange={setmapBounds} />
-      {shipData?.data && (<ShipMarkers shipdata={shipData.data} />)}
-      {shipData?.data && (<CourseDirMarkers shipdata={shipData.data} />)}
+      {!editing && shipData?.data && (
+          <ShipMarkers shipdata={shipData.data} />
+      )}
+
+      {!editing && shipData?.data && (
+          <CourseDirMarkers shipdata={shipData.data} />
+      )}
 
       {aoiData?.data && (<RenderAOIs 
       aoicoordsdata={aoiData.data}
