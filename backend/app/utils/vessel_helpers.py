@@ -165,6 +165,29 @@ def get_vessel_by_vessel_data_id(vessel_data_id: int) -> VesselData:
     finally:
         DBConn.close_session()
 
+
+def get_vessel_by_mmsi(mmsi: str) -> VesselData:
+    '''
+    Returns vessel with the MMSI
+
+    Args:
+        mmsi: The MMSI
+
+    Returns:
+        A VesselData object containing the vessel details
+    '''
+
+    session = DBConn.get_session()
+    try:
+        query = session.query(VesselData).filter(VesselData.vessel_data_mmsi == str(mmsi))
+        res = query.first()
+        return res
+    except Exception as e:
+        logger.error("DB Error in get_vessel_by_mmsi: %s", str(e))
+        raise
+    finally:
+        DBConn.close_session()
+
 def update_vessel_data_in_db(vessel_data_id: int, ship_name: str = None, ship_type: str = None,
                             flag: str = None, length_meters: int = None, beam_meters: int = None,
                             user_tags: List[str] = None) -> bool:

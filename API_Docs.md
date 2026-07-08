@@ -54,6 +54,7 @@ Fields are compulsory unless otherwise stated
     - [mmsi](#mmsi)
     - [speed](#speed)
     - [proximity\_to\_shiptype](#proximity_to_shiptype)
+    - [proximity\_to\_shipname](#proximity_to_shipname)
     - [inside\_geofence](#inside_geofence)
     - [enter\_geofence](#enter_geofence)
     - [exit\_geofence](#exit_geofence)
@@ -614,6 +615,7 @@ shiptype
 mmsi
 speed
 proximity_to_shiptype
+proximity_to_shipname
 inside_geofence
 enter_geofence
 exit_geofence
@@ -646,6 +648,7 @@ shiptype
 mmsi
 speed
 proximity_to_shiptype
+proximity_to_shipname
 inside_geofence
 enter_geofence
 exit_geofence
@@ -738,6 +741,23 @@ Example
   "operator": true,
   "value": 100,
   "valueShiptype": "Cargo"
+}
+```
+
+### proximity_to_shipname
+Requires a special field, `valueShipname`.
+
+Will return any ships within `value` meters of any `valueShipname` ship.
+
+Operator can be any (will be ignored).
+
+Example
+```
+{
+  "field": "proximity_to_shipname",
+  "operator": true,
+  "value": 100,
+  "valueShipname": "ENG HUP ARGO"
 }
 ```
 

@@ -16,6 +16,7 @@ ALLOWED_FIELDS = Literal[
     'mmsi',
     'speed',
     'proximity_to_shiptype',
+    'proximity_to_shipname',
     'inside_geofence',
     'enter_geofence',
     'exit_geofence',
@@ -29,6 +30,7 @@ class LeafRule(BaseModel):
     operator: ALLOWED_OPERATORS
     value: Any
     valueShiptype: str | None = None
+    valueShipname: str | None = None
     valueGeofenceid: int | None = None
 
 class GroupRule(BaseModel):
@@ -121,7 +123,7 @@ def build_sqlalchemy_expression(node: Union[LeafRule, GroupRule]):
             if node.operator == '=': return VesselLocation.vessel_location_speed_knots == float(node.value)
             raise ValueError("Invalid operator for speed")
 
-        # proximity
+        # proximity to shiptype
         elif node.field == 'proximity_to_shiptype':
             if not node.valueShiptype:
                 raise ValueError("proximity_to_shiptype requires valueShiptype")
@@ -133,6 +135,29 @@ def build_sqlalchemy_expression(node: Union[LeafRule, GroupRule]):
                 vd2, v2.vessel_location_vessel_data_id == vd2.vessel_data_id
             ).where(
                 vd2.vessel_data_ship_type == node.valueShiptype,
+                func.ST_DWithin(
+                    func.Cast(VesselLocation.vessel_location_coords, Geography),
+                    func.Cast(v2.vessel_location_coords, Geography),
+                    float(node.value)
+                )
+            )
+            return exists(subquery)
+
+        # proximity to shipname
+        elif node.field == 'proximity_to_shipname':
+            if not node.valueShipname:
+                raise ValueError("proximity_to_shipname requires valueShipname")
+
+            if not str(node.value).isnumeric():
+                raise ValueError("proximity_to_shipname requires value to be numeric")
+
+            v2 = aliased(VesselLocation)
+            vd2 = aliased(VesselData)
+
+            subquery = select(1).select_from(v2).join(
+                vd2, v2.vessel_location_vessel_data_id == vd2.vessel_data_id
+            ).where(
+                vd2.vessel_data_ship_name == node.valueShipname,
                 func.ST_DWithin(
                     func.Cast(VesselLocation.vessel_location_coords, Geography),
                     func.Cast(v2.vessel_location_coords, Geography),
