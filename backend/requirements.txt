@@ -13,3 +13,4 @@ pydantic
 pytak
 cryptography
 aiohttp
+pyais
