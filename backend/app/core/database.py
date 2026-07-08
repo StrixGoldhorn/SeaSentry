@@ -34,8 +34,8 @@ class DBConn():
         Initialize database connection and session factory.
         Should be called once during application startup.
         '''
-        _TRIES = 10
-        _TIMEWAIT = 5
+        _TRIES = 60 # up the tries in case it is first time user sets up postgres + postgis
+        _TIMEWAIT = 10
         for attempt in range(_TRIES):
             try:
                 engine = create_engine(Settings.DATABASE_URL)

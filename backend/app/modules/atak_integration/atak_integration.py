@@ -141,12 +141,9 @@ async def main():
     """
     Sets config params and adds serializer to task list
     """
-    if not Settings.ENABLE_ATAK_INTEGRATION:
-        return
-
     config = ConfigParser()
     config["mycottool"] = {
-            "COT_URL": "tcp://192.168.1.17:8087",
+            "COT_URL": Settings.ATAK_SERVER_IP,
             "MAX_OUT_QUEUE": "1000",
             "MAX_IN_QUEUE": "1000"
         }

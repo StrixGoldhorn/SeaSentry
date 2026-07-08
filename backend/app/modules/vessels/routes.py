@@ -4,14 +4,14 @@
 import csv
 import io
 import json
-from flask import Blueprint, request, jsonify, Response
+from flask import Blueprint, request, jsonify, Response, redirect
 from datetime import datetime, timedelta, timezone
 from sqlalchemy import func
 from geoalchemy2.shape import to_shape
 
 from app.core.config import Settings
 from app.models.vessel import VesselData, VesselLocation
-from app.utils.vessel_helpers import (get_all_vessels_in_bbox, get_vessel_by_vessel_data_id,
+from app.utils.vessel_helpers import (get_all_vessels_in_bbox, get_vessel_by_vessel_data_id, get_all_vessels,
                                       update_vessel_data_in_db, get_vessel_history_stream,
                                       get_vessel_history_by_vessel_data_id)
 from app.utils.audit_log_helpers import write_audit_log
@@ -104,8 +104,125 @@ def get_vessels_in_bbox():
         write_audit_log("Error in get_vessels_in_bbox", __name__, {"info": str(e)}, "ERROR")
         return jsonify({"error": "Internal server error", "details": str(e)}), 500
 
+# Easter egg or something idk
+BAD_BAD_NO_NO = ["'", "\"", "\\", "/", "-", ";", "#", "%", "?", "`", "*", "|", "&", "+"]
+def count_bad_chars(text):
+    if not text:
+        return 0
+    return sum(1 for char in text if char in BAD_BAD_NO_NO)
+
+@vessels_bp.route('/all', methods=['GET'])
+def get_all_vessels_web():
+    '''
+    GET /api/v1/vessels/all
+    Query for all vessels in database
+    
+    Query Params:
+    - querystr: string, will be matched with name, mmsi, or imo LIKE given string
+    - name: string, will be matched with name LIKE given string
+    - mmsi: string, will be matched with mmsi LIKE given string
+    - imo: string, will be matched with imo LIKE given string
+    - shiptype: string, will be matched with shiptype LIKE given string
+    - flag: string, will be matched with flag LIKE given string
+    - limit: integer, max number of records to return (e.g., 50)
+    - offset: integer, number of records to skip for pagination (e.g., 0)
+    '''
+
+    try:
+        querystr_str = request.args.get('querystr')
+        name_str = request.args.get('name')
+        mmsi_str = request.args.get('mmsi')
+        imo_str = request.args.get('imo')
+        shiptype_str = request.args.get('shiptype')
+        flag_str = request.args.get('flag')
+        limit_str = request.args.get('limit')
+        offset_str = request.args.get('offset')
+
+
+        if Settings.ENABLE_EASTER_EGG:
+            if count_bad_chars(querystr_str)+count_bad_chars(name_str)+count_bad_chars(mmsi_str)+count_bad_chars(imo_str)\
+            +count_bad_chars(shiptype_str)+count_bad_chars(flag_str) > Settings.EASTER_EGG_TOLERANCE:
+                return redirect('https://xkcd.com/327')
+
+        querystr = None
+        name = None
+        mmsi = None
+        imo = None
+        shiptype = None
+        flag = None
+        limit = None
+        offset = None
+
+        querystr = querystr_str.strip() if querystr_str else None
+        name = name_str.strip() if name_str else None
+
+        if mmsi_str:
+            mmsi_clean = str(mmsi_str).strip()
+            if not mmsi_clean.isdigit():
+                return jsonify({"status": "error", "error": "Invalid mmsi format."}), 400
+            mmsi = mmsi_clean
+
+        if imo_str:
+            imo_clean = str(imo_str).strip()
+            if not imo_clean.isdigit():
+                return jsonify({"status": "error", "error": "Invalid imo format."}), 400
+            imo = imo_clean
+
+        shiptype = shiptype_str.strip() if shiptype_str else None
+        flag = flag_str.strip() if flag_str else None
+
+        if limit_str:
+            try:
+                limit = int(limit_str)
+            except ValueError:
+                return jsonify({"status": "error", "error": "Invalid limit format. Must be an integer"}), 400
+
+        if offset_str:
+            try:
+                offset = int(offset_str)
+            except ValueError:
+                return jsonify({"status": "error", "error": "Invalid offset format. Must be an integer"}), 400
+
+
+        results = get_all_vessels(querystr=querystr, name=name, mmsi=mmsi, imo=imo, shiptype=shiptype, flag=flag, limit=limit, offset=offset)
+
+        data = []
+        for vessel in results:
+            data.append({
+                "vessel_data_id": vessel.vessel_data_id,
+                "mmsi": vessel.vessel_data_mmsi,
+                "imo": vessel.vessel_data_imo,
+                "ship_name": vessel.vessel_data_ship_name,
+                "ship_type": vessel.vessel_data_ship_type,
+                "flag": vessel.vessel_data_flag,
+                "length_meters": vessel.vessel_data_length_meters,
+                "beam_meters": vessel.vessel_data_beam_meters,
+                "user_tags": vessel.vessel_data_user_tags
+            })
+
+        return jsonify({
+            "status": "success",
+            "filters": {
+                "querystr": querystr,
+                "name": name,
+                "mmsi": mmsi,
+                "imo": imo,
+                "shiptype": shiptype,
+                "flag": flag,
+                "limit": limit,
+                "offset": offset
+            },
+            "count": len(data),
+            "data": data
+        }), 200
+
+    except Exception as e:
+        logger.error("Error in get_all_vessels_web: %s", e, exc_info=Settings.EXEC_INFO_API)
+        write_audit_log("Error in get_all_vessels_web", __name__, {"info": str(e)}, "ERROR")
+        return jsonify({"error": "Internal server error", "details": str(e)}), 500
+
 @vessels_bp.route('/exportArea', methods=['GET'])
-def get_vessel_history_in_bbox():
+def get_vessel_export_area():
     '''
     GET /api/v1/vessels/exportArea
     Query vessel historical positions within a bounding box and time range.
@@ -298,8 +415,8 @@ def get_vessel_history_in_bbox():
             )
 
     except Exception as e:
-        logger.error("Error in get_vessel_history_in_bbox_route: %s", e, exc_info=Settings.EXEC_INFO_API)
-        write_audit_log("Error in get_vessel_history_in_bbox_route", __name__, {"info": str(e)}, "ERROR")
+        logger.error("Error in get_vessel_export_area: %s", e, exc_info=Settings.EXEC_INFO_API)
+        write_audit_log("Error in get_vessel_export_area", __name__, {"info": str(e)}, "ERROR")
         return jsonify({"error": "Internal server error", "details": str(e)}), 500
 
 @vessels_bp.route('/<int:vessel_data_id>', methods=['GET'])
