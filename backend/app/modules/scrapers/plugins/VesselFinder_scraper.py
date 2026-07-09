@@ -132,6 +132,18 @@ class vesselfinderScraper(AbstractScraper):
     name = "VesselFinder_Scraper"
     default_interval_seconds = 10 * 60 # 10 min
 
+    SHIP_TYPE_MAP = {
+        0: None, # others, but we just mark as unknown
+        1: None, # unknown
+        2: "Tug",
+        3: "Passenger",
+        4: "Cargo",
+        5: "Fishing",
+        6: "Tanker",
+        7: "Military",
+        8: "Sailing"
+    }
+
     base_url = "https://www.vesselfinder.com/api/pub/mp2"
 
     def fetch_data(self, coords: dict):
@@ -179,7 +191,11 @@ class vesselfinderScraper(AbstractScraper):
         while idx < len(data):
             try:
                 if idx + 2 > len(data): break
+                flags = int.from_bytes(data[idx:idx+2], byteorder='big', signed=False)
                 idx += 2
+
+                ship_type_code = (flags & 0x00F0) >> 4
+                ship_type = vesselfinderScraper.SHIP_TYPE_MAP.get(ship_type_code, None)
 
                 if idx + 4 > len(data): break
                 mmsi = int.from_bytes(data[idx:idx+4], "big")
@@ -231,6 +247,7 @@ class vesselfinderScraper(AbstractScraper):
 
                 if idx + ship_name_length > len(data): break
                 ship_name = data[idx:idx+ship_name_length].decode("utf-8", errors="ignore")
+                ship_name = ship_name.replace('\x00', '').strip()
                 idx += ship_name_length
 
                 if zoomLevel >= 14:
@@ -241,13 +258,15 @@ class vesselfinderScraper(AbstractScraper):
                     "MMSI": mmsi,
                     "Ship Name": ship_name,
                     "Latitude": lat,
-                    "Longitude": lon
+                    "Longitude": lon,
+                    "Ship Type": ship_type
                 }
 
                 output.append({
                     "mmsi": vessel_dict["MMSI"],
                     "imo": None,
                     "ship_name": vessel_dict["Ship Name"],
+                    "ship_type": vessel_dict["Ship Type"],
                     "length_meters": None,
                     "beam_meters": None,
                     "lat": vessel_dict["Latitude"],
