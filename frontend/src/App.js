@@ -5,7 +5,6 @@ import SidebarAOIDrawPage from "./SidebarAOIDraw";
 import SidebarGeofenceDrawPage from "./SidebarGeofenceDraw";
 import UnreadAlertHistoryPage from "./UnreadAlertHistoryPage";
 import AllAlertHistoryPage from "./AllAlertHistoryPage";
-import AOIEditPage from "./AOIEditPage";
 
 
 function App() {

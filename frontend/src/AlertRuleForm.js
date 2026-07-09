@@ -1,402 +1,411 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { QueryBuilder } from "react-querybuilder";
+import "react-querybuilder/dist/query-builder.css";
+
 import {
-    add_alert_rule,
-    get_all_geofences
+  add_alert_rule,
+  get_all_geofences,
 } from "./utils";
 
-
-const FIELD_CONFIG = {
-
-    shipname: {
-        operators: ["=", "LIKE"],
-        needsValue: true
-    },
-
-    shiptype: {
-        operators: ["=", "!="],
-        needsValue: true
-    },
-
-    mmsi: {
-        operators: ["="],
-        needsValue: true
-    },
-
-    speed: {
-        operators: ["=", ">", "<", ">=", "<="],
-        needsValue: true
-    },
-
-    proximity_to_shiptype: {
-        operators: ["="],
-        needsValue: true,
-        needsShiptype: true
-    },
-
-    inside_geofence: {
-        operators: ["="],
-        needsGeofence: true
-    },
-
-    enter_geofence: {
-        operators: ["="],
-        needsGeofence: true
-    },
-
-    exit_geofence: {
-        operators: ["="],
-        needsGeofence: true
-    },
-
-    is_vessel_of_interest: {
-        operators: ["="]
-    }
-
-};
-
-const SHIP_TYPES = [
-    "Cargo",
-    "Tanker",
-    "Tug",
-    "Passenger",
-    "Fishing",
-    "Pleasure Craft",
-    "Military",
-    "Other"
+export const fields = [
+  { name: "shipname", label: "Ship Name" },
+  { name: "shiptype", label: "Ship Type" },
+  { name: "mmsi", label: "MMSI" },
+  { name: "speed", label: "Speed" },
+  { name: "proximity_to_shiptype", label: "Proximity To Ship Type" },
+  { name: "inside_geofence", label: "Inside Geofence" },
+  { name: "enter_geofence", label: "Enter Geofence" },
+  { name: "exit_geofence", label: "Exit Geofence" },
+  { name: "is_vessel_of_interest", label: "Is Vessel Of Interest" },
 ];
 
-export default function AlertRulePanel() {
+const operatorMap = {
+  shipname: [
+    { name: "=", label: "=" },
+    { name: "LIKE", label: "LIKE" },
+  ],
 
-    const [geofences, setGeofences] = useState([]);
+  shiptype: [
+    { name: "=", label: "=" },
+    { name: "!=", label: "!=" },
+  ],
 
-    const [form, setForm] = useState({
+  mmsi: [
+    { name: "=", label: "=" },
+  ],
 
-        name: "",
-        description: "",
+  speed: [
+    { name: "=", label: "=" },
+    { name: ">", label: ">" },
+    { name: "<", label: "<" },
+    { name: ">=", label: ">=" },
+    { name: "<=", label: "<=" },
+  ],
 
-        field: "speed",
-        operator: ">",
+  proximity_to_shiptype: [
+    { name: "=", label: "=" },
+  ],
 
-        value: "",
+  inside_geofence: [
+    { name: "=", label: "=" },
+  ],
 
-        valueGeofenceid: "",
-        valueShiptype: ""
+  enter_geofence: [
+    { name: "=", label: "=" },
+  ],
 
-    });
+  exit_geofence: [
+    { name: "=", label: "=" },
+  ],
 
-    const [response, setResponse] = useState("");
+  is_vessel_of_interest: [
+    { name: "=", label: "=" },
+  ],
+};
 
-    useEffect(() => {
+export function OperatorSelector(props) {
+  const operators =
+    operatorMap[props.field] ??
+    [{ name: "=", label: "=" }];
 
-        get_all_geofences()
-            .then(data => {
+  return (
+    <select
+      value={props.value}
+      onChange={(e) => props.handleOnChange(e.target.value)}
+    >
+      {operators.map((op) => (
+        <option
+          key={op.name}
+          value={op.name}
+        >
+          {op.label}
+        </option>
+      ))}
+    </select>
+  );
+}
 
-                if (data?.data) {
-                    setGeofences(data.data);
-                }
+export function CustomValueEditor(props) {
+  const {
+    field,
+    value,
+    handleOnChange,
+    context,
+  } = props;
 
-            });
+  const geofences = context.geofences;
 
-    }, []);
+  if (
+    field === "inside_geofence" ||
+    field === "enter_geofence" ||
+    field === "exit_geofence"
+  ) {
+    let current = {};
 
-    const fieldConfig =
-        FIELD_CONFIG[form.field];
-
-    const submit = async () => {
-
-        const params = {
-
-            field: form.field,
-
-            operator: form.operator
-
-        };
-
-        if (
-            form.field === "inside_geofence" ||
-            form.field === "enter_geofence" ||
-            form.field === "exit_geofence" ||
-            form.field === "is_vessel_of_interest"
-        ) {
-
-            params.value = true;
-
-        } else if (form.field === "speed") {
-
-            params.value = Number(form.value);
-
-        } else {
-
-            params.value = form.value;
-
-        }
-
-        if (fieldConfig.needsGeofence) {
-
-            params.valueGeofenceid =
-                Number(form.valueGeofenceid);
-
-        }
-
-        if (fieldConfig.needsShiptype) {
-
-            params.valueShiptype =
-                form.valueShiptype;
-
-        }
-
-        const data =
-            await add_alert_rule({
-
-                name: form.name,
-
-                description:
-                    form.description || null,
-
-                params
-
-            });
-
-        setResponse(
-            JSON.stringify(data, null, 2)
-        );
-    };
+    try {
+      current =
+        typeof value === "string"
+          ? JSON.parse(value || "{}")
+          : value || {};
+    } catch {
+      current = {};
+    }
 
     return (
-
-        <div className="coord-grid">
-        <div className="form-group">
-
-            <h2>Add Alert Rule</h2>
-
-            <input
-                placeholder="Rule Name"
-                value={form.name}
-                onChange={e =>
-                    setForm({
-                        ...form,
-                        name: e.target.value
-                    })
-                }
-            />
-
-            <br />
-
-            <input
-                placeholder="Description"
-                value={form.description}
-                onChange={e =>
-                    setForm({
-                        ...form,
-                        description: e.target.value
-                    })
-                }
-            />
-
-            <br />
-            <br />
-
-            <label>Field</label>
-
-
-            <select
-                value={form.field}
-                onChange={e => {
-
-                    const newField =
-                        e.target.value;
-
-                    setForm({
-
-                        ...form,
-
-                        field: newField,
-
-                        operator:
-                            FIELD_CONFIG[
-                                newField
-                            ].operators[0]
-
-                    });
-
-                }}
-            >
-
-                {Object.keys(FIELD_CONFIG)
-                    .map(field => (
-
-                        <option
-                            key={field}
-                            value={field}
-                        >
-                            {field}
-                        </option>
-
-                    ))}
-
-            </select>
-
-            <br />
-            <br />
-
-            <label>Operator</label>
-
-
-            <select
-                value={form.operator}
-                onChange={e =>
-                    setForm({
-                        ...form,
-                        operator: e.target.value
-                    })
-                }
-            >
-
-                {fieldConfig.operators.map(op => (
-
-                    <option
-                        key={op}
-                        value={op}
-                    >
-                        {op}
-                    </option>
-
-                ))}
-
-            </select>
-
-            <br />
-            <br />
-
-            {fieldConfig.needsValue && (
-
-                <>
-                    <label>Value</label>
-
-
-                    <input
-                        value={form.value}
-                        placeholder="Value"
-                        onChange={e =>
-                            setForm({
-                                ...form,
-                                value: e.target.value
-                            })
-                        }
-                    />
-
-                    <br />
-                    <br />
-                </>
-
-            )}
-
-            {fieldConfig.needsShiptype && (
-
-                <>
-
-                    <label>Ship Type</label>
-
-                    <br />
-
-                    <select
-                        value={form.valueShiptype}
-                        onChange={e =>
-                            setForm({
-                                ...form,
-                                valueShiptype:
-                                    e.target.value
-                            })
-                        }
-                    >
-
-                        <option value="">
-                            Select Ship Type
-                        </option>
-
-                        {SHIP_TYPES.map(type => (
-
-                            <option
-                                key={type}
-                                value={type}
-                            >
-                                {type}
-                            </option>
-
-                        ))}
-
-                    </select>
-
-                    <br />
-                    <br />
-
-                </>
-
-            )}
-
-            {fieldConfig.needsGeofence && (
-
-                <>
-
-                    <label>Geofence</label>
-
-                    <br />
-
-                    <select
-                        value={
-                            form.valueGeofenceid
-                        }
-                        onChange={e =>
-                            setForm({
-                                ...form,
-                                valueGeofenceid:
-                                    e.target.value
-                            })
-                        }
-                    >
-
-                        <option value="">
-                            Select Geofence
-                        </option>
-
-                        {geofences.map(
-                            geofence => (
-
-                                <option
-                                    key={
-                                        geofence.geofence_id
-                                    }
-                                    value={
-                                        geofence.geofence_id
-                                    }
-                                >
-
-                                    {
-                                        geofence.geofence_name
-                                    }
-
-                                </option>
-
-                            )
-                        )}
-
-                    </select>
-
-                    <br />
-                    <br />
-
-                </>
-
-            )}
-
-            <button onClick={submit}>
-                Add Alert Rule
-            </button>
-
-            <pre>{response}</pre>
-
-        </div>
-        </div>
-
+      <select
+        value={current.geofenceId ?? ""}
+        onChange={(e) =>
+          handleOnChange(
+            JSON.stringify({
+              geofenceId: Number(e.target.value),
+            })
+          )
+        }
+      >
+        <option value="">
+          Select Geofence
+        </option>
+
+        {geofences.map((g) => (
+          <option
+            key={g.geofence_id}
+            value={g.geofence_id}
+          >
+            {g.geofence_name}
+          </option>
+        ))}
+      </select>
     );
+  }
+
+  if (field === "proximity_to_shiptype") {
+    let current = {};
+
+    try {
+      current =
+        typeof value === "string"
+          ? JSON.parse(value || "{}")
+          : value || {};
+    } catch {
+      current = {};
+    }
+
+    return (
+      <>
+        <input
+          type="number"
+          placeholder="Distance (m)"
+          value={current.distance ?? ""}
+          onChange={(e) =>
+            handleOnChange(
+              JSON.stringify({
+                ...current,
+                distance: Number(e.target.value),
+              })
+            )
+          }
+        />
+
+        <input
+          type="text"
+          placeholder="Ship Type"
+          value={current.shiptype ?? ""}
+          onChange={(e) =>
+            handleOnChange(
+              JSON.stringify({
+                ...current,
+                shiptype: e.target.value,
+              })
+            )
+          }
+        />
+      </>
+    );
+  }
+
+  if (field === "is_vessel_of_interest") {
+    return (
+      <input
+        disabled
+        value="true"
+      />
+    );
+  }
+
+  if (field === "speed") {
+    return (
+      <input
+        type="number"
+        value={value}
+        onChange={(e) =>
+          handleOnChange(e.target.value)
+        }
+      />
+    );
+  }
+
+  return (
+    <input
+      value={value}
+      onChange={(e) =>
+        handleOnChange(e.target.value)
+      }
+    />
+  );
+}
+
+
+export function convertRule(rule) {
+
+  if ("rules" in rule) {
+    return {
+      combinator: rule.combinator,
+      rules: rule.rules.map(convertRule),
+    };
+  }
+
+  const result = {
+    field: rule.field,
+    operator: rule.operator,
+  };
+
+  switch (rule.field) {
+    case "speed":
+      result.value = Number(rule.value);
+      break;
+
+    case "shipname":
+    case "shiptype":
+    case "mmsi":
+      result.value = rule.value;
+      break;
+
+    case "inside_geofence":
+    case "enter_geofence":
+    case "exit_geofence": {
+      const data =
+        typeof rule.value === "string"
+          ? JSON.parse(rule.value || "{}")
+          : rule.value;
+
+      result.value = true;
+      result.valueGeofenceid =
+        Number(data.geofenceId);
+
+      break;
+    }
+
+    case "is_vessel_of_interest":
+      result.value = true;
+      break;
+
+    case "proximity_to_shiptype": {
+      const data =
+        typeof rule.value === "string"
+          ? JSON.parse(rule.value || "{}")
+          : rule.value;
+
+      result.value =
+        Number(data.distance);
+
+      result.valueShiptype =
+        data.shiptype;
+
+      break;
+    }
+
+    default:
+      result.value = rule.value;
+  }
+
+  return result;
+}
+
+export default function AlertRuleForm() {
+  const [geofences, setGeofences] = useState([]);
+
+  const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
+
+  const [query, setQuery] = useState({
+    combinator: "and",
+    rules: [],
+  });
+
+  const [response, setResponse] = useState("");
+
+  useEffect(() => {
+    async function loadGeofences() {
+      try {
+        const data = await get_all_geofences();
+
+        if (data?.data) {
+          setGeofences(data.data);
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    loadGeofences();
+  }, []);
+
+  const context = useMemo(
+    () => ({
+      geofences,
+    }),
+    [geofences]
+  );
+
+  async function submit() {
+    if (!name.trim()) {
+      alert("Rule name is required.");
+      return;
+    }
+
+    if (query.rules.length === 0) {
+      alert("Please add at least one rule.");
+      return;
+    }
+
+    try {
+      const backendParams = convertRule(query);
+
+      const data = await add_alert_rule({
+        name,
+        description: description || null,
+        params: backendParams,
+      });
+
+      setResponse(JSON.stringify(data, null, 2));
+    } catch (err) {
+      console.error(err);
+      setResponse(String(err));
+    }
+  }
+
+  return (
+    <div className="coord-grid">
+      <div className="form-group">
+
+        <h2>Add Alert Rule</h2>
+
+        <input
+          placeholder="Rule Name"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+        />
+
+        <br />
+        <br />
+
+        <input
+          placeholder="Description"
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+        />
+
+        <br />
+        <br />
+
+        <QueryBuilder
+          fields={fields}
+          query={query}
+          onQueryChange={setQuery}
+          context={context}
+          controlElements={{
+            valueEditor: CustomValueEditor,
+            operatorSelector: OperatorSelector,
+          }}
+          showCloneButtons
+        />
+
+        <br />
+
+        <button onClick={submit}>
+          Add Alert Rule
+        </button>
+
+        <br />
+        <br />
+
+        <h3>Backend JSON Preview</h3>
+
+        <pre
+          style={{
+            maxHeight: 400,
+            overflow: "auto",
+            background: "#f5f5f5",
+            padding: "1rem",
+            borderRadius: 6,
+          }}
+        >
+          {JSON.stringify(convertRule(query), null, 2)}
+        </pre>
+
+        <pre>{response}</pre>
+
+      </div>
+    </div>
+  );
 }

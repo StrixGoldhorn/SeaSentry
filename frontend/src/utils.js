@@ -660,7 +660,7 @@ export async function get_all_alert_rules() {
         .catch(err => console.error(err));
 }
 
-//Adds a new custom alert rule. Does NOT support nesting currently.
+//Adds a new custom alert rule. 
 export async function add_alert_rule({
     name,
     description = null,
