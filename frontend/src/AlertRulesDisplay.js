@@ -2,7 +2,8 @@ import { useEffect, useState } from "react";
 import {
     get_all_alert_rules,
     enable_alert_rule,
-    disable_alert_rule
+    disable_alert_rule,
+    delete_alert_rule
 } from "./utils";
 
 export default function AlertRulesList() {
@@ -46,6 +47,22 @@ export default function AlertRulesList() {
 
         await loadRules();
     };
+
+    async function handleDelete(rule) {
+
+        const confirmed = window.confirm(
+            `Delete "${rule.alert_rule_name}"?`
+        );
+
+        if (!confirmed) return;
+
+        await delete_alert_rule({
+            alert_rule_id: rule.alert_rule_id,
+            alert_rule_name: rule.alert_rule_name
+        });
+
+        await loadRules();
+    }
 
     if (loading) {
         return <div>Loading alert rules...</div>;
@@ -99,6 +116,19 @@ export default function AlertRulesList() {
                             onClick={() => toggleRule(rule)}
                         >
                             {enabled ? "Disable" : "Enable"}
+                        </button>
+
+                        <button
+                            onClick={() => handleDelete(rule)}
+                            style={{
+                                background: "#cc3333",
+                                color: "white",
+                                border: "none",
+                                padding: "6px 12px",
+                                cursor: "pointer"
+                            }}
+                        >
+                            Delete
                         </button>
 
                         <details style={{ marginTop: "10px" }}>

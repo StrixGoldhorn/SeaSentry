@@ -783,3 +783,23 @@ export async function enable_alert_rule({
     .then(res => res.json())
     .catch(err => console.error(err));
 }
+
+//Deletes an existing alert rule
+export async function delete_alert_rule({
+    alert_rule_id,
+    alert_rule_name
+}) {
+    if (alert_rule_id == null || alert_rule_name == null) {
+        return null;
+    }
+
+    const url =
+        config.api_url +
+        `/api/v1/alerts/rule/${alert_rule_id}/delete?alert_rule_name=${encodeURIComponent(alert_rule_name)}`;
+
+    return await fetch(url, {
+        method: "DELETE"
+    })
+        .then(res => res.json())
+        .catch(err => console.error(err));
+}
