@@ -332,7 +332,7 @@ def add_alert_rule_web():
 
         if not rule_name:
             return jsonify({"status": "error", "error": "Missing required fields: 'name'"}), 400
-        
+
         if check_if_alert_rule_name_exists(rule_name):
             return jsonify({"error": f"Alert rule with name '{rule_name}' already exists."}), 403
 
