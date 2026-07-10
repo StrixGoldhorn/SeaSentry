@@ -546,6 +546,7 @@ Refer to Rule Configuration below for all allowed fields, operators, combinators
 Returns:
 - 201 with the new alert_rule_id if inserted successfully
 - 400 if missing/malformed fields
+- 403 if name already exists
 - 500 if internal server error
 
 ### POST `/api/v1/alerts/rule/<alert_rule_id>/update`

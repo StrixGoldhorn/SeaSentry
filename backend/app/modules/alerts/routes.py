@@ -16,7 +16,8 @@ from app.utils.alert_helpers import (
     mark_alert_as_read, mark_alert_as_unread,
     mark_rule_as_disable, mark_rule_as_enable,
     add_alert_rule_to_db,
-    delete_alert_rule_in_db
+    delete_alert_rule_in_db,
+    check_if_alert_rule_name_exists
     )
 
 import logging
@@ -331,6 +332,9 @@ def add_alert_rule_web():
 
         if not rule_name:
             return jsonify({"status": "error", "error": "Missing required fields: 'name'"}), 400
+        
+        if check_if_alert_rule_name_exists(rule_name):
+            return jsonify({"error": f"Alert rule with name '{rule_name}' already exists."}), 403
 
         if rule_params is None:
             return jsonify({"status": "error", "error": "Missing required fields: 'params'"}), 400
