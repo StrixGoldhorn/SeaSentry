@@ -195,10 +195,11 @@ def test_get_all_alert_rule_success(mock_get_rules, client):
 # ==========================================
 # Tests for POST /api/v1/alerts/rule/add
 # ==========================================
+@patch('app.modules.alerts.routes.check_if_alert_rule_name_exists')
 @patch('app.modules.alerts.routes.build_sqlalchemy_expression')
 @patch('app.modules.alerts.routes.add_alert_rule_to_db')
 @patch('app.modules.alerts.routes.RuleTreeAdapter.validate_python')
-def test_add_alert_rule_single_success(mock_validate, mock_add_db, mock_build_expr, client):
+def test_add_alert_rule_single_success(mock_validate, mock_add_db, mock_build_expr, mock_check_name, client):
     '''
     Test adding a single valid alert rule
     '''
@@ -206,6 +207,7 @@ def test_add_alert_rule_single_success(mock_validate, mock_add_db, mock_build_ex
     mock_validated_params.model_dump.return_value = {"field": "speed", "operator": ">", "value": 10.0}
     mock_validate.return_value = mock_validated_params
 
+    mock_check_name.return_value = False
     mock_build_expr.return_value = True
     mock_add_db.return_value = 42
 
@@ -225,16 +227,19 @@ def test_add_alert_rule_single_success(mock_validate, mock_add_db, mock_build_ex
     mock_validate.assert_called_once_with(payload['params'])
     mock_add_db.assert_called_once_with("High Speed Alert", "Triggers when speed > 10", mock_validated_params.model_dump.return_value)
 
+@patch('app.modules.alerts.routes.check_if_alert_rule_name_exists')
 @patch('app.modules.alerts.routes.build_sqlalchemy_expression')
 @patch('app.modules.alerts.routes.add_alert_rule_to_db')
 @patch('app.modules.alerts.routes.RuleTreeAdapter.validate_python')
-def test_add_alert_rule_combined_success(mock_validate, mock_add_db, mock_build_expr, client):
+def test_add_alert_rule_combined_success(mock_validate, mock_add_db, mock_build_expr, mock_check_name, client):
     '''
     Test adding a combined (OR/AND) alert rule
     '''
     mock_validated_params = MagicMock()
     mock_validated_params.model_dump.return_value = {"rules": [], "combinator": "or"}
     mock_validate.return_value = mock_validated_params
+
+    mock_check_name.return_value = False
     mock_build_expr.return_value = True
     mock_add_db.return_value = 43
 
@@ -263,10 +268,12 @@ def test_add_alert_rule_missing_name(client):
     data = json.loads(response.data)
     assert "Missing required fields: 'name'" in data['error']
 
-def test_add_alert_rule_missing_params(client):
+@patch('app.modules.alerts.routes.check_if_alert_rule_name_exists')
+def test_add_alert_rule_missing_params(mock_check_name, client):
     '''
     Test adding a rule without the required 'params' field
     '''
+    mock_check_name.return_value = False
     payload = {"name": "Test Rule", "description": "No params"}
     response = client.post('/api/v1/alerts/rule/add', json=payload)
 
@@ -274,11 +281,13 @@ def test_add_alert_rule_missing_params(client):
     data = json.loads(response.data)
     assert "Missing required fields: 'params'" in data['error']
 
+@patch('app.modules.alerts.routes.check_if_alert_rule_name_exists')
 @patch('app.modules.alerts.routes.RuleTreeAdapter.validate_python')
-def test_add_alert_rule_invalid_params(mock_validate, client):
+def test_add_alert_rule_invalid_params(mock_validate, mock_check_name, client):
     '''
     Test adding a rule where RuleTreeAdapter validation fails
     '''
+    mock_check_name.return_value = False
     mock_validate.side_effect = ValueError("Invalid operator")
 
     payload = {
@@ -291,17 +300,20 @@ def test_add_alert_rule_invalid_params(mock_validate, client):
     data = json.loads(response.data)
     assert "Invalid rule parameters" in data['error']
 
+@patch('app.modules.alerts.routes.check_if_alert_rule_name_exists')
 @patch('app.modules.alerts.routes.build_sqlalchemy_expression')
 @patch('app.modules.alerts.routes.write_audit_log')
 @patch('app.modules.alerts.routes.add_alert_rule_to_db')
 @patch('app.modules.alerts.routes.RuleTreeAdapter.validate_python')
-def test_add_alert_rule_internal_error(mock_validate, mock_add_db, mock_audit, mock_build_expr, client):
+def test_add_alert_rule_internal_error(mock_validate, mock_add_db, mock_audit, mock_build_expr, mock_check_name, client):
     '''
     Test that internal server errors are caught, logged, and return 500
     '''
     mock_validated_params = MagicMock()
     mock_validated_params.model_dump.return_value = {}
     mock_validate.return_value = mock_validated_params
+
+    mock_check_name.return_value = False
     mock_build_expr.return_value = True
 
     mock_add_db.side_effect = Exception("Database connection failed")

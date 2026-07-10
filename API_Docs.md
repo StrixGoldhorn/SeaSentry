@@ -53,7 +53,9 @@ Fields are compulsory unless otherwise stated
     - [shiptype](#shiptype)
     - [mmsi](#mmsi)
     - [speed](#speed)
+    - [proximity\_to\_shipname](#proximity_to_shipname)
     - [proximity\_to\_shiptype](#proximity_to_shiptype)
+    - [proximity\_to\_mmsi](#proximity_to_mmsi)
     - [inside\_geofence](#inside_geofence)
     - [enter\_geofence](#enter_geofence)
     - [exit\_geofence](#exit_geofence)
@@ -545,6 +547,7 @@ Refer to Rule Configuration below for all allowed fields, operators, combinators
 Returns:
 - 201 with the new alert_rule_id if inserted successfully
 - 400 if missing/malformed fields
+- 403 if name already exists
 - 500 if internal server error
 
 ### POST `/api/v1/alerts/rule/<alert_rule_id>/update`
@@ -613,7 +616,9 @@ shipname
 shiptype
 mmsi
 speed
+proximity_to_shipname
 proximity_to_shiptype
+proximity_to_mmsi
 inside_geofence
 enter_geofence
 exit_geofence
@@ -644,11 +649,17 @@ Allowed fields
 shipname
 shiptype
 mmsi
+
 speed
+
+proximity_to_shipname
 proximity_to_shiptype
+proximity_to_mmsi
+
 inside_geofence
 enter_geofence
 exit_geofence
+
 is_vessel_of_interest
 ```
 
@@ -724,6 +735,23 @@ Example
 }
 ```
 
+### proximity_to_shipname
+Requires a special field, `valueShipname`.
+
+Will return any ships within `value` meters of any `valueShipname` ship.
+
+Operator can be any (will be ignored).
+
+Example
+```
+{
+  "field": "proximity_to_shipname",
+  "operator": true,
+  "value": 100,
+  "valueShipname": "ENG HUP ARGO"
+}
+```
+
 ### proximity_to_shiptype
 Requires a special field, `valueShiptype`.
 
@@ -738,6 +766,23 @@ Example
   "operator": true,
   "value": 100,
   "valueShiptype": "Cargo"
+}
+```
+
+### proximity_to_mmsi
+Requires a special field, `valueShipmmsi`.
+
+Will return any ships within `value` meters of any `valueShipmmsi` ship.
+
+Operator can be any (will be ignored).
+
+Example
+```
+{
+  "field": "proximity_to_mmsi",
+  "operator": true,
+  "value": 150,
+  "valueShipmmsi": "987654321"
 }
 ```
 

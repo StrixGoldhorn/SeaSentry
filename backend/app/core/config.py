@@ -18,6 +18,12 @@ class Settings():
     ]
 
     SCRAPER_CONFIGS: dict = {
+        "UDP_Scraper": {
+            # "enabled": True,
+            "enabled": False,
+            "interval_seconds": 10
+            # "interval_seconds": (300, 600)
+        },
         "AISFriends_Scraper": {
             "enabled": True,
             # "enabled": False,
@@ -35,6 +41,11 @@ class Settings():
             # "interval_seconds": (300, 600)
         }
     }
+
+    # UDP Listener
+    # .\start.bat -u 127.0.0.1 10110
+    UDP_IP = "0.0.0.0"
+    UDP_PORT = 10110
 
     # Bad data detection
     BAD_DATA_RECHECK_MINUTES: int = 10

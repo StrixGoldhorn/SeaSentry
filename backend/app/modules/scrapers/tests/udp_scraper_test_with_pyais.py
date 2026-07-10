@@ -1,28 +1,27 @@
-# backend/app/modules/scrapers/tests/VesselFinder_scraper_test.py
+# backend/app/modules/scrapers/tests/udp_scraper_integration_test.py
 
 '''
-Unit + Integration tests for vesselfinder_scraper.py
+Integration tests for udp_scraper.py
 '''
 
 import pytest
 import logging
 from datetime import datetime, timezone
-from requests.exceptions import RequestException, Timeout
 
 from app.modules.scrapers.registry import ScraperRegistry
 from app.core.schemas import ScrapedVesselRecord
+from app.modules.scrapers.plugins.udp_scraper import msg_buffer
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.DEBUG)
 
 @pytest.mark.live
-class TestWithScraperBase:
+class TestUDPScraperIntegration:
     '''
-    Class to do integration testing
-    for backend/app/modules/scrapers/plugins/vesselfinder_scraper.py
-    with backend/app/modules/scrapers/base.py
+    Integration testing for backend/app/modules/scrapers/plugins/udp_scraper.py
+    Uses real NMEA strings and real pyais decoding.
     '''
-    # Generic test area, usually populated with vessels.
+    # Generic test area
     _predefined_coords = {
         "long_min": 103.82335160632802,
         "long_max": 103.85594676548685,
@@ -30,9 +29,16 @@ class TestWithScraperBase:
         "lat_max": 1.266477533544827
     }
 
-    def test_live_scraper_returns_valid_records(self, scraper_name="VesselFinder_Scraper"):
+    # Type 1
+    NMEA_TYPE_1 = "!AIVDM,1,1,,B,15MsKH0015G8er0S3n@p6?v00000,0*54"
+
+    def setup_method(self):
+        while not msg_buffer.empty():
+            msg_buffer.get_nowait()
+
+    def test_live_scraper_returns_valid_records(self, scraper_name="UDP_Scraper"):
         '''
-        Scrape site once, test records
+        Scrape site once, test records using real pyais decoding
         '''
         # Instantiate via registry
         try:
@@ -40,29 +46,23 @@ class TestWithScraperBase:
         except ValueError as e:
             pytest.skip(f"Scraper '{scraper_name}' not registered. Error: {e}")
 
-        # Run live scrape with retry protection
-        try:
-            records = scraper.run(TestWithScraperBase._predefined_coords)
-        except (RequestException, Timeout) as e:
-            pass
-        except Exception as e:
-            pass
+        msg_buffer.put(TestUDPScraperIntegration.NMEA_TYPE_1)
+        records = scraper.run(TestUDPScraperIntegration._predefined_coords)
+
         # Basic shape assertions
         assert isinstance(records, list), "Scraper must return a list"
         if len(records) == 0:
-            pytest.skip("Live API returned empty dataset (maintenance/rate limit/cloudflare block).")
+            pytest.skip("Scraper returned empty dataset.")
 
-        assert len(records) >= 1, "Expected at least 1 record from a live maritime feed"
+        assert len(records) >= 1, "Expected at least 1 record from real NMEA feed"
 
         # Schema & domain validation
         for rec in records:
-            raw_data = getattr(rec, 'raw', getattr(rec, 'rawout', str(rec)))
-
-            assert isinstance(rec, ScrapedVesselRecord), f"Expected ScrapedVesselRecord, got {type(rec)}, raw: {raw_data}"
+            assert isinstance(rec, ScrapedVesselRecord), f"Expected ScrapedVesselRecord, got {type(rec)}, raw: {rec.raw}"
             assert rec.source == scraper_name, f"Source mismatch: expected {scraper_name}, got {rec.source}, raw: {rec.raw}"
 
             # assert null fields
-            # assert rec.ship_type is None, f"Expected None, got {type(rec.ship_type)}, raw: {rec.raw}"
+            assert rec.ship_type is None, f"Expected None, got {type(rec.ship_type)}, raw: {rec.raw}"
             assert rec.rate_of_turn_deg_per_sec is None, f"Expected None, got {type(rec.rate_of_turn_deg_per_sec)}, raw: {rec.raw}"
 
             # mmsi
@@ -74,8 +74,8 @@ class TestWithScraperBase:
             # imo
             assert isinstance(rec.imo, (str, type(None))), f"Expected string, got {type(rec.imo)}, raw: {rec.raw}"
             if isinstance(rec.imo, str):
-                assert len(rec.imo) == 7, f"Invalid IMO length: {rec.imo}"
-                assert rec.imo.isdigit(), f"Non-numeric IMO: {rec.imo}"
+                assert len(rec.imo) == 7, f"Invalid IMO length: {rec.imo}, raw: {rec.raw}"
+                assert rec.imo.isdigit(), f"Non-numeric IMO: {rec.imo}, raw: {rec.raw}"
 
             # flag
             assert isinstance(rec.flag, (str, type(None))), f"Expected string, got {type(rec.flag)}, raw: {rec.raw}"
@@ -110,7 +110,7 @@ class TestWithScraperBase:
             # heading
             assert isinstance(rec.heading_deg, (int, float, type(None))), f"Expected float, got {type(rec.heading_deg)}, raw: {rec.raw}"
             if isinstance(rec.heading_deg, (int, float)):
-                assert -0 <= rec.heading_deg <= 360, f"Invalid heading: {rec.heading_deg}, raw: {rec.raw}"
+                assert 0 <= rec.heading_deg <= 360, f"Invalid heading: {rec.heading_deg}, raw: {rec.raw}"
 
             # nav status
             assert isinstance(rec.nav_status, (int, type(None))), f"Expected int, got {type(rec.nav_status)}, raw: {rec.raw}"
@@ -118,39 +118,30 @@ class TestWithScraperBase:
                 assert 0 <= rec.nav_status <= 15, f"Invalid nav status: {rec.nav_status}, raw: {rec.raw}"
 
             # timestamp
-            assert rec.timestamp is not None, f"Timestamp must not be none, raw: {raw_data}"
+            assert rec.timestamp is not None, f"Timestamp must not be none, raw: {rec.raw}"
 
-        logger.info("%s Tests successful", type(self).__name__)
+        logger.info("%s Integration Tests successful", type(self).__name__)
 
-    def test_live_scraper_inserts_vessel_data_to_db(self, scraper_name="VesselFinder_Scraper"):
+    def test_live_scraper_inserts_vessel_data_to_db(self, scraper_name="UDP_Scraper"):
         '''
         Scrape site once, insert vessel data into db
         '''
         from app.ingest.ingest import ScraperToIngest
-        # Instantiate via registry
+
         try:
             scraper = ScraperRegistry.instantiate(scraper_name)
         except ValueError as e:
             pytest.skip(f"Scraper '{scraper_name}' not registered. Error: {e}")
 
-        # Run live scrape with retry protection
-        try:
-            records = scraper.run(TestWithScraperBase._predefined_coords)
-        except (RequestException, Timeout) as e:
-            pytest.fail(f"Live network request failed after retries: {e}")
-        except Exception as e:
-            pytest.fail(f"Scraper execution failed: {e}")
+        msg_buffer.put(TestUDPScraperIntegration.NMEA_TYPE_1)
+        records = scraper.run(TestUDPScraperIntegration._predefined_coords)
 
-        # Basic shape assertions
         assert isinstance(records, list), "Scraper must return a list"
 
-        # Schema & domain validation
         for rec in records:
             ScraperToIngest.processVesselRecord(rec)
 
-        logger.info("%s Tests successful", type(self).__name__)
-
 if __name__ == "__main__":
-    a = TestWithScraperBase()
-    a.test_live_scraper_returns_valid_records()
-    # a.test_live_scraper_inserts_vessel_data_to_db()
+    a = TestUDPScraperIntegration()
+    # a.test_live_scraper_returns_valid_records()
+    a.test_live_scraper_inserts_vessel_data_to_db()
