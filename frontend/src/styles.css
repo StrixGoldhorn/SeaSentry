@@ -277,3 +277,18 @@ pre {
     opacity: 0.85;
 
 }
+
+
+
+.vesselpopup div div {
+    padding: 2px;
+}
+
+.vesselpopup div div p, .vesselpopup div div h3{
+    margin: 0;
+}
+
+.vesselpopup .info {
+    padding-top: 5px;
+    padding-bottom: 5px;
+}
