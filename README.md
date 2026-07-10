@@ -12,6 +12,9 @@
     - [Database](#database)
     - [Backend](#backend)
     - [Frontend](#frontend)
+  - [What to do after starting?](#what-to-do-after-starting)
+    - [ATAK integration](#atak-integration)
+    - [SDR Integration/UDP NMEA 0183 Socket](#sdr-integrationudp-nmea-0183-socket)
 - [API Endpoints](#api-endpoints)
 
 
@@ -81,6 +84,18 @@ All commands are to be performed in the SeaSentry/frontend folder.
 1. `npm install`
 2. Run `npm start` to start the frontend service
 
+## What to do after starting?
+### ATAK integration
+1. Check your config.py and .env, ensure the ATAK options are enabled and server IP is correct.
+2. Open ATAK on your device, connect to the server.
+3. In ATAK, create a polygon and rename it such that it has `AOI` in the name. Ensure the polygon is within an existing polygon in the SeaSentry website.
+4. In ATAK, select the polygon, click send, then broadcast.
+5. New symbology will appear, indicating ships in the polygon. (Note that only ships with locations pinged within the last 15 minutes will appear.)
+
+### SDR Integration/UDP NMEA 0183 Socket
+1. Using [AIS-Catcher](https://github.com/jvde-github/AIS-catcher) or other programs, stream the captured NMEA 0183 messages into port 10110.
+
+Note: Ensure the UDP_IP and UDP_PORT in config.py matches your configuration before starting SeaSentry.
 
 # API Endpoints
 All APIs are accessed via localhost port 5000. Otherwise, CORS only allowed on http://localhost:3000 and http://127.0.0.1:3000 for the web application.
