@@ -317,3 +317,28 @@ def delete_alert_rule_in_db(alert_rule_id: int):
         raise
     finally:
         DBConn.close_session()
+
+def check_if_alert_rule_name_exists(name: str):
+    '''
+    Checks if alert rule with given name exists
+    
+    Args:
+        name: Alert rule name to query
+
+    Returns:
+        True if alert rule with name already exists, False otherwise
+    '''
+
+    session = DBConn.get_session()
+    try:
+        query = session.query(AlertRule).filter(AlertRule.alert_rule_name == name)
+
+        res = query.first()
+        if res is not None: return True
+        return False
+    except Exception as e:
+        session.rollback()
+        logger.error("DB Error in check_if_alert_rule_name_exists: %s", e)
+        raise
+    finally:
+        DBConn.close_session()

@@ -8,6 +8,7 @@ Fields are compulsory unless otherwise stated
   - [Table of Contents](#table-of-contents)
   - [Vessels](#vessels)
     - [GET `/api/v1/vessels/bbox`](#get-apiv1vesselsbbox)
+    - [GET `/api/v1/vessels/all`](#get-apiv1vesselsall)
     - [GET `/api/v1/vessels/<vessel_data_id>`](#get-apiv1vesselsvessel_data_id)
     - [GET `/api/v1/vessels/<vessel_data_id>`](#get-apiv1vesselsvessel_data_id-1)
     - [POST/PATCH `/api/v1/vessels/<vessel_data_id>/update`](#postpatch-apiv1vesselsvessel_data_idupdate)
@@ -52,7 +53,9 @@ Fields are compulsory unless otherwise stated
     - [shiptype](#shiptype)
     - [mmsi](#mmsi)
     - [speed](#speed)
+    - [proximity\_to\_shipname](#proximity_to_shipname)
     - [proximity\_to\_shiptype](#proximity_to_shiptype)
+    - [proximity\_to\_mmsi](#proximity_to_mmsi)
     - [inside\_geofence](#inside_geofence)
     - [enter\_geofence](#enter_geofence)
     - [exit\_geofence](#exit_geofence)
@@ -77,6 +80,25 @@ Query Params:
 E.g. `/api/v1/vessels/bbox?lat_min=1.2535&lat_max=1.2664&long_min=103.8233&long_max=103.8559&limit=25&time_within=670`
 
 This will return the 25 latest vessel locations with its corresponding unique vessels within the given area in the past 670 seconds.
+
+Returns:
+- 200 with JSON with latest vessel location and details
+- 400 if missing fields
+- 500 if internal server error
+
+### GET `/api/v1/vessels/all`
+
+Summary: Query for all vessels in database, filters available
+
+Query Params:
+  - querystr: string, will be matched with name, mmsi, or imo LIKE given string
+  - name: string, will be matched with name LIKE given string
+  - mmsi: string, will be matched with mmsi LIKE given string
+  - imo: string, will be matched with imo LIKE given string
+  - shiptype: string, will be matched with shiptype LIKE given string
+  - flag: string, will be matched with flag LIKE given string
+  - limit: integer, max number of records to return (e.g., 50)
+  - offset: integer, number of records to skip for pagination (e.g., 0)
 
 Returns:
 - 200 with JSON with latest vessel location and details
@@ -525,6 +547,7 @@ Refer to Rule Configuration below for all allowed fields, operators, combinators
 Returns:
 - 201 with the new alert_rule_id if inserted successfully
 - 400 if missing/malformed fields
+- 403 if name already exists
 - 500 if internal server error
 
 ### POST `/api/v1/alerts/rule/<alert_rule_id>/update`
@@ -593,7 +616,9 @@ shipname
 shiptype
 mmsi
 speed
+proximity_to_shipname
 proximity_to_shiptype
+proximity_to_mmsi
 inside_geofence
 enter_geofence
 exit_geofence
@@ -624,11 +649,17 @@ Allowed fields
 shipname
 shiptype
 mmsi
+
 speed
+
+proximity_to_shipname
 proximity_to_shiptype
+proximity_to_mmsi
+
 inside_geofence
 enter_geofence
 exit_geofence
+
 is_vessel_of_interest
 ```
 
@@ -704,6 +735,23 @@ Example
 }
 ```
 
+### proximity_to_shipname
+Requires a special field, `valueShipname`.
+
+Will return any ships within `value` meters of any `valueShipname` ship.
+
+Operator can be any (will be ignored).
+
+Example
+```
+{
+  "field": "proximity_to_shipname",
+  "operator": true,
+  "value": 100,
+  "valueShipname": "ENG HUP ARGO"
+}
+```
+
 ### proximity_to_shiptype
 Requires a special field, `valueShiptype`.
 
@@ -718,6 +766,23 @@ Example
   "operator": true,
   "value": 100,
   "valueShiptype": "Cargo"
+}
+```
+
+### proximity_to_mmsi
+Requires a special field, `valueShipmmsi`.
+
+Will return any ships within `value` meters of any `valueShipmmsi` ship.
+
+Operator can be any (will be ignored).
+
+Example
+```
+{
+  "field": "proximity_to_mmsi",
+  "operator": true,
+  "value": 150,
+  "valueShipmmsi": "987654321"
 }
 ```
 

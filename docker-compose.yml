@@ -30,6 +30,7 @@ services:
 
     ports:
       - "5000:5000"
+      - "10110:10110/udp"
 
     depends_on:
       db:
