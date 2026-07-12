@@ -12,7 +12,9 @@ export const fields = [
   { name: "shiptype", label: "Ship Type" },
   { name: "mmsi", label: "MMSI" },
   { name: "speed", label: "Speed" },
+  { name: "proximity_to_shipname", label: "Proximity To Ship Name" },
   { name: "proximity_to_shiptype", label: "Proximity To Ship Type" },
+  { name: "proximity_to_mmsi", label: "Proximity To MMSI" },
   { name: "inside_geofence", label: "Inside Geofence" },
   { name: "enter_geofence", label: "Enter Geofence" },
   { name: "exit_geofence", label: "Exit Geofence" },
@@ -42,7 +44,15 @@ const operatorMap = {
     { name: "<=", label: "<=" },
   ],
 
+  proximity_to_shipname: [
+    { name: "=", label: "=" },
+  ],
+
   proximity_to_shiptype: [
+    { name: "=", label: "=" },
+  ],
+
+  proximity_to_mmsi: [
     { name: "=", label: "=" },
   ],
 
@@ -138,7 +148,9 @@ export function CustomValueEditor(props) {
     );
   }
 
-  if (field === "proximity_to_shiptype") {
+  if (field === "proximity_to_shiptype" ||
+      field === "proximity_to_shipname" ||
+      field === "proximity_to_mmsi") {
     let current = {};
 
     try {
@@ -165,20 +177,53 @@ export function CustomValueEditor(props) {
             )
           }
         />
+        {field === "proximity_to_shiptype" && (
+          <input
+            type="text"
+            placeholder="Ship Type"
+            value={current.shiptype ?? ""}
+            onChange={(e) =>
+              handleOnChange(
+                JSON.stringify({
+                  ...current,
+                  shiptype: e.target.value,
+                })
+              )
+            }
+          />
+        )}
 
-        <input
-          type="text"
-          placeholder="Ship Type"
-          value={current.shiptype ?? ""}
-          onChange={(e) =>
-            handleOnChange(
-              JSON.stringify({
-                ...current,
-                shiptype: e.target.value,
-              })
-            )
-          }
-        />
+        {field === "proximity_to_shipname" && (
+          <input
+            type="text"
+            placeholder="Ship Name"
+            value={current.shipname ?? ""}
+            onChange={(e) =>
+              handleOnChange(
+                JSON.stringify({
+                  ...current,
+                  shipname: e.target.value,
+                })
+              )
+            }
+          />
+        )}
+
+        {field === "proximity_to_mmsi" && (
+          <input
+            type="text"
+            placeholder="MMSI"
+            value={current.mmsi ?? ""}
+            onChange={(e) =>
+              handleOnChange(
+                JSON.stringify({
+                  ...current,
+                  mmsi: e.target.value,
+                })
+              )
+            }
+          />
+        )}
       </>
     );
   }
@@ -259,20 +304,31 @@ export function convertRule(rule) {
       result.value = true;
       break;
 
-    case "proximity_to_shiptype": {
+    case "proximity_to_shiptype":
+    case "proximity_to_shipname":
+    case "proximity_to_mmsi": {
       const data =
         typeof rule.value === "string"
           ? JSON.parse(rule.value || "{}")
           : rule.value;
 
-      result.value =
-        Number(data.distance);
+      result.value = Number(data.distance);
 
-      result.valueShiptype =
-        data.shiptype;
+      if (rule.field === "proximity_to_shiptype") {
+        result.valueShiptype = data.shiptype;
+      }
+
+      if (rule.field === "proximity_to_shipname") {
+        result.valueShipname = data.shipname;
+      }
+
+      if (rule.field === "proximity_to_mmsi") {
+        result.valueShipmmsi = data.mmsi;
+      }
 
       break;
     }
+
 
     default:
       result.value = rule.value;
