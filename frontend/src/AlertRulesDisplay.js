@@ -6,7 +6,10 @@ import {
     delete_alert_rule
 } from "./utils";
 
-export default function AlertRulesList() {
+export default function AlertRulesList({
+    onEdit,
+    refreshKey
+}) {
 
     const [rules, setRules] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -27,7 +30,7 @@ export default function AlertRulesList() {
 
     useEffect(() => {
         loadRules();
-    }, []);
+    }, [refreshKey]);
 
     const toggleRule = async (rule) => {
 
@@ -116,6 +119,12 @@ export default function AlertRulesList() {
                             onClick={() => toggleRule(rule)}
                         >
                             {enabled ? "Disable" : "Enable"}
+                        </button>
+
+                        <button
+                            onClick={() => onEdit(rule)}
+                        >
+                            Edit
                         </button>
 
                         <button

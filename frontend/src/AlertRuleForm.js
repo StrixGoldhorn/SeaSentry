@@ -4,6 +4,7 @@ import "react-querybuilder/dist/query-builder.css";
 
 import {
   add_alert_rule,
+  update_alert_rule,
   get_all_geofences,
 } from "./utils";
 
@@ -19,6 +20,12 @@ export const fields = [
   { name: "enter_geofence", label: "Enter Geofence" },
   { name: "exit_geofence", label: "Exit Geofence" },
   { name: "is_vessel_of_interest", label: "Is Vessel Of Interest" },
+];
+
+const combinators = [
+  { name: "and", label: "AND" },
+  { name: "or", label: "OR" },
+  { name: "not", label: "NOT" },
 ];
 
 const operatorMap = {
@@ -337,16 +344,90 @@ export function convertRule(rule) {
   return result;
 }
 
-export default function AlertRuleForm() {
+export function parseRule(rule) {
+  // Group
+  if (rule.rules) {
+    return {
+      combinator: rule.combinator,
+      rules: rule.rules.map(parseRule),
+    };
+  }
+
+  const result = {
+    field: rule.field,
+    operator: rule.operator,
+  };
+
+  switch (rule.field) {
+    case "speed":
+      result.value = String(rule.value);
+      break;
+
+    case "shipname":
+    case "shiptype":
+    case "mmsi":
+      result.value = rule.value;
+      break;
+
+    case "inside_geofence":
+    case "enter_geofence":
+    case "exit_geofence":
+      result.value = JSON.stringify({
+        geofenceId: rule.valueGeofenceid,
+      });
+      break;
+
+    case "is_vessel_of_interest":
+      result.value = true;
+      break;
+
+    case "proximity_to_shiptype":
+      result.value = JSON.stringify({
+        distance: rule.value,
+        shiptype: rule.valueShiptype,
+      });
+      break;
+
+    case "proximity_to_shipname":
+      result.value = JSON.stringify({
+        distance: rule.value,
+        shipname: rule.valueShipname,
+      });
+      break;
+
+    case "proximity_to_mmsi":
+      result.value = JSON.stringify({
+        distance: rule.value,
+        mmsi: rule.valueShipmmsi,
+      });
+      break;
+
+    default:
+      result.value = rule.value;
+  }
+
+  return result;
+}
+
+export default function AlertRuleForm({
+  initialRule = null,
+  onSaved = null
+}) {
   const [geofences, setGeofences] = useState([]);
 
-  const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
+  const [name, setName] = useState(initialRule?.alert_rule_name ?? "");
+  const [description, setDescription] = useState(
+      initialRule?.alert_rule_description ?? ""
+  );
 
-  const [query, setQuery] = useState({
-    combinator: "and",
-    rules: [],
-  });
+  const [query, setQuery] = useState(
+      initialRule
+          ? parseRule(initialRule.alert_rule_params)
+          : {
+              combinator: "and",
+              rules: []
+          }
+  );
 
   const [response, setResponse] = useState("");
 
@@ -365,6 +446,15 @@ export default function AlertRuleForm() {
 
     loadGeofences();
   }, []);
+
+  useEffect(() => {
+    if (!initialRule) return;
+
+    setName(initialRule.alert_rule_name);
+    setDescription(initialRule.alert_rule_description ?? "");
+    setQuery(parseRule(initialRule.alert_rule_params));
+  }, [initialRule]);
+
 
   const context = useMemo(
     () => ({
@@ -387,13 +477,30 @@ export default function AlertRuleForm() {
     try {
       const backendParams = convertRule(query);
 
-      const data = await add_alert_rule({
-        name,
-        description: description || null,
-        params: backendParams,
-      });
+      if (initialRule) {
+          await update_alert_rule({
+              alert_rule_id: initialRule.alert_rule_id,
+              name,
+              description,
+              params: backendParams
+          });
+      } else {
+          await add_alert_rule({
+              name,
+              description,
+              params: backendParams
+          });
+      }
 
-      setResponse(JSON.stringify(data, null, 2));
+      onSaved?.();
+
+      setName("");
+      setDescription("");
+      setQuery({
+          combinator: "and",
+          rules: [],
+      });
+      
     } catch (err) {
       console.error(err);
       setResponse(String(err));
@@ -433,14 +540,32 @@ export default function AlertRuleForm() {
             valueEditor: CustomValueEditor,
             operatorSelector: OperatorSelector,
           }}
+          combinators={combinators}
           showCloneButtons
         />
 
         <br />
 
         <button onClick={submit}>
-          Add Alert Rule
+            {initialRule ? "Update Alert Rule" : "Add Alert Rule"}
         </button>
+
+        {initialRule && (
+          <button
+            onClick={() => {
+              setName("");
+              setDescription("");
+              setQuery({
+                combinator: "and",
+                rules: [],
+              });
+
+              onSaved?.();
+            }}
+          >
+            Cancel
+          </button>
+        )}
 
         <br />
         <br />
