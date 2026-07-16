@@ -34,6 +34,34 @@ export async function get_ships_on_screen({lat_min, lat_max, long_min, long_max,
     .catch(err => console.error(err));
 }
 
+//Query for all vessels in database, filters available
+export async function get_all_ships({
+    querystr = null,
+    name = null,
+    mmsi = null,
+    imo = null,
+    shiptype = null,
+    flag = null,
+    limit = null,
+    offset = null
+}) {
+    let url = config.api_url + `/api/v1/vessels/all?`;
+
+    if (querystr !== null) {url = url + `querystr=${querystr}&`;}
+    if (name !== null) {url = url + `name=${name}&`;}
+    if (mmsi !== null) {url = url + `mmsi=${mmsi}&`;}
+    if (imo !== null) {url = url + `imo=${imo}&`;}
+    if (shiptype !== null) {url = url + `shiptype=${shiptype}&`;}
+    if (flag !== null) {url = url + `flag=${flag}&`;}
+    if (limit !== null) {url = url + `limit=${limit}&`;}
+    if (offset !== null) {url = url + `offset=${offset}&`;}
+
+    return await fetch(url)
+    .then(res => res.json())
+    .then(data => data)
+    .catch(err => console.error(err));
+}
+
 //Query for vessel data with given vessel_data_id
 export async function get_ship_using_data_id({vessel_data_id}) {
     if (vessel_data_id == null) {
@@ -49,6 +77,14 @@ export async function get_ship_using_data_id({vessel_data_id}) {
     .then(data => data)
     .catch(err => console.error(err));
 }
+
+//Returns list of vessel locations tagged to the vessel
+//TODO
+
+
+//
+
+
 
 //Updates an existing Vessel. Supports partial updates.
 export async function update_ship_using_data_id({
