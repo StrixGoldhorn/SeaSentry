@@ -270,9 +270,19 @@ export function CustomValueEditor(props) {
 export function convertRule(rule) {
 
   if ("rules" in rule) {
+    
+    const convertedRules = rule.rules.map(convertRule);
+
+    if (
+      rule.combinator !== "not" &&
+      convertedRules.length === 1
+    ) {
+      return convertedRules[0];
+    }
+
     return {
       combinator: rule.combinator,
-      rules: rule.rules.map(convertRule),
+      rules: convertedRules,
     };
   }
 
@@ -349,6 +359,70 @@ function makeId() {
 }
 
 export function parseRule(rule) {
+
+  if (!rule.rules && rule.field) {
+
+    const parsedRule = {
+      id: makeId(),
+      field: rule.field,
+      operator: rule.operator,
+    };
+
+    switch (rule.field) {
+      case "speed":
+        parsedRule.value = String(rule.value);
+        break;
+
+      case "shipname":
+      case "shiptype":
+      case "mmsi":
+        parsedRule.value = rule.value;
+        break;
+
+      case "inside_geofence":
+      case "enter_geofence":
+      case "exit_geofence":
+        parsedRule.value = JSON.stringify({
+          geofenceId: rule.valueGeofenceid,
+        });
+        break;
+
+      case "is_vessel_of_interest":
+        parsedRule.value = true;
+        break;
+
+      case "proximity_to_shiptype":
+        parsedRule.value = JSON.stringify({
+          distance: rule.value,
+          shiptype: rule.valueShiptype,
+        });
+        break;
+
+      case "proximity_to_shipname":
+        parsedRule.value = JSON.stringify({
+          distance: rule.value,
+          shipname: rule.valueShipname,
+        });
+        break;
+
+      case "proximity_to_mmsi":
+        parsedRule.value = JSON.stringify({
+          distance: rule.value,
+          mmsi: rule.valueShipmmsi,
+        });
+        break;
+
+      default:
+        parsedRule.value = rule.value;
+    }
+
+    return {
+      id: makeId(),
+      combinator: "and",
+      rules: [parsedRule],
+    };
+  }
+
   // Group
   if (rule.rules) {
     return {
@@ -358,61 +432,7 @@ export function parseRule(rule) {
     };
   }
 
-  const result = {
-    id: makeId(),
-    field: rule.field,
-    operator: rule.operator,
-  };
-
-  switch (rule.field) {
-    case "speed":
-      result.value = String(rule.value);
-      break;
-
-    case "shipname":
-    case "shiptype":
-    case "mmsi":
-      result.value = rule.value;
-      break;
-
-    case "inside_geofence":
-    case "enter_geofence":
-    case "exit_geofence":
-      result.value = JSON.stringify({
-        geofenceId: rule.valueGeofenceid,
-      });
-      break;
-
-    case "is_vessel_of_interest":
-      result.value = true;
-      break;
-
-    case "proximity_to_shiptype":
-      result.value = JSON.stringify({
-        distance: rule.value,
-        shiptype: rule.valueShiptype,
-      });
-      break;
-
-    case "proximity_to_shipname":
-      result.value = JSON.stringify({
-        distance: rule.value,
-        shipname: rule.valueShipname,
-      });
-      break;
-
-    case "proximity_to_mmsi":
-      result.value = JSON.stringify({
-        distance: rule.value,
-        mmsi: rule.valueShipmmsi,
-      });
-      break;
-
-    default:
-      result.value = rule.value;
-  }
-
-  return result;
+  return rule;
 }
 
 export default function AlertRuleForm({
