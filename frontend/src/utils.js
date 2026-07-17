@@ -43,23 +43,26 @@ export async function get_all_ships({
     shiptype = null,
     flag = null,
     limit = null,
-    offset = null
+    offset = null,
 }) {
-    let url = config.api_url + `/api/v1/vessels/all?`;
+    const params = new URLSearchParams();
 
-    if (querystr !== null) {url = url + `querystr=${querystr}&`;}
-    if (name !== null) {url = url + `name=${name}&`;}
-    if (mmsi !== null) {url = url + `mmsi=${mmsi}&`;}
-    if (imo !== null) {url = url + `imo=${imo}&`;}
-    if (shiptype !== null) {url = url + `shiptype=${shiptype}&`;}
-    if (flag !== null) {url = url + `flag=${flag}&`;}
-    if (limit !== null) {url = url + `limit=${limit}&`;}
-    if (offset !== null) {url = url + `offset=${offset}&`;}
+    if (querystr) params.append("querystr", querystr);
+    if (name) params.append("name", name);
+    if (mmsi) params.append("mmsi", mmsi);
+    if (imo) params.append("imo", imo);
+    if (shiptype) params.append("shiptype", shiptype);
+    if (flag) params.append("flag", flag);
+    if (limit !== null) params.append("limit", limit);
+    if (offset !== null) params.append("offset", offset);
 
-    return await fetch(url)
-    .then(res => res.json())
-    .then(data => data)
-    .catch(err => console.error(err));
+    const url =
+        `${config.api_url}/api/v1/vessels/all?${params.toString()}`;
+
+    return fetch(url)
+        .then(res => res.json())
+        .then(data => data)
+        .catch(err => console.error(err));
 }
 
 //Query for vessel data with given vessel_data_id

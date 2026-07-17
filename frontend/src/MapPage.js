@@ -9,7 +9,7 @@ import * as utils from './utils.js';
 import { MapBoundsTracker } from "./screenbounds.js";
 import { RenderAOIs, RenderGeofences } from "./Boundsrenders.js";
 import EditableAOILayer from "./EditableAOILayer.js";
-import { NavigateToUnreadAlertHistoryButton, NavigateToAOIDrawButton, NavigateToGeofenceDrawButton, NavigateToInputsButton } from "./NavigateButtons.js";
+import { NavigateToUnreadAlertHistoryButton, NavigateToAOIDrawButton, NavigateToGeofenceDrawButton, NavigateToInputsButton, NavigateToVesselsButton } from "./NavigateButtons.js";
 
 
 
@@ -272,6 +272,7 @@ function MapPage() {
     <NavigateToAOIDrawButton />
     <NavigateToGeofenceDrawButton />
     <NavigateToUnreadAlertHistoryButton />
+    <NavigateToVesselsButton />
     </>
   );
 }
