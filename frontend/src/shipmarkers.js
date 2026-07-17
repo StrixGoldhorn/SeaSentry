@@ -62,8 +62,6 @@ export function ShipMarkers({ shipdata }) {
                     <hr></hr>
 
                     <div class="info">
-                        {ship.ship_name != null && ship.ship_name !== '' && <p>Ship Name: {ship.ship_name}</p>}
-                        {ship.ship_type != null && ship.ship_type !== '' && <p>Ship Type: {ship.ship_type}</p>}
                         <p>MMSI: {ship.mmsi}</p>
                         <p>IMO: {ship.imo}</p>
                         {ship.beam_meters != null && ship.beam_meters !== '' && <p>Beam length (m): {ship.beam_meters}</p>}
@@ -74,7 +72,7 @@ export function ShipMarkers({ shipdata }) {
                         {ship.heading_deg != null && ship.heading_deg !== '' && <p>Heading (deg): {ship.heading_deg}</p>}
                         {ship.rate_of_turn != null && ship.rate_of_turn !== '' && <p>Rate of turn (deg/min): {ship.rate_of_turn}</p>}
                         {ship.nav_status != null && ship.nav_status !== '' && <p>Navigation Status: {ship.nav_status}</p>}
-                        {ship.user_tags != null && ship.user_tags !== '' && <p>User Tags: {ship.user_tags}</p>}
+                        {ship.user_tags != null && ship.user_tags !== '' && <p>User Tags: {ship.user_tags.join(', ')}</p>}
                     </div>
 
                     <i>Last pinged: {getTimeAgo(new Date(ship.timestamp))}</i>
