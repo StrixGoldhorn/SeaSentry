@@ -6,7 +6,7 @@ import CursorIcon from "./cursor.png";
 import { useEffect, useState } from "react";
 import { ShipMarkers, CourseDirMarkers } from "./shipmarkers.js";
 import * as utils from './utils.js';
-import { MapBoundsTracker } from "./screenbounds.js";
+import { MapBoundsTracker, MapStateSaver, getMapCenter, getMapZoom } from "./screenbounds.js";
 import { RenderAOIs, RenderGeofences } from "./Boundsrenders.js";
 import EditableAOILayer from "./EditableAOILayer.js";
 import { NavigateToUnreadAlertHistoryButton, NavigateToAOIDrawButton, NavigateToGeofenceDrawButton, NavigateToInputsButton, NavigateToVesselsButton } from "./NavigateButtons.js";
@@ -159,11 +159,15 @@ function MapPage() {
     })
   }
 
+  let initialCenter = getMapCenter();
+  let initialZoom = getMapZoom();
 
   //HTML return
   return (
     <>
-    <MapContainer center={[1.2595764399413216, 103.8335830126783]} zoom={14} scrollWheelZoom={true}>
+    <MapContainer center={initialCenter} zoom={initialZoom} scrollWheelZoom={true}>
+
+      <MapStateSaver/>
 
      <LayersControl position="topleft">
 
