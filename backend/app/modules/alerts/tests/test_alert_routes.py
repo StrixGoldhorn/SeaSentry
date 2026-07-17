@@ -54,7 +54,7 @@ def test_get_all_alert_history_success(mock_get_history, client):
     '''
     Test /api/v1/alerts/history/all with valid params
     '''
-    mock_get_history.return_value = [create_mock_alert_history(1, False), create_mock_alert_history(2, True)]
+    mock_get_history.return_value = {"results": [create_mock_alert_history(1, False), create_mock_alert_history(2, True)], "total": 2}
 
     response = client.get('/api/v1/alerts/history/all?limit=10&offset=0&start_time=2023-10-27T10:00:00&end_time=2023-10-28T10:00:00')
 
@@ -113,7 +113,7 @@ def test_get_unread_alert_history_success(mock_get_history, client):
     '''
     Test /api/v1/alerts/history/unread calls helper with unread=False flag
     '''
-    mock_get_history.return_value = [create_mock_alert_history(1, False)]
+    mock_get_history.return_value = {"results": [create_mock_alert_history(1, False)], "total": 1}
 
     response = client.get('/api/v1/alerts/history/unread')
 
@@ -122,7 +122,7 @@ def test_get_unread_alert_history_success(mock_get_history, client):
     assert data['count'] == 1
 
     # Verify the 5th argument is False (indicating unread only)
-    mock_get_history.assert_called_once_with(None, None, None, None, False)
+    mock_get_history.assert_called_once_with(start_time=None, end_time=None, limit=None, offset=None, is_read=False)
 
 # ==========================================
 # Tests for POST /api/v1/alerts/history/<id>/mark/read
