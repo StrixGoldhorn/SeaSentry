@@ -10,7 +10,7 @@ Fields are compulsory unless otherwise stated
     - [GET `/api/v1/vessels/bbox`](#get-apiv1vesselsbbox)
     - [GET `/api/v1/vessels/all`](#get-apiv1vesselsall)
     - [GET `/api/v1/vessels/<vessel_data_id>`](#get-apiv1vesselsvessel_data_id)
-    - [GET `/api/v1/vessels/<vessel_data_id>`](#get-apiv1vesselsvessel_data_id-1)
+    - [GET `/api/v1/vessels/<vessel_data_id>/history`](#get-apiv1vesselsvessel_data_idhistory)
     - [POST/PATCH `/api/v1/vessels/<vessel_data_id>/update`](#postpatch-apiv1vesselsvessel_data_idupdate)
     - [GET `/api/v1/vessels/exportArea`](#get-apiv1vesselsexportarea)
   - [Vessel of Interest](#vessel-of-interest)
@@ -114,7 +114,7 @@ Returns:
 - 400 if missing fields
 - 500 if internal server error
 
-### GET `/api/v1/vessels/<vessel_data_id>`
+### GET `/api/v1/vessels/<vessel_data_id>/history`
 
 Summary: Returns list of vessel locations tagged to the vessel
 

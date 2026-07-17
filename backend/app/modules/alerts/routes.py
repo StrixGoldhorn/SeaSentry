@@ -91,7 +91,7 @@ def get_all_alert_history_web():
                                         limit=limit, offset=offset, by_alert_rule_id=by_alert_rule_id)
 
         data = []
-        for alert in results:
+        for alert in results["results"]:
             data.append({
                 "alert_history_id": alert.alert_history_id,
                 "alert_history_timestamp": alert.alert_history_timestamp.isoformat() if alert.alert_history_timestamp else None,
@@ -103,6 +103,7 @@ def get_all_alert_history_web():
 
         return jsonify({
             "status": "success",
+            "total": results["total"],
             "count": len(data),
             "data": data,
             "filters_applied": {
@@ -168,10 +169,11 @@ def get_unread_alert_history():
             except ValueError:
                 return jsonify({"status": "error", "error": "Invalid offset format. Must be an integer"}), 400
 
-        results = get_all_alert_history(start_time, end_time, limit, offset, False)
+        results = get_all_alert_history(start_time=start_time, end_time=end_time,
+                                        limit=limit, offset=offset, is_read=False)
 
         data = []
-        for alert in results:
+        for alert in results["results"]:
             data.append({
                 "alert_history_id": alert.alert_history_id,
                 "alert_history_timestamp": alert.alert_history_timestamp.isoformat() if alert.alert_history_timestamp else None,
@@ -184,6 +186,7 @@ def get_unread_alert_history():
         return jsonify({
             "status": "success",
             "count": len(data),
+            "total": results["total"],
             "data": data,
             "filters_applied": {
                 "start_time": start_time_str,
