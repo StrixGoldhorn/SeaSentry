@@ -41,6 +41,33 @@ const getTimeAgo = (timestamp) => {
     return `${diffDay} day${diffDay !== 1 ? 's' : ''} ago`;
 };
 
+const getNavStatusString = (nav_status) => {
+const statusMap = {
+        0: "Under way using engine",
+        1: "At anchor",
+        2: "Not under command",
+        3: "Restricted manoeuverability",
+        4: "Constrained by draught",
+        5: "Moored",
+        6: "Aground",
+        7: "Engaged in fishing",
+        8: "Under way sailing",
+        9: "Reserved",
+        10: "Reserved",
+        11: "Reserved",
+        12: "Reserved",
+        13: "Reserved",
+        14: "AIS-SART",
+        15: "" // technically shouldn't even happen
+    };
+
+    if (nav_status !== null && nav_status !== undefined && statusMap.hasOwnProperty(nav_status)) {
+        return statusMap[nav_status];
+    }
+
+    return "Unknown";
+}
+
 export function ShipMarkers({ shipdata }) {
     if (!Array.isArray(shipdata)) {
         return null;
@@ -62,8 +89,6 @@ export function ShipMarkers({ shipdata }) {
                     <hr></hr>
 
                     <div class="info">
-                        {ship.ship_name != null && ship.ship_name !== '' && <p>Ship Name: {ship.ship_name}</p>}
-                        {ship.ship_type != null && ship.ship_type !== '' && <p>Ship Type: {ship.ship_type}</p>}
                         <p>MMSI: {ship.mmsi}</p>
                         <p>IMO: {ship.imo}</p>
                         {ship.beam_meters != null && ship.beam_meters !== '' && <p>Beam length (m): {ship.beam_meters}</p>}
@@ -73,8 +98,8 @@ export function ShipMarkers({ shipdata }) {
                         {ship.course_deg != null && ship.course_deg !== '' && <p>Course (deg): {ship.course_deg}</p>}
                         {ship.heading_deg != null && ship.heading_deg !== '' && <p>Heading (deg): {ship.heading_deg}</p>}
                         {ship.rate_of_turn != null && ship.rate_of_turn !== '' && <p>Rate of turn (deg/min): {ship.rate_of_turn}</p>}
-                        {ship.nav_status != null && ship.nav_status !== '' && <p>Navigation Status: {ship.nav_status}</p>}
-                        {ship.user_tags != null && ship.user_tags !== '' && <p>User Tags: {ship.user_tags}</p>}
+                        {ship.nav_status != null && ship.nav_status !== '' && ship.nav_status !== 15 && <p>Navigation Status: {getNavStatusString(ship.nav_status)}</p>}
+                        {ship.user_tags != null && ship.user_tags !== '' && <p>User Tags: {ship.user_tags.join(', ')}</p>}
                     </div>
 
                     <i>Last pinged: {getTimeAgo(new Date(ship.timestamp))}</i>
