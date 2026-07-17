@@ -344,16 +344,22 @@ export function convertRule(rule) {
   return result;
 }
 
+function makeId() {
+  return crypto.randomUUID();
+}
+
 export function parseRule(rule) {
   // Group
   if (rule.rules) {
     return {
+      id: makeId(),
       combinator: rule.combinator,
       rules: rule.rules.map(parseRule),
     };
   }
 
   const result = {
+    id: makeId(),
     field: rule.field,
     operator: rule.operator,
   };
