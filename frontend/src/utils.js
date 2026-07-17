@@ -190,6 +190,34 @@ export async function add_VOI({ name, desc = null, mmsi, imo }) {
         .catch(err => console.error(err));
 }
 
+// Updates an existing Vessel of Interest. Supports partial updates.
+export async function update_VOI({
+    voi_id,
+    name = null,
+    desc = null,
+    mmsi = null,
+    imo = null,
+}) {
+    if (voi_id == null) return null;
+
+    const formData = new FormData();
+
+    appendIfNotNull(formData, "name", name);
+    appendIfNotNull(formData, "desc", desc);
+    appendIfNotNull(formData, "mmsi", mmsi);
+    appendIfNotNull(formData, "imo", imo);
+
+    return await fetch(
+        config.api_url + `/api/v1/vessel_of_interest/${voi_id}/update`,
+        {
+            method: "PATCH",
+            body: formData,
+        }
+    )
+        .then(res => res.json())
+        .catch(err => console.error(err));
+}
+
 // Deletes an existing Vessel of Interest.
 export async function delete_VOI({
     voi_id,
