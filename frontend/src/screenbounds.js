@@ -23,3 +23,40 @@ export function MapBoundsTracker({ onBoundsChange }) {
 
   return null; // This component handles logic, it doesn't render HTML
 }
+
+
+// default map views + store + load from localstorage
+export const DEFAULT_CENTER = [1.2595764399413216, 103.8335830126783];
+const DEFAULT_ZOOM = 14;
+
+export function MapStateSaver() {
+  useMapEvents({
+    moveend: (e) => {
+      const map = e.target;
+      const center = map.getCenter();
+      const zoom = map.getZoom();
+
+      localStorage.setItem('mapCenter', JSON.stringify([center.lat, center.lng]));
+      localStorage.setItem('mapZoom', JSON.stringify(zoom));
+    },
+  });
+  return null;
+}
+
+export const getMapCenter = () => {
+  try {
+    const saved = localStorage.getItem('mapCenter');
+    return saved ? JSON.parse(saved) : DEFAULT_CENTER;
+  } catch (error) {
+    return DEFAULT_CENTER;
+  }
+};
+
+export const getMapZoom = () => {
+  try {
+    const saved = localStorage.getItem('mapZoom');
+    return saved ? JSON.parse(saved) : DEFAULT_ZOOM;
+  } catch (error) {
+    return DEFAULT_ZOOM;
+  }
+};

@@ -1,12 +1,12 @@
 import "leaflet/dist/leaflet.css";
 import './styles.css';
-import { MapContainer, TileLayer, Marker, Popup, Rectangle, Polygon, useMapEvent, useMapEvents } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, Rectangle, Polygon, useMapEvent, useMapEvents, LayersControl } from 'react-leaflet';
 import { Icon } from "leaflet";
 import CursorIcon from "./cursor.png";
 import { useEffect, useState } from "react";
 import { ShipMarkers, CourseDirMarkers } from "./shipmarkers.js";
 import * as utils from './utils.js';
-import { MapBoundsTracker } from "./screenbounds.js";
+import { MapBoundsTracker, MapStateSaver, getMapCenter, getMapZoom } from "./screenbounds.js";
 import { RenderAOIs, RenderGeofences } from "./Boundsrenders.js";
 import EditableAOILayer from "./EditableAOILayer.js";
 import { NavigateToUnreadAlertHistoryButton, NavigateToAOIDrawButton, NavigateToGeofenceDrawButton, NavigateToInputsButton, NavigateToVesselsButton } from "./NavigateButtons.js";
@@ -159,15 +159,46 @@ function MapPage() {
     })
   }
 
+  let initialCenter = getMapCenter();
+  let initialZoom = getMapZoom();
 
   //HTML return
   return (
     <>
-    <MapContainer center={[1.2595764399413216, 103.8335830126783]} zoom={14} scrollWheelZoom={true}>
-      <TileLayer
-      attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-      url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-      />
+    <MapContainer center={initialCenter} zoom={initialZoom} scrollWheelZoom={true}>
+
+      <MapStateSaver/>
+
+     <LayersControl position="topleft">
+
+        <LayersControl.BaseLayer checked name="OpenStreetMap">
+          <TileLayer
+            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          />
+        </LayersControl.BaseLayer>
+
+        <LayersControl.BaseLayer name="ESRI World Imagery">
+          <TileLayer
+            url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}.jpg"
+          />
+        </LayersControl.BaseLayer>
+
+        <LayersControl.BaseLayer name="Google Satellite">
+          <TileLayer
+            url="https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}"
+          />
+        </LayersControl.BaseLayer>
+
+        <LayersControl.Overlay checked name="Nautical Chart (OpenSeaMap)">
+          <TileLayer
+            url="https://tiles.openseamap.org/seamark/{z}/{x}/{y}.png"
+            opacity={1}
+            updateWhenIdle={true}
+          />
+        </LayersControl.Overlay>
+
+      </LayersControl>
+
       <MapBoundsTracker onBoundsChange={setmapBounds} />
       {!editing && shipData?.data && (
           <ShipMarkers shipdata={shipData.data} />
