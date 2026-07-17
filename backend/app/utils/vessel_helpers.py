@@ -99,7 +99,7 @@ def get_vessels_in_polygon(coords: List[Tuple[float, float]], time_threshold_min
 def get_all_vessels(querystr: Optional[str] = None, name: Optional[str] = None,
                     mmsi: Optional[str] = None, imo: Optional[str] = None,
                     shiptype: Optional[str] = None, flag: Optional[str] = None,
-                    limit: Optional[int] = None, offset: Optional[int] = None) -> List[VesselData]:
+                    limit: Optional[int] = None, offset: Optional[int] = None) -> Dict[str, Any]:
     '''
     Fetches all vessels from DB.
     Returns list of VesselData objects.
@@ -128,16 +128,23 @@ def get_all_vessels(querystr: Optional[str] = None, name: Optional[str] = None,
         if flag is not None:
             query = query.filter(VesselData.vessel_data_flag.ilike(f"%{flag}%"))
 
+        total_count = session.query(func.count()).select_from(query.subquery()).scalar()
+
         if offset is not None:
             query = query.offset(offset)
         if limit is not None:
             query = query.limit(limit)
 
-        return query.all()
+        res = query.all()
+
+        return {
+            "results": res,
+            "total": total_count
+        }
 
     except Exception as e:
         logger.error("Error in get_all_vessels: %s", e, exc_info=True)
-        return []
+        return {"results": [], "total": 0}
 
     finally:
         if session:

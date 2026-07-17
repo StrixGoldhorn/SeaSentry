@@ -138,7 +138,6 @@ def get_all_vessels_web():
         limit_str = request.args.get('limit')
         offset_str = request.args.get('offset')
 
-
         if Settings.ENABLE_EASTER_EGG:
             if count_bad_chars(querystr_str)+count_bad_chars(name_str)+count_bad_chars(mmsi_str)+count_bad_chars(imo_str)\
             +count_bad_chars(shiptype_str)+count_bad_chars(flag_str) > Settings.EASTER_EGG_TOLERANCE:
@@ -186,8 +185,10 @@ def get_all_vessels_web():
 
         results = get_all_vessels(querystr=querystr, name=name, mmsi=mmsi, imo=imo, shiptype=shiptype, flag=flag, limit=limit, offset=offset)
 
+        vessel_results = results["results"]
+
         data = []
-        for vessel in results:
+        for vessel in vessel_results:
             data.append({
                 "vessel_data_id": vessel.vessel_data_id,
                 "mmsi": vessel.vessel_data_mmsi,
@@ -212,6 +213,7 @@ def get_all_vessels_web():
                 "limit": limit,
                 "offset": offset
             },
+            "total": results["total"],
             "count": len(data),
             "data": data
         }), 200

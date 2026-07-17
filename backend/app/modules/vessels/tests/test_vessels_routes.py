@@ -582,13 +582,14 @@ def test_get_all_vessels_web_success_no_params(mock_get_all, client):
     mock_vessel.vessel_data_beam_meters = 20
     mock_vessel.vessel_data_user_tags = []
 
-    mock_get_all.return_value = [mock_vessel]
+    mock_get_all.return_value = {"results": [mock_vessel], "total": 1}
 
     response = client.get('/api/v1/vessels/all')
     assert response.status_code == 200
     data = json.loads(response.data)
     assert data['status'] == 'success'
     assert data['count'] == 1
+    assert data['total'] == 1
     assert data['data'][0]['vessel_data_id'] == 1
     mock_get_all.assert_called_once_with(
         querystr=None, name=None, mmsi=None, imo=None, 
@@ -598,7 +599,7 @@ def test_get_all_vessels_web_success_no_params(mock_get_all, client):
 @patch('app.modules.vessels.routes.get_all_vessels')
 def test_get_all_vessels_web_success_with_params(mock_get_all, client):
     '''Test fetching vessels with various valid parameters'''
-    mock_get_all.return_value = []
+    mock_get_all.return_value = {"results": [], "total": 0}
 
     response = client.get('/api/v1/vessels/all?querystr=test&name=ship&mmsi=123&imo=456&shiptype=cargo&flag=us&limit=10&offset=5')
     assert response.status_code == 200
@@ -607,6 +608,7 @@ def test_get_all_vessels_web_success_with_params(mock_get_all, client):
     assert data['filters']['querystr'] == 'test'
     assert data['filters']['mmsi'] == '123'
     assert data['filters']['limit'] == 10
+    assert data['total'] == 0
 
     mock_get_all.assert_called_once_with(
         querystr='test', name='ship', mmsi='123', imo='456', 
