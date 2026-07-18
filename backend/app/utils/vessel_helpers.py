@@ -3,7 +3,7 @@
 import logging
 from typing import List, Tuple, Dict, Any, Optional
 from datetime import datetime, timedelta, timezone
-from sqlalchemy import desc, func, or_
+from sqlalchemy import desc, func, or_, and_
 from geoalchemy2.functions import ST_X, ST_Y
 
 from app.core.database import DBConn
@@ -26,16 +26,30 @@ def get_all_vessels_in_bbox(envelope, time_lower_bound: datetime, limit: int) ->
 
     session = DBConn.get_session()
     try:
-        query = session.query(VesselLocation, VesselData).join(
-            VesselData,
-            VesselLocation.vessel_location_vessel_data_id == VesselData.vessel_data_id,
+        latest_locations_subq = session.query(
+            VesselLocation.vessel_location_vessel_data_id,
+            VesselLocation.vessel_location_timestamp
         ).filter(
-            VesselLocation.vessel_location_timestamp >= time_lower_bound,
-            VesselLocation.vessel_location_coords.ST_Within(envelope)
+            VesselLocation.vessel_location_timestamp >= time_lower_bound
         ).order_by(
             VesselLocation.vessel_location_vessel_data_id,
             VesselLocation.vessel_location_timestamp.desc()
-        ).distinct(VesselLocation.vessel_location_vessel_data_id).limit(limit)
+        ).distinct(
+            VesselLocation.vessel_location_vessel_data_id
+        ).subquery('latest_locations')
+
+        query = session.query(VesselLocation, VesselData).join(
+            VesselData,
+            VesselLocation.vessel_location_vessel_data_id == VesselData.vessel_data_id,
+        ).join(
+            latest_locations_subq,
+            and_(
+                VesselLocation.vessel_location_vessel_data_id == latest_locations_subq.c.vessel_location_vessel_data_id,
+                VesselLocation.vessel_location_timestamp == latest_locations_subq.c.vessel_location_timestamp
+            )
+        ).filter(
+            VesselLocation.vessel_location_coords.ST_Within(envelope)
+        ).limit(limit)
 
         return query.all()
 
