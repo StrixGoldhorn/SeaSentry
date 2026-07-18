@@ -9,6 +9,7 @@ import { MapBoundsTracker, MapStateSaver, getMapCenter, getMapZoom } from "./scr
 import { RenderAOIs, RenderGeofences } from "./Boundsrenders.js";
 import EditableAOILayer from "./EditableAOILayer.js";
 import { NavigateToUnreadAlertHistoryButton, NavigateToAOIDrawButton, NavigateToGeofenceDrawButton, NavigateToInputsButton, NavigateToVesselsButton } from "./NavigateButtons.js";
+import CopernicusImageryLayerControl from "./CopernicusImageryLayerControl.js";
 
 
 
@@ -173,18 +174,21 @@ function MapPage() {
         <LayersControl.BaseLayer checked name="OpenStreetMap">
           <TileLayer
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            attribution="OpenStreetMap"
           />
         </LayersControl.BaseLayer>
 
         <LayersControl.BaseLayer name="ESRI World Imagery">
           <TileLayer
             url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}.jpg"
+            attribution="ESRI"
           />
         </LayersControl.BaseLayer>
 
         <LayersControl.BaseLayer name="Google Satellite">
           <TileLayer
             url="https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}"
+            attribution="Google"
           />
         </LayersControl.BaseLayer>
 
@@ -193,6 +197,7 @@ function MapPage() {
             url="https://tiles.openseamap.org/seamark/{z}/{x}/{y}.png"
             opacity={1}
             updateWhenIdle={true}
+            attribution="OpenSeaMap"
           />
         </LayersControl.Overlay>
 
@@ -227,6 +232,7 @@ function MapPage() {
         coords={editedCoords}
         setCoords={setEditedCoords}/>)}
 
+    <CopernicusImageryLayerControl />
     </MapContainer>
     {editing && (
       <div

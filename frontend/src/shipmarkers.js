@@ -10,7 +10,6 @@ function getColorFromShiptype(ship_type) {
     const colorMap = {
         "Cargo" : "#e6c72c",
         "Fishing" : "#88f886",
-        "High Speed" : "#c0f424",
         "High Speed Craft" : "#c0f424",
         "Law Enforcement" : "#2548e4",
         "Medical Transport" : "#d20d0d",
