@@ -147,16 +147,18 @@ export function PolygonOverlay({
                         gap: '10px',
                         padding: '0px'
                     }}>
-                        <button
-                            style={{
-                                gridColumn: 'span 2',
-                                margin: '0px',
+                        {scrapeFunction && (
+                            <button
+                                style={{
+                                    gridColumn: 'span 2',
+                                    margin: '0px',
 
-                            }}
-                            onClick={handleScrape}
-                        >
-                            {scrapeLabel}
-                        </button>
+                                }}
+                                onClick={handleScrape}
+                            >
+                                {scrapeLabel}
+                            </button>
+                        )}
 
                         <button
                             style={{
