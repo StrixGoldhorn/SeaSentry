@@ -3,8 +3,30 @@ import { Marker, Popup } from "react-leaflet";
 import "leaflet-rotatedmarker";
 import "./styles.css";
 
-function createShipIcon(shipname, hasHeading, size = 20) {
-    const color = "#e1af24"
+function getColorFromShiptype(ship_type) {
+    if (ship_type == null) {
+        return "#707070"
+    }
+    const colorMap = {
+        "Cargo" : "#e6c72c",
+        "Fishing" : "#88f886",
+        "High Speed" : "#c0f424",
+        "High Speed Craft" : "#c0f424",
+        "Law Enforcement" : "#2548e4",
+        "Medical Transport" : "#d20d0d",
+        "Military" : "#e70000",
+        "Passenger" : "#ce49b5",
+        "Pleasure Craft" : "#ce49b5",
+        "Sailing" : "#bcd4d4",
+        "SAR" : "#d20d0d",
+        "Tanker" : "#e6c72c",
+        "Tug" : "#41b14a"
+    }
+    return colorMap[ship_type];
+}
+
+function createShipIcon(shipname, hasHeading, ship_type, size = 20) {
+    const color = getColorFromShiptype(ship_type)
 
     if (hasHeading) {
         const shipWidth = size * 0.75;
@@ -68,18 +90,12 @@ function createCourseLineIcon(color, size = 40) {
         className: 'course-line-icon',
         html: `<div style="
             width: 2px; 
-            height: ${halfSize}px; 
-            background: repeating-linear-gradient(
-                to bottom,
-                ${color} 0px,
-                ${color} 4px,
-                transparent 4px,
-                transparent 8px
-            );
+            height: ${size*0.5}px; 
+            background: black;
             margin-left: ${halfSize - 1}px;
         "></div>`,
         iconSize: [size, size],
-        iconAnchor: [halfSize, size]
+        iconAnchor: [halfSize, halfSize]
     });
 }
 
@@ -143,7 +159,7 @@ export function ShipMarkers({ shipdata }) {
 
     return shipdata.map((ship) => {
         const hasHeading = ship.heading_deg != null && ship.heading_deg !== '';
-        const customIcon = createShipIcon(ship.ship_name, hasHeading);
+        const customIcon = createShipIcon(ship.ship_name, hasHeading, ship.ship_type);
 
         return (
             <Marker
@@ -187,16 +203,16 @@ export function CourseDirMarkers({ shipdata }) {
 
     return shipdata
         // filter out those with no course data
-        .filter(ship => ship.course_deg != null && ship.course_deg !== '')
+        .filter(ship => ship.course_deg != null && ship.course_deg !== '' && ship.course_deg !== 0)
         .map((ship) => {
-            const lineIcon = createCourseLineIcon();
+            const lineIcon = createCourseLineIcon(getColorFromShiptype(ship.ship_type));
 
             return (
                 <Marker
                     key={`course-${ship.vessel_data_id}`}
                     position={[ship.latitude, ship.longitude]}
                     icon={lineIcon}
-                    rotationOrigin="center bottom"
+                    rotationOrigin="center"
                     rotationAngle={shipDegCheck(ship.course_deg)}
                     interactive={false}
                 />
