@@ -1,8 +1,9 @@
 # backend/app/utils/alert_helpers.py
 
 import logging
-from typing import List, Optional, Dict
+from typing import List, Optional, Dict, Any
 from datetime import datetime
+from sqlalchemy import func
 from sqlalchemy.exc import IntegrityError
 
 from app.core.database import DBConn
@@ -12,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 def get_all_alert_history(start_time: Optional[datetime] = None, end_time: Optional[datetime] = None,
                           limit: Optional[int] = None, offset: Optional[int] = None, is_read: Optional[bool] = None,
-                          by_alert_rule_id: Optional[int] = None) -> List[AlertHistory]:
+                          by_alert_rule_id: Optional[int] = None) -> Dict[str, Any]:
     '''
     Fetches all alert history from DB.
     Returns list of AlertHistory objects.
@@ -31,6 +32,8 @@ def get_all_alert_history(start_time: Optional[datetime] = None, end_time: Optio
         if is_read is not None:
             query = query.filter(AlertHistory.alert_history_read == is_read)
 
+        total_count = session.query(func.count()).select_from(query.subquery()).scalar()
+
         if offset is not None:
             query = query.offset(offset)
         if limit is not None:
@@ -38,7 +41,12 @@ def get_all_alert_history(start_time: Optional[datetime] = None, end_time: Optio
         if by_alert_rule_id is not None:
             query = query.where(AlertHistory.alert_history_alert_rule_id == by_alert_rule_id)
 
-        return query.all()
+        res = query.all()
+
+        return {
+            "results": res,
+            "total": total_count
+        }
 
     except Exception as e:
         logger.error("Error in get_all_alert_history: %s", e, exc_info=True)

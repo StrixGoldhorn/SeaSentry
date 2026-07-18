@@ -209,7 +209,7 @@ def update_aoi_in_db(aoi_id: int, name: str = None, desc: str = None, geometry_w
             return False
 
         if name is not None:
-            if check_if_aoi_name_exists(name): return False
+            if check_if_aoi_name_exists(name) and aoi.area_of_interest_name != name: return False
             aoi.area_of_interest_name = name
         if desc is not None:
             aoi.area_of_interest_description = desc
