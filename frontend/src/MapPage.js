@@ -2,7 +2,6 @@ import "leaflet/dist/leaflet.css";
 import './styles.css';
 import { MapContainer, TileLayer, Marker, Popup, Rectangle, Polygon, useMapEvent, useMapEvents, LayersControl } from 'react-leaflet';
 import { Icon } from "leaflet";
-import CursorIcon from "./cursor.png";
 import { useEffect, useState } from "react";
 import { ShipMarkers, CourseDirMarkers } from "./shipmarkers.js";
 import * as utils from './utils.js';

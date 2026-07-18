@@ -1,19 +1,87 @@
-import { Icon } from "leaflet";
+import * as L from "leaflet";
 import { Marker, Popup } from "react-leaflet";
-import CursorIcon from "./cursor.png";
-import LineIcon from "./dotted-barline.png";
 import "leaflet-rotatedmarker";
 import "./styles.css";
 
-const customIcon = new Icon({
-  iconUrl: CursorIcon,
-  iconSize: [30, 30]
-})
+function createShipIcon(shipname, hasHeading, size = 20) {
+    const color = "#e1af24"
 
-const lineIcon = new Icon({
-  iconUrl: LineIcon,
-  iconSize: [20, 50]
-})
+    if (hasHeading) {
+        const shipWidth = size * 0.75;
+        const shipHeight = size;
+
+        const shipPoly = "polygon(50% 0%, 100% 40%, 100% 100%, 0 100%, 0 40%)"
+
+        const shapeStyle = `
+            width: calc(100% - 2px);
+            height: calc(100% - 2px);
+            background: ${color}; 
+            clip-path: ${shipPoly};
+        `;
+
+        const outlineStyle = `
+            width: ${shipWidth}px; 
+            height: ${shipHeight}px; 
+            background: black; 
+            clip-path: ${shipPoly};
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        `;
+
+        return L.divIcon({
+            className: 'ship-icon',
+            html: `<div style="${outlineStyle}"><div style="${shapeStyle}"></div></div>`,
+            iconSize: [shipWidth, shipHeight],
+            iconAnchor: [shipWidth / 2, shipHeight / 2]
+        });
+
+
+    } else {
+        const circleSize = size * 0.75;
+        const offset = (size - circleSize) / 2;
+
+        const shapeStyle = `
+            width: ${circleSize}px; 
+            height: ${circleSize}px; 
+            background: ${color}; 
+            border: 1.5px solid black;
+            border-radius: 50%;
+            margin: ${offset}px;
+            box-sizing: border-box;
+        `;
+
+        return L.divIcon({
+            className: 'ship-icon',
+            html: `<div style="${shapeStyle}"></div>`,
+            iconSize: [size, size],
+            iconAnchor: [size / 2, size / 2]
+        });
+    }
+
+
+}
+
+function createCourseLineIcon(color, size = 40) {
+    const halfSize = size / 2;
+    return L.divIcon({
+        className: 'course-line-icon',
+        html: `<div style="
+            width: 2px; 
+            height: ${halfSize}px; 
+            background: repeating-linear-gradient(
+                to bottom,
+                ${color} 0px,
+                ${color} 4px,
+                transparent 4px,
+                transparent 8px
+            );
+            margin-left: ${halfSize - 1}px;
+        "></div>`,
+        iconSize: [size, size],
+        iconAnchor: [halfSize, size]
+    });
+}
 
 function shipDegCheck(deg) {
     if (deg === null) {
@@ -24,25 +92,25 @@ function shipDegCheck(deg) {
 
 const getTimeAgo = (timestamp) => {
     if (!timestamp) return 'Unknown'; // should never happen because timestamp is requried in the db
-    
+
     const now = new Date();
     const past = new Date(timestamp);
 
     const diffSec = Math.floor((now - past) / 1000);
     if (diffSec < 60) return `${diffSec} second${diffSec !== 1 ? 's' : ''} ago`;
-    
+
     const diffMin = Math.floor(diffSec / 60);
     if (diffMin < 60) return `${diffMin} minute${diffMin !== 1 ? 's' : ''} ago`;
-    
+
     const diffHrs = Math.floor(diffMin / 60);
     if (diffHrs < 24) return `${diffHrs} hour${diffHrs !== 1 ? 's' : ''} ago`;
-    
+
     const diffDay = Math.floor(diffHrs / 24);
     return `${diffDay} day${diffDay !== 1 ? 's' : ''} ago`;
 };
 
 const getNavStatusString = (nav_status) => {
-const statusMap = {
+    const statusMap = {
         0: "Under way using engine",
         1: "At anchor",
         2: "Not under command",
@@ -72,57 +140,66 @@ export function ShipMarkers({ shipdata }) {
     if (!Array.isArray(shipdata)) {
         return null;
     }
-    
-    return (shipdata.map((ship) => (
-        <Marker
-        key={ship.vessel_data_id}
-        position = {[ship.latitude, ship.longitude]}
-        icon = {customIcon}
-        rotationOrigin="center"
-        rotationAngle={shipDegCheck(ship.heading_deg)}
-        zIndexOffset={600}
-        >
-            <Popup autoPan={false} className="vesselpopup">
-                <div>
-                    <h3>{ship.ship_name}</h3>
-                    {ship.ship_type != null && ship.ship_type !== '' && <p><i>Type: {ship.ship_type}</i></p>}
-                    <hr></hr>
 
-                    <div class="info">
-                        <p>MMSI: {ship.mmsi}</p>
-                        <p>IMO: {ship.imo}</p>
-                        {ship.beam_meters != null && ship.beam_meters !== '' && <p>Beam length (m): {ship.beam_meters}</p>}
-                        {ship.length_meters != null && ship.length_meters !== '' && <p>Vessel length (m): {ship.length_meters}</p>}
-                        {ship.flag != null && ship.flag !== '' && <p>Flag: {ship.flag}</p>}
-                        {ship.speed_knots != null && ship.speed_knots !== '' && <p>Speed (kts): {ship.speed_knots}</p>}
-                        {ship.course_deg != null && ship.course_deg !== '' && <p>Course (deg): {ship.course_deg}</p>}
-                        {ship.heading_deg != null && ship.heading_deg !== '' && <p>Heading (deg): {ship.heading_deg}</p>}
-                        {ship.rate_of_turn != null && ship.rate_of_turn !== '' && <p>Rate of turn (deg/min): {ship.rate_of_turn}</p>}
-                        {ship.nav_status != null && ship.nav_status !== '' && ship.nav_status !== 15 && <p>Navigation Status: {getNavStatusString(ship.nav_status)}</p>}
-                        {ship.user_tags != null && ship.user_tags !== '' && <p>User Tags: {ship.user_tags.join(', ')}</p>}
+    return shipdata.map((ship) => {
+        const hasHeading = ship.heading_deg != null && ship.heading_deg !== '';
+        const customIcon = createShipIcon(ship.ship_name, hasHeading);
+
+        return (
+            <Marker
+                key={ship.vessel_data_id}
+                position={[ship.latitude, ship.longitude]}
+                icon={customIcon}
+                rotationOrigin="center"
+                rotationAngle={shipDegCheck(ship.heading_deg)}
+                zIndexOffset={600}
+            >
+                <Popup autoPan={false} className="vesselpopup">
+                    <div>
+                        <h3>{ship.ship_name}</h3>
+                        {ship.ship_type != null && ship.ship_type !== '' && <p><i>Type: {ship.ship_type}</i></p>}
+                        <hr />
+                        <div className="info">
+                            <p>MMSI: {ship.mmsi}</p>
+                            <p>IMO: {ship.imo}</p>
+                            {ship.beam_meters != null && ship.beam_meters !== '' && <p>Beam length (m): {ship.beam_meters}</p>}
+                            {ship.length_meters != null && ship.length_meters !== '' && <p>Vessel length (m): {ship.length_meters}</p>}
+                            {ship.flag != null && ship.flag !== '' && <p>Flag: {ship.flag}</p>}
+                            {ship.speed_knots != null && ship.speed_knots !== '' && <p>Speed (kts): {ship.speed_knots}</p>}
+                            {ship.course_deg != null && ship.course_deg !== '' && <p>Course (deg): {ship.course_deg}</p>}
+                            {ship.heading_deg != null && ship.heading_deg !== '' && <p>Heading (deg): {ship.heading_deg}</p>}
+                            {ship.rate_of_turn != null && ship.rate_of_turn !== '' && <p>Rate of turn (deg/min): {ship.rate_of_turn}</p>}
+                            {ship.nav_status != null && ship.nav_status !== '' && ship.nav_status !== 15 && <p>Navigation Status: {getNavStatusString(ship.nav_status)}</p>}
+                            {ship.user_tags != null && ship.user_tags !== '' && <p>User Tags: {ship.user_tags.join(', ')}</p>}
+                        </div>
+                        <i>Last pinged: {getTimeAgo(new Date(ship.timestamp))}</i>
                     </div>
-
-                    <i>Last pinged: {getTimeAgo(new Date(ship.timestamp))}</i>
-                </div>
-            </Popup>
-        </Marker>
-        )))
+                </Popup>
+            </Marker>
+        );
+    });
 }
 
 export function CourseDirMarkers({ shipdata }) {
     if (!Array.isArray(shipdata)) {
         return null;
     }
-    
-    return (shipdata.map((ship) => (
-        <Marker
-        key={ship.vessel_data_id}
-        position = {[ship.latitude, ship.longitude]}
-        icon = {lineIcon}
-        rotationOrigin="center"
-        rotationAngle={shipDegCheck(ship.course_deg)}
-        >
-            
-        </Marker>
-        )))
+
+    return shipdata
+        // filter out those with no course data
+        .filter(ship => ship.course_deg != null && ship.course_deg !== '')
+        .map((ship) => {
+            const lineIcon = createCourseLineIcon();
+
+            return (
+                <Marker
+                    key={`course-${ship.vessel_data_id}`}
+                    position={[ship.latitude, ship.longitude]}
+                    icon={lineIcon}
+                    rotationOrigin="center bottom"
+                    rotationAngle={shipDegCheck(ship.course_deg)}
+                    interactive={false}
+                />
+            );
+        });
 }
