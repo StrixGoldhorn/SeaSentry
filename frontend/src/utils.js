@@ -870,3 +870,12 @@ export async function delete_alert_rule({
         .then(res => res.json())
         .catch(err => console.error(err));
 }
+
+export async function scrape_aoi(aoi_id) {
+    const url = config.api_url + `/api/v1/aois/${aoi_id}/scrape`;
+    return await fetch(url, {
+        method: "POST"
+    })
+    .then(res => res.json())
+    .catch(err => console.error(err))
+}

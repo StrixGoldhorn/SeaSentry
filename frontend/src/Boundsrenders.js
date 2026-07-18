@@ -1,5 +1,5 @@
 import { PolygonOverlay } from "./Polygon";
-import { delete_AOI, delete_geofence } from "./utils";
+import { delete_AOI, delete_geofence, scrape_aoi } from "./utils";
 
 
 
@@ -34,6 +34,8 @@ export function RenderAOIs({
                 })
             }
 
+            scrapeFunction={({ id }) => scrape_aoi(id)}
+
             refreshFunction={refreshAOIs}
 
             onEdit={onEdit}
@@ -41,6 +43,7 @@ export function RenderAOIs({
 
             editLabel="Edit AOI"
             deleteLabel="Delete AOI"
+            scrapeLabel="Scrape AOI"
         />
 
     ));

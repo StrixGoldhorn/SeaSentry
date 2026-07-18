@@ -11,12 +11,14 @@ export function PolygonOverlay({
     timestampField,
 
     deleteFunction,
+    scrapeFunction,
     refreshFunction,
     onEdit,
     editing,
 
     editLabel = "Edit",
-    deleteLabel = "Delete"
+    deleteLabel = "Delete",
+    scrapeLabel = "Scrape"
 }) {
 
     const polyOptions = {
@@ -59,6 +61,35 @@ export function PolygonOverlay({
             console.error(err);
 
             alert("Delete failed");
+
+        }
+    }
+
+    async function handleScrape() {
+
+        const confirmed = window.confirm(
+            `Confirm scrape "${item[nameField]}"?\nDo not spam this too often, even with different AOIs.`
+        );
+
+        if (!confirmed) {
+            return;
+        }
+
+        try {
+
+            await scrapeFunction({
+                id: item[idField]
+            });
+
+            if (refreshFunction) {
+                refreshFunction();
+            }
+
+        } catch (err) {
+
+            console.error(err);
+
+            alert("Force scrape failed");
 
         }
     }
@@ -110,27 +141,42 @@ export function PolygonOverlay({
                         {item[polygonField].length}
                     </p>
 
-                    
+                    <div style={{
+                        display: 'grid',
+                        gridTemplateColumns: '1fr 1fr',
+                        gap: '10px',
+                        padding: '0px'
+                    }}>
+                        <button
+                            style={{
+                                gridColumn: 'span 2',
+                                margin: '0px',
 
-                    <button
-                        style={{
-                            width: "100%",
-                            marginTop: 10
-                        }}
-                        onClick={() => onEdit(item)}
-                    >
-                        {editLabel}
-                    </button>
+                            }}
+                            onClick={handleScrape}
+                        >
+                            {scrapeLabel}
+                        </button>
 
-                    <button
-                        style={{
-                            width: "100%",
-                            marginTop: 10
-                        }}
-                        onClick={handleDelete}
-                    >
-                        {deleteLabel}
-                    </button>
+                        <button
+                            style={{
+                                margin: '0px',
+                            }}
+                            onClick={() => onEdit(item)}
+                        >
+                            {editLabel}
+                        </button>
+
+                        <button
+                            style={{
+                                background: "#c01e1e",
+                                margin: '0px',
+                            }}
+                            onClick={handleDelete}
+                        >
+                            {deleteLabel}
+                        </button>
+                    </div>                    
 
                 </div>
 
