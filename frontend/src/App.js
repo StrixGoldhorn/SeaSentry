@@ -6,6 +6,8 @@ import SidebarGeofenceDrawPage from "./SidebarGeofenceDraw";
 import UnreadAlertHistoryPage from "./UnreadAlertHistoryPage";
 import AllAlertHistoryPage from "./AllAlertHistoryPage";
 import VesselTablePage from "./VesselTablePage";
+import VesselHistoryMap from "./VesselHistoryMap";
+import VesselHistoryPage from "./VesselHistoryPage";
 
 
 function App() {
@@ -16,6 +18,10 @@ function App() {
       <Route path="/drawGeofenceSidebar" element={<SidebarGeofenceDrawPage />} />
       <Route path="/inputs" element={<RequestInputPage />} />
       <Route path="/vessels" element={<VesselTablePage />} />
+      <Route
+        path="/vessel-history/:vesselDataId"
+        element={<VesselHistoryPage />}
+      />
       <Route path="/alerts/history/unread" element={<UnreadAlertHistoryPage/>} />
       <Route path="/alerts/history/all" element={<AllAlertHistoryPage/>} />
     </Routes>

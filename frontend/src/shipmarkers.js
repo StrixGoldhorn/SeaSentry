@@ -2,6 +2,7 @@ import * as L from "leaflet";
 import { Marker, Popup } from "react-leaflet";
 import "leaflet-rotatedmarker";
 import "./styles.css";
+import { useNavigate } from "react-router";
 
 function getColorFromShiptype(ship_type) {
     if (ship_type == null) {
@@ -24,7 +25,7 @@ function getColorFromShiptype(ship_type) {
     return colorMap[ship_type];
 }
 
-function createShipIcon(shipname, hasHeading, ship_type, size = 20) {
+export function createShipIcon(shipname, hasHeading, ship_type, size = 20) {
     const color = getColorFromShiptype(ship_type)
 
     if (hasHeading) {
@@ -151,27 +152,30 @@ const getNavStatusString = (nav_status) => {
     return "Unknown";
 }
 
-export function ShipMarkers({ shipdata }) {
-    if (!Array.isArray(shipdata)) {
-        return null;
-    }
+function ShipMarker({ ship }) {
+    const navigate = useNavigate();
 
-    return shipdata.map((ship) => {
-        const hasHeading = ship.heading_deg != null && ship.heading_deg !== '';
-        const customIcon = createShipIcon(ship.ship_name, hasHeading, ship.ship_type);
+    const hasHeading =
+        ship.heading_deg != null &&
+        ship.heading_deg !== "";
 
-        return (
-            <Marker
-                key={ship.vessel_data_id}
-                position={[ship.latitude, ship.longitude]}
-                icon={customIcon}
-                rotationOrigin="center"
-                rotationAngle={shipDegCheck(ship.heading_deg)}
-                zIndexOffset={600}
-            >
-                <Popup autoPan={false} className="vesselpopup">
-                    <div>
-                        <h3>{ship.ship_name}</h3>
+    const customIcon = createShipIcon(
+        ship.ship_name,
+        hasHeading,
+        ship.ship_type
+    );
+
+    return (
+        <Marker
+            position={[ship.latitude, ship.longitude]}
+            icon={customIcon}
+            rotationOrigin="center"
+            rotationAngle={shipDegCheck(ship.heading_deg)}
+            zIndexOffset={600}
+        >
+            <Popup autoPan={false} className="vesselpopup">
+                <div>
+                    <h3>{ship.ship_name}</h3>
                         {ship.ship_type != null && ship.ship_type !== '' && <p><i>Type: {ship.ship_type}</i></p>}
                         <hr />
                         <div className="info">
@@ -187,13 +191,78 @@ export function ShipMarkers({ shipdata }) {
                             {ship.nav_status != null && ship.nav_status !== '' && ship.nav_status !== 15 && <p>Navigation Status: {getNavStatusString(ship.nav_status)}</p>}
                             {ship.user_tags != null && ship.user_tags !== '' && <p>User Tags: {ship.user_tags.join(', ')}</p>}
                         </div>
-                        <i>Last pinged: {getTimeAgo(new Date(ship.timestamp))}</i>
-                    </div>
-                </Popup>
-            </Marker>
-        );
-    });
+                    <button
+                        onClick={() =>
+                            window.open(
+                                `/vessel-history/${ship.vessel_data_id}`,
+                                "_blank"
+                            )
+                        }
+                    >
+                        View History
+                    </button>
+                </div>
+            </Popup>
+        </Marker>
+    );
 }
+
+export function ShipMarkers({ shipdata }) {
+    if (!Array.isArray(shipdata)) {
+        return null;
+    }
+
+    return shipdata.map(ship => (
+        <ShipMarker
+            key={ship.vessel_data_id}
+            ship={ship}
+        />
+    ));
+}
+
+// export function ShipMarkers({ shipdata }) {
+//     if (!Array.isArray(shipdata)) {
+//         return null;
+//     }
+
+//     return shipdata.map((ship) => {
+//         const hasHeading = ship.heading_deg != null && ship.heading_deg !== '';
+//         const customIcon = createShipIcon(ship.ship_name, hasHeading, ship.ship_type);
+
+//         return (
+//             <Marker
+//                 key={ship.vessel_data_id}
+//                 position={[ship.latitude, ship.longitude]}
+//                 icon={customIcon}
+//                 rotationOrigin="center"
+//                 rotationAngle={shipDegCheck(ship.heading_deg)}
+//                 zIndexOffset={600}
+//             >
+//                 <Popup autoPan={false} className="vesselpopup">
+//                     <div>
+//                         <h3>{ship.ship_name}</h3>
+//                         {ship.ship_type != null && ship.ship_type !== '' && <p><i>Type: {ship.ship_type}</i></p>}
+//                         <hr />
+//                         <div className="info">
+//                             <p>MMSI: {ship.mmsi}</p>
+//                             <p>IMO: {ship.imo}</p>
+//                             {ship.beam_meters != null && ship.beam_meters !== '' && <p>Beam length (m): {ship.beam_meters}</p>}
+//                             {ship.length_meters != null && ship.length_meters !== '' && <p>Vessel length (m): {ship.length_meters}</p>}
+//                             {ship.flag != null && ship.flag !== '' && <p>Flag: {ship.flag}</p>}
+//                             {ship.speed_knots != null && ship.speed_knots !== '' && <p>Speed (kts): {ship.speed_knots}</p>}
+//                             {ship.course_deg != null && ship.course_deg !== '' && <p>Course (deg): {ship.course_deg}</p>}
+//                             {ship.heading_deg != null && ship.heading_deg !== '' && <p>Heading (deg): {ship.heading_deg}</p>}
+//                             {ship.rate_of_turn != null && ship.rate_of_turn !== '' && <p>Rate of turn (deg/min): {ship.rate_of_turn}</p>}
+//                             {ship.nav_status != null && ship.nav_status !== '' && ship.nav_status !== 15 && <p>Navigation Status: {getNavStatusString(ship.nav_status)}</p>}
+//                             {ship.user_tags != null && ship.user_tags !== '' && <p>User Tags: {ship.user_tags.join(', ')}</p>}
+//                         </div>
+//                         <i>Last pinged: {getTimeAgo(new Date(ship.timestamp))}</i>
+//                     </div>
+//                 </Popup>
+//             </Marker>
+//         );
+//     });
+// }
 
 export function CourseDirMarkers({ shipdata }) {
     if (!Array.isArray(shipdata)) {

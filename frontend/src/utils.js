@@ -60,9 +60,9 @@ export async function get_all_ships({
         `${config.api_url}/api/v1/vessels/all?${params.toString()}`;
 
     return fetch(url)
-        .then(res => res.json())
-        .then(data => data)
-        .catch(err => console.error(err));
+    .then(res => res.json())
+    .then(data => data)
+    .catch(err => console.error(err));
 }
 
 //Query for vessel data with given vessel_data_id
@@ -70,8 +70,6 @@ export async function get_ship_using_data_id({vessel_data_id}) {
     if (vessel_data_id == null) {
         return null;
     }
-
-
     let url = config.api_url + `/api/v1/vessels/`
     +`${vessel_data_id}`;
 
@@ -82,10 +80,23 @@ export async function get_ship_using_data_id({vessel_data_id}) {
 }
 
 //Returns list of vessel locations tagged to the vessel
-//TODO
+export async function get_ship_location_history({
+    vessel_data_id,
+    start_time_str = null,
+    end_time_str = null,
+}) {
+    const params = new URLSearchParams();
 
+    if (start_time_str) params.append("start_time_str", start_time_str);
+    if (end_time_str) params.append("end_time_str", end_time_str);
 
-//
+    const url = `${config.api_url}/api/v1/vessels/${vessel_data_id}/history?${params.toString()}`;
+
+    return fetch(url)
+    .then(res => res.json())
+    .then(data => data)
+    .catch(err => console.error(err));
+}
 
 
 
