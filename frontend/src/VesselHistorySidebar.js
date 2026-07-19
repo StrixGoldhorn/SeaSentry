@@ -24,8 +24,12 @@ const getNavStatusString = (navStatus) => {
 };
 
 export default function VesselHistorySidebar({
-  vessel,
-  history,
+    vessel,
+    history,
+    startTime,
+    endTime,
+    setStartTime,
+    setEndTime,
 }) {
   if (!vessel) {
     return (
@@ -40,6 +44,56 @@ export default function VesselHistorySidebar({
 
   return (
     <div className="history-sidebar">
+
+        <div
+            style={{
+                padding: "12px",
+                borderBottom: "1px solid #ccc",
+            }}
+        >
+            <h3>History Filter</h3>
+
+            <label>
+                Start Time
+            </label>
+
+            <input
+                type="datetime-local"
+                value={startTime}
+                onChange={(e) => setStartTime(e.target.value)}
+                style={{
+                    width: "100%",
+                    marginBottom: "10px",
+                }}
+            />
+
+            <label>
+                End Time
+            </label>
+
+            <input
+                type="datetime-local"
+                value={endTime}
+                onChange={(e) => setEndTime(e.target.value)}
+                style={{
+                    width: "100%",
+                }}
+            />
+
+            <button
+                onClick={() => {
+                    setStartTime("");
+                    setEndTime("");
+                }}
+                style={{
+                    marginTop: "10px",
+                    fontSize: "12px",
+                    padding: "4px 8px",
+                }}
+            >
+                Clear Filters
+            </button>
+        </div>
 
       <h2>{vessel.ship_name}</h2>
 

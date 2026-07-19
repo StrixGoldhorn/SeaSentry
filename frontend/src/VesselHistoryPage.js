@@ -15,6 +15,8 @@ export default function VesselHistoryPage() {
     const [loading, setLoading] = useState(true);
     const [vessel, setVessel] = useState(null);
     const [history, setHistory] = useState([]);
+    const [startTime, setStartTime] = useState("");
+    const [endTime, setEndTime] = useState("");
 
     useEffect(() => {
         async function load() {
@@ -26,6 +28,12 @@ export default function VesselHistoryPage() {
                 }),
                 get_ship_location_history({
                     vessel_data_id: Number(vesselDataId),
+                    start_time_str: startTime
+                        ? new Date(startTime).toISOString()
+                        : null,
+                    end_time_str: endTime
+                        ? new Date(endTime).toISOString()
+                        : null,
                 }),
             ]);
 
@@ -36,7 +44,7 @@ export default function VesselHistoryPage() {
         }
 
         load();
-    }, [vesselDataId]);
+    }, [vesselDataId, startTime, endTime]);
 
     if (loading) {
         return <div>Loading...</div>;
@@ -53,11 +61,17 @@ export default function VesselHistoryPage() {
             <VesselHistoryMap
                 vessel={vessel}
                 history={history}
+                startTime={startTime}
+                endTime={endTime}
             />
 
             <VesselHistorySidebar
                 vessel={vessel}
                 history={history}
+                startTime={startTime}
+                endTime={endTime}
+                setStartTime={setStartTime}
+                setEndTime={setEndTime}
             />
         </div>
     );
