@@ -1,4 +1,5 @@
 import { Routes, Route } from "react-router";
+import TopBar from "./TopBar";
 import MapPage from "./MapPage";
 import { RequestInputPage } from "./RequestInputPage";
 import SidebarAOIDrawPage from "./SidebarAOIDraw";
@@ -12,6 +13,8 @@ import VesselHistoryPage from "./VesselHistoryPage";
 
 function App() {
   return (
+    <>
+    <TopBar/>
     <Routes>
       <Route path="/" element={<MapPage />} />
       <Route path="/drawAOIsidebar" element={<SidebarAOIDrawPage />} />
@@ -25,6 +28,7 @@ function App() {
       <Route path="/alerts/history/unread" element={<UnreadAlertHistoryPage/>} />
       <Route path="/alerts/history/all" element={<AllAlertHistoryPage/>} />
     </Routes>
+    </>
   );
 }
 
