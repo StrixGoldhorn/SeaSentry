@@ -191,6 +191,7 @@ function ShipMarker({ ship }) {
                             {ship.nav_status != null && ship.nav_status !== '' && ship.nav_status !== 15 && <p>Navigation Status: {getNavStatusString(ship.nav_status)}</p>}
                             {ship.user_tags != null && ship.user_tags !== '' && <p>User Tags: {ship.user_tags.join(', ')}</p>}
                         </div>
+                        <i>Last pinged: {getTimeAgo(new Date(ship.timestamp))}</i><br/>
                     <button
                         onClick={() =>
                             window.open(

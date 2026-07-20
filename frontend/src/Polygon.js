@@ -3,6 +3,7 @@ import { Polygon, Popup } from "react-leaflet";
 export function PolygonOverlay({
     item,
     color = "black",
+    zIndexOffset = 0,
 
     polygonField,
     idField,
@@ -27,7 +28,8 @@ export function PolygonOverlay({
         opacity: 0.3,
         fillColor: color,
         fillOpacity: 0.03,
-        pmIgnore: true
+        pmIgnore: true,
+        zIndexOffset
     };
 
     const polyBounds =

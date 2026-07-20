@@ -66,6 +66,7 @@ export function RenderGeofences({
             key={geofence.geofence_id}
             item={geofence}
             color="red"
+            zIndexOffset={1}
 
             polygonField="geofence_polygon"
             idField="geofence_id"
