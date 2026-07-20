@@ -34,13 +34,42 @@ export async function get_ships_on_screen({lat_min, lat_max, long_min, long_max,
     .catch(err => console.error(err));
 }
 
+//Query for all vessels in database, filters available
+export async function get_all_ships({
+    querystr = null,
+    name = null,
+    mmsi = null,
+    imo = null,
+    shiptype = null,
+    flag = null,
+    limit = null,
+    offset = null,
+}) {
+    const params = new URLSearchParams();
+
+    if (querystr) params.append("querystr", querystr);
+    if (name) params.append("name", name);
+    if (mmsi) params.append("mmsi", mmsi);
+    if (imo) params.append("imo", imo);
+    if (shiptype) params.append("shiptype", shiptype);
+    if (flag) params.append("flag", flag);
+    if (limit !== null) params.append("limit", limit);
+    if (offset !== null) params.append("offset", offset);
+
+    const url =
+        `${config.api_url}/api/v1/vessels/all?${params.toString()}`;
+
+    return fetch(url)
+    .then(res => res.json())
+    .then(data => data)
+    .catch(err => console.error(err));
+}
+
 //Query for vessel data with given vessel_data_id
 export async function get_ship_using_data_id({vessel_data_id}) {
     if (vessel_data_id == null) {
         return null;
     }
-
-
     let url = config.api_url + `/api/v1/vessels/`
     +`${vessel_data_id}`;
 
@@ -49,6 +78,27 @@ export async function get_ship_using_data_id({vessel_data_id}) {
     .then(data => data)
     .catch(err => console.error(err));
 }
+
+//Returns list of vessel locations tagged to the vessel
+export async function get_ship_location_history({
+    vessel_data_id,
+    start_time_str = null,
+    end_time_str = null,
+}) {
+    const params = new URLSearchParams();
+
+    if (start_time_str) params.append("start_time", start_time_str);
+    if (end_time_str) params.append("end_time", end_time_str);
+
+    const url = `${config.api_url}/api/v1/vessels/${vessel_data_id}/history?${params.toString()}`;
+
+    return fetch(url)
+    .then(res => res.json())
+    .then(data => data)
+    .catch(err => console.error(err));
+}
+
+
 
 //Updates an existing Vessel. Supports partial updates.
 export async function update_ship_using_data_id({
@@ -145,6 +195,34 @@ export async function add_VOI({ name, desc = null, mmsi, imo }) {
         {
             method: "POST",
             body: formData
+        }
+    )
+        .then(res => res.json())
+        .catch(err => console.error(err));
+}
+
+// Updates an existing Vessel of Interest. Supports partial updates.
+export async function update_VOI({
+    voi_id,
+    name = null,
+    desc = null,
+    mmsi = null,
+    imo = null,
+}) {
+    if (voi_id == null) return null;
+
+    const formData = new FormData();
+
+    appendIfNotNull(formData, "name", name);
+    appendIfNotNull(formData, "desc", desc);
+    appendIfNotNull(formData, "mmsi", mmsi);
+    appendIfNotNull(formData, "imo", imo);
+
+    return await fetch(
+        config.api_url + `/api/v1/vessel_of_interest/${voi_id}/update`,
+        {
+            method: "PATCH",
+            body: formData,
         }
     )
         .then(res => res.json())
@@ -660,7 +738,7 @@ export async function get_all_alert_rules() {
         .catch(err => console.error(err));
 }
 
-//Adds a new custom alert rule. Does NOT support nesting currently.
+//Adds a new custom alert rule. 
 export async function add_alert_rule({
     name,
     description = null,
@@ -782,4 +860,33 @@ export async function enable_alert_rule({
     })
     .then(res => res.json())
     .catch(err => console.error(err));
+}
+
+//Deletes an existing alert rule
+export async function delete_alert_rule({
+    alert_rule_id,
+    alert_rule_name
+}) {
+    if (alert_rule_id == null || alert_rule_name == null) {
+        return null;
+    }
+
+    const url =
+        config.api_url +
+        `/api/v1/alerts/rule/${alert_rule_id}/delete?alert_rule_name=${encodeURIComponent(alert_rule_name)}`;
+
+    return await fetch(url, {
+        method: "DELETE"
+    })
+        .then(res => res.json())
+        .catch(err => console.error(err));
+}
+
+export async function scrape_aoi(aoi_id) {
+    const url = config.api_url + `/api/v1/aois/${aoi_id}/scrape`;
+    return await fetch(url, {
+        method: "POST"
+    })
+    .then(res => res.json())
+    .catch(err => console.error(err))
 }

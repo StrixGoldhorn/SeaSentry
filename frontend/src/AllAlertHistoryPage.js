@@ -1,34 +1,35 @@
 import './styles.css';
-import { useEffect, useState } from "react";
 
-import { get_all_alert_history, get_unread_alert_history, mark_alert_read, mark_alert_unread} from "./utils";
-import { NavigateToMapButton } from "./NavigateButtons";
+import { useEffect, useMemo, useState } from "react";
+
+import {
+    get_all_alert_history,
+    mark_alert_read,
+    mark_alert_unread
+} from "./utils";
+
+import {
+    MaterialReactTable,
+    useMaterialReactTable,
+} from "material-react-table";
+
+import { Button } from "@mui/material";
+
 
 export default function AllAlertHistoryPage() {
 
     const [alerts, setAlerts] = useState([]);
-
-    const [filters, setFilters] = useState({
-        start_time: "",
-        end_time: ""
-    });
-
     const [loading, setLoading] = useState(false);
+
+    const [ruleFilter, setRuleFilter] = useState("");
+
 
     const loadAlerts = async () => {
 
         setLoading(true);
 
         const data = await get_all_alert_history({
-
-            start_time:
-                filters.start_time || null,
-
-            end_time:
-                filters.end_time || null,
-
-            limit: 100,
-
+            limit: 1000000,
             offset: 0
         });
 
@@ -41,32 +42,221 @@ export default function AllAlertHistoryPage() {
         setLoading(false);
     };
 
+
     useEffect(() => {
         loadAlerts();
     }, []);
 
+
+
     const toggleReadStatus = async (alert) => {
 
-        const id = alert.alert_history_id;
-
-        const isRead = alert.alert_history_read;
-
-        if (isRead) {
+        if (alert.alert_history_read) {
 
             await mark_alert_unread({
-                alert_history_id: id
+                alert_history_id:
+                    alert.alert_history_id
             });
 
         } else {
 
             await mark_alert_read({
-                alert_history_id: id
+                alert_history_id:
+                    alert.alert_history_id
             });
-
         }
 
         await loadAlerts();
     };
+
+
+
+    const ruleOptions = useMemo(() => {
+
+        const rules = alerts.map(
+            alert =>
+                alert.alert_history_context?.rule_name
+        )
+        .filter(Boolean);
+
+        return [
+            ...new Set(rules)
+        ];
+
+    }, [alerts]);
+
+
+
+    const filteredAlerts = useMemo(() => {
+
+        if (!ruleFilter) {
+            return alerts;
+        }
+
+        return alerts.filter(alert =>
+            alert.alert_history_context?.rule_name === ruleFilter
+        );
+
+    }, [
+        alerts,
+        ruleFilter
+    ]);
+
+
+
+const columns = [
+    {
+        accessorKey: "alert_history_id",
+        header: "ID",
+    },
+
+    {
+        accessorKey: "alert_history_timestamp",
+        header: "Timestamp",
+        Cell: ({ cell }) =>
+            new Date(cell.getValue()).toLocaleString(),
+    },
+
+    {
+        accessorKey: "alert_history_context.rule_name",
+        id: "rule_name",
+        header: "Alert Rule",
+    },
+
+    {
+        accessorKey: "alert_history_read",
+        header: "Status",
+        filterVariant: "select",
+        filterSelectOptions: [
+            {
+                label: "Read",
+                value: true,
+            },
+            {
+                label: "Unread",
+                value: false,
+            },
+        ],
+        filterFn: (row, id, filterValue) => {
+            return row.getValue(id) === filterValue;
+        },
+        Cell: ({ cell }) =>
+            cell.getValue()
+                ? "Read"
+                : "Unread",
+    },
+
+    {
+        accessorKey: "alert_history_context.matched_vessels",
+        id: "matched_vessels",
+        header: "Matched Vessels",
+
+        filterFn: (row, columnId, filterValue) => {
+            const vessels = row.original.alert_history_context?.matched_vessels || [];
+
+            const search = filterValue
+                .toLowerCase()
+                .trim();
+
+            if (!search) {
+                return true;
+            }
+
+            return vessels.some(vessel =>
+                [
+                    vessel.ship_name,
+                    vessel.mmsi,
+                    vessel.ship_type,
+                ]
+                .filter(Boolean)
+                .some(value =>
+                    String(value)
+                        .toLowerCase()
+                        .includes(search)
+                )
+            );
+        },
+
+        Cell: ({ cell }) => {
+            const vessels = cell.getValue() || [];
+
+            return (
+                <ul style={{ margin: 0, paddingLeft: 20 }}>
+                    {vessels.map(vessel => (
+                        <li key={vessel.ship_data_id}>
+                            {vessel.ship_name} ({vessel.mmsi})
+                            {vessel.ship_type && 
+                                ` - ${vessel.ship_type}`
+                            }
+                        </li>
+                    ))}
+                </ul>
+            );
+        },
+    },
+
+    {
+        id: "actions",
+        header: "Actions",
+        enableColumnFilter: false,
+        Cell: ({ row }) => {
+            const alert = row.original;
+
+            return (
+                <Button
+                    variant="contained"
+                    size="small"
+                    color={
+                        alert.alert_history_read
+                            ? "warning"
+                            : "primary"
+                    }
+                    onClick={() =>
+                        toggleReadStatus(alert)
+                    }
+                >
+                    Mark as{" "}
+                    {alert.alert_history_read
+                        ? "Unread"
+                        : "Read"}
+                </Button>
+            );
+        },
+    },
+];
+
+
+
+    const table = useMaterialReactTable({
+
+        columns,
+
+        data: filteredAlerts,
+
+        state: {
+            isLoading: loading,
+        },
+
+
+        enablePagination: true,
+
+        initialState: {
+            pagination: {
+                pageSize: 20,
+                pageIndex: 0,
+            }
+        },
+
+
+        muiTableContainerProps: {
+            sx: {
+                maxHeight: "70vh"
+            }
+        }
+
+    });
+
+
 
     return (
 
@@ -76,156 +266,62 @@ export default function AllAlertHistoryPage() {
             }}
         >
 
-            <h1>Alert History</h1>
+            <h1>
+                Alert History
+            </h1>
+
 
             <div
                 style={{
-                    display: "flex",
-                    gap: "10px",
-                    marginBottom: "20px"
+                    marginBottom: "15px"
                 }}
             >
 
-                <div>
+                <label>
+                    Filter by Rule:
+                </label>
 
-                    <div>Start Time</div>
 
-                    <input
-                        type="datetime-local"
-                        value={filters.start_time}
-                        onChange={(e) =>
-                            setFilters({
-                                ...filters,
-                                start_time: e.target.value
-                            })
-                        }
-                    />
-
-                </div>
-
-                <div>
-
-                    <div>End Time</div>
-
-                    <input
-                        type="datetime-local"
-                        value={filters.end_time}
-                        onChange={(e) =>
-                            setFilters({
-                                ...filters,
-                                end_time: e.target.value
-                            })
-                        }
-                    />
-
-                </div>
-
-                <button
-                    onClick={loadAlerts}
+                <select
+                    value={ruleFilter}
+                    onChange={(e) =>
+                        setRuleFilter(
+                            e.target.value
+                        )
+                    }
+                    style={{
+                        marginLeft: "10px"
+                    }}
                 >
-                    Search
-                </button>
+
+                    <option value="">
+                        All Rules
+                    </option>
+
+                    {
+                        ruleOptions.map(rule => (
+                            <option
+                                key={rule}
+                                value={rule}
+                            >
+                                {rule}
+                            </option>
+                        ))
+                    }
+
+                </select>
 
             </div>
 
-            {loading && (
-                <div>Loading...</div>
-            )}
 
-            {!loading && alerts.length === 0 && (
-                <div>No alerts found.</div>
-            )}
-
-            {alerts.map(alert => {
-
-                const id = alert.alert_history_id;
-
-                const isRead = alert.alert_history_read;
-
-                return (
-
-                    <div
-                        key={id}
-
-                        className={
-                            isRead
-                            ? "alert-card read"
-                            : "alert-card"
-                        }
-                    >
-
-                        <h3>
-                            Alert #{id}
-                        </h3>
-
-                        <p>
-                            <strong>Status:</strong>
-                            {" "}
-                            {isRead
-                                ? "Read"
-                                : "Unread"}
-                        </p>
-
-                        <p>
-                            <strong>Timestamp:</strong>{" "}
-                            {new Date(alert.alert_history_timestamp).toLocaleString()}
-                        </p>
-
-                        <p>
-                            <strong>Rule:</strong>{" "}
-                            {alert.alert_history_context?.rule_name}
-                        </p>
-
-                        {alert.alert_history_context?.matched_vessels?.length > 0 && (
-                            <>
-                                <p><strong>Matched Vessel</strong>
-</p>
-                                <ul>
-                                    {alert.alert_history_context.matched_vessels.map(vessel => (
-                                        <li key={vessel.ship_data_id}>
-                                            {vessel.ship_name} ({vessel.mmsi})
-                                        </li>
-                                    ))}
-                                </ul>
-                            </>
-                        )}
-
-                        <button
-                            onClick={() =>
-                                toggleReadStatus(alert)
-                            }
-                        >
-                            Mark as {isRead ? "Unread" : "Read"}
-                        </button>
-
-                        <details
-                            style={{
-                                marginTop: "10px"
-                            }}
-                        >
-                            <summary>
-                                Show Full JSON
-                            </summary>
-
-                            <pre>
-                                {JSON.stringify(
-                                    alert,
-                                    null,
-                                    2
-                                )}
-                            </pre>
-
-                        </details>
-
-                    </div>
-
-                );
-
-            })}
-            <NavigateToMapButton/>
+            <MaterialReactTable
+                table={table}
+                data={alerts}
+                enablePagination
+                enableColumnFilters
+            />
 
         </div>
-        
 
     );
 }

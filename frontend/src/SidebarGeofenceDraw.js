@@ -2,11 +2,10 @@ import "leaflet/dist/leaflet.css";
 import './styles.css';
 import { MapContainer, TileLayer, Marker, Popup, Rectangle, Polygon, useMapEvent, useMapEvents } from 'react-leaflet';
 import { Icon } from "leaflet";
-import CursorIcon from "./cursor.png";
 import { useEffect, useState } from "react";
 import { ShipMarkers, CourseDirMarkers } from "./shipmarkers.js";
 import * as utils from './utils.js';
-import { MapBoundsTracker } from "./screenbounds.js";
+import { MapBoundsTracker, MapStateSaver, getMapCenter, getMapZoom } from "./screenbounds.js";
 import { RenderAOIs, RenderGeofences } from "./Boundsrenders.js";
 import { NavigateToInputsButton,  NavigateToMapButton } from "./NavigateButtons.js";
 
@@ -65,6 +64,8 @@ export default function SidebarGeofenceDrawPage() {
       }, [mapBounds]);
 
     
+    let initialCenter = getMapCenter();
+    let initialZoom = getMapZoom();
 
     return (
         <div
@@ -95,8 +96,7 @@ export default function SidebarGeofenceDrawPage() {
                 }}
             >
                 <MapContainer
-                    center={[1.29, 103.85]}
-                    zoom={12}
+                    center={initialCenter} zoom={initialZoom}
                     style={{
                         height: "100%",
                         width: "100%"
