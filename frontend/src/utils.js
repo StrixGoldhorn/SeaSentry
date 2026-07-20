@@ -87,8 +87,8 @@ export async function get_ship_location_history({
 }) {
     const params = new URLSearchParams();
 
-    if (start_time_str) params.append("start_time_str", start_time_str);
-    if (end_time_str) params.append("end_time_str", end_time_str);
+    if (start_time_str) params.append("start_time", start_time_str);
+    if (end_time_str) params.append("end_time", end_time_str);
 
     const url = `${config.api_url}/api/v1/vessels/${vessel_data_id}/history?${params.toString()}`;
 

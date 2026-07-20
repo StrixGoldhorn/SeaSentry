@@ -20,7 +20,7 @@
 
 /* sizing of map container*/
 .leaflet-container {
-    height: 100vh;
+    height: calc(100vh - 50px);
 }
 
 

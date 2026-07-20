@@ -10,13 +10,6 @@ const CopernicusImageryLayerControl = () => {
     const savedId = localStorage.getItem('sentinelHubInstanceId');
     if (savedId) {
       setInstanceId(savedId);
-    } else {
-      // Prompt if not set
-      const newId = window.prompt("Enter Instance ID to enable satellite imagery:");
-      if (newId) {
-        localStorage.setItem('sentinelHubInstanceId', newId);
-        setInstanceId(newId);
-      }
     }
   }, []);
 

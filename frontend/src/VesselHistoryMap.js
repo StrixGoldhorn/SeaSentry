@@ -41,8 +41,8 @@ function PolylineArrows({ positions }) {
     const decorator = L.polylineDecorator(polyline, {
       patterns: [
         {
-          offset: 25,
-          repeat: 50,
+          offset: 50,
+          repeat: 200,
           symbol: L.Symbol.arrowHead({
             pixelSize: 10,
             polygon: true,
@@ -138,17 +138,16 @@ export default function VesselHistoryMap({
             <CircleMarker
             key={point.location_id}
             center={[point.latitude, point.longitude]}
-            radius={selectedPoint === point.location_id ? 7 : 4}
+            radius={selectedPoint === point.location_id ? 10 : 7}
             pathOptions={{
-                color:
-                selectedPoint === point.location_id
-                    ? "#ff9800"
-                    : "#1976d2",
+                stroke: true,
+                weight: 1,
+                color: "#222",
                 fillColor:
                 selectedPoint === point.location_id
                     ? "#ff9800"
-                    : "#1976d2",
-                fillOpacity: 0.9,
+                    : "#88c1c1",
+                fillOpacity: 1,
             }}
             eventHandlers={{
                 popupopen: () => setSelectedPoint(point.location_id),
@@ -211,10 +210,50 @@ export default function VesselHistoryMap({
         >
             <Popup>
                 <b>Start</b>
-                <br />
-                {new Date(first.timestamp).toLocaleString()}
-                <br />
-                Speed: {first.speed_knots ?? "-"} kn
+                <hr/>
+                <table>
+                    <tbody>
+                    <tr>
+                        <td><strong>Time</strong></td>
+                        <td>{new Date(first.timestamp).toLocaleString()}</td>
+                    </tr>
+
+                    <tr>
+                        <td><strong>Latitude</strong></td>
+                        <td>{first.latitude.toFixed(6)}</td>
+                    </tr>
+
+                    <tr>
+                        <td><strong>Longitude</strong></td>
+                        <td>{first.longitude.toFixed(6)}</td>
+                    </tr>
+
+                    <tr>
+                        <td><strong>Speed</strong></td>
+                        <td>{first.speed_knots ?? "-"} kn</td>
+                    </tr>
+
+                    <tr>
+                        <td><strong>Course</strong></td>
+                        <td>{first.course_deg ?? "-"}°</td>
+                    </tr>
+
+                    <tr>
+                        <td><strong>Heading</strong></td>
+                        <td>{first.heading_deg ?? "-"}°</td>
+                    </tr>
+
+                    <tr>
+                        <td><strong>Navigation Status</strong></td>
+                        <td>{first.nav_status ?? "-"}</td>
+                    </tr>
+
+                    <tr>
+                        <td><strong>Rate of Turn</strong></td>
+                        <td>{first.rate_of_turn ?? "-"}</td>
+                    </tr>
+                    </tbody>
+                </table>
             </Popup>
         </Marker>
 
@@ -226,10 +265,50 @@ export default function VesselHistoryMap({
         >
             <Popup>
                 <b>End</b>
-                <br />
-                {new Date(last.timestamp).toLocaleString()}
-                <br />
-                Speed: {last.speed_knots ?? "-"} kn
+                <hr/>
+                <table>
+                    <tbody>
+                    <tr>
+                        <td><strong>Time</strong></td>
+                        <td>{new Date(last.timestamp).toLocaleString()}</td>
+                    </tr>
+
+                    <tr>
+                        <td><strong>Latitude</strong></td>
+                        <td>{last.latitude.toFixed(6)}</td>
+                    </tr>
+
+                    <tr>
+                        <td><strong>Longitude</strong></td>
+                        <td>{last.longitude.toFixed(6)}</td>
+                    </tr>
+
+                    <tr>
+                        <td><strong>Speed</strong></td>
+                        <td>{last.speed_knots ?? "-"} kn</td>
+                    </tr>
+
+                    <tr>
+                        <td><strong>Course</strong></td>
+                        <td>{last.course_deg ?? "-"}°</td>
+                    </tr>
+
+                    <tr>
+                        <td><strong>Heading</strong></td>
+                        <td>{last.heading_deg ?? "-"}°</td>
+                    </tr>
+
+                    <tr>
+                        <td><strong>Navigation Status</strong></td>
+                        <td>{last.nav_status ?? "-"}</td>
+                    </tr>
+
+                    <tr>
+                        <td><strong>Rate of Turn</strong></td>
+                        <td>{last.rate_of_turn ?? "-"}</td>
+                    </tr>
+                    </tbody>
+                </table>
             </Popup>
         </Marker>
     </MapContainer>
