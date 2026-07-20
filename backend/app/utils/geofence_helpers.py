@@ -217,8 +217,6 @@ def check_if_geofence_name_exists(name: str, exclude_id: int = None):
         session.rollback()
         logger.error("DB Error in check_if_geofence_name_exists: %s", e)
         raise
-    finally:
-        DBConn.close_session()
 
 
 def delete_geofence_in_db(geofence_id: int):
