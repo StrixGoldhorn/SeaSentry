@@ -119,8 +119,8 @@ Returns:
 Summary: Returns list of vessel locations tagged to the vessel
 
 Query Params (all optional):
-- start_time_str: (optional, datetime, eg '2026-06-07T12:00:00Z', default datetime.min)
-- end_time_str: (optional, datetime, eg '2026-06-07T12:00:00Z', default datetime.now)
+- start_time: (optional, datetime, eg '2026-06-07T12:00:00Z', default datetime.min)
+- end_time: (optional, datetime, eg '2026-06-07T12:00:00Z', default datetime.now)
 
 Returns:
 - 200 with list of vessel locations
