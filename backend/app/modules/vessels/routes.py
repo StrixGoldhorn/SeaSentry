@@ -30,7 +30,7 @@ def get_vessels_in_bbox():
     Query Params:
     - time_within: int (time in seconds, default 24hrs ie 60 * 60 * 24)
     - lat_min, lat_max, long_min, long_max: float (bounding box)
-    - limit: int (default 1_000, max 10_000)
+    - limit: int (default 500, max 5000)
     '''
 
     try:
@@ -44,7 +44,7 @@ def get_vessels_in_bbox():
             return jsonify({"error": "Bounding box expected."}), 400
 
         try:
-            limit = min(int(request.args.get("limit", default = 1_000)), 10_000)
+            limit = min(int(request.args.get("limit", default = 500)), 5000)
         except (ValueError, TypeError):
             return jsonify({"error": "Invalid limit format. Must be an integer."}), 400
 
