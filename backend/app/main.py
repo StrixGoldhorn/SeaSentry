@@ -81,6 +81,15 @@ def create_app():
 
     CORS(app, resources={r"/api/*": {"origins": Settings.CORS_ALLOWED}})
 
+    # force headers to be no cache to fix the filtering stuff
+    @app.after_request
+    def add_no_cache_headers(response):
+        if response.content_type.startswith("application/json"):
+            response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+            response.headers["Pragma"] = "no-cache"
+            response.headers["Expires"] = "0"
+        return response
+
     @app.teardown_appcontext
     def teardown_session(exception = None):
         DBConn.close_session()

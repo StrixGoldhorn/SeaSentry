@@ -252,8 +252,6 @@ def check_if_aoi_name_exists(name: str, exclude_id: int = None):
         session.rollback()
         logger.error("DB Error in check_if_aoi_name_exists: %s", e)
         raise
-    finally:
-        DBConn.close_session()
 
 def delete_aoi_in_db(aoi_id: int):
     '''
