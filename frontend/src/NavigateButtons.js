@@ -113,3 +113,22 @@ export function NavigateToAllAlertHistoryButton() {
     </button>
   );
 }
+
+export function NavigateToVesselsButton() {
+  const navigate = useNavigate();
+
+  return (
+    <button
+      onClick={() => navigate("/vessels")}
+      style={{
+        position: "absolute",
+        top: "220px",
+        right: "20px",
+        zIndex: 1000,
+        padding: "10px 15px",
+      }}
+    >
+      Go to Vessels
+    </button>
+  );
+}
