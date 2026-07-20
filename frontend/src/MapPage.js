@@ -20,7 +20,7 @@ function MapPage() {
   const [shipData, setshipData] = useState({});
   const [aoiData, setaoiData] = useState({});
   const [geofenceData, setgeofenceData] = useState({});
-  const [mapBounds, setmapBounds] = useState({lat_min:0, lat_max:0, long_min:0, long_max:0});
+  const [mapBounds, setmapBounds] = useState(null);
 
   const [editingItem, setEditingItem] = useState(null);
   const [editingType, setEditingType] = useState(null);
@@ -111,14 +111,14 @@ function MapPage() {
 
   //useEffects
   useEffect(() => {
-    utils.get_ships_on_screen(mapBounds)
-      .then(fetchdata => {
-          if (fetchdata === null) {
-            console.log("API did not return data");
-          } else {
-            setshipData(fetchdata);
-          }
-        })
+      if (!mapBounds) return;
+
+      utils.get_ships_on_screen(mapBounds)
+          .then(fetchdata => {
+              if (fetchdata) {
+                  setshipData(fetchdata);
+              }
+          });
   }, [mapBounds]);
 
   useEffect(() => {
