@@ -75,7 +75,7 @@ Summary: Query latest vessel positions within a bounding box
 Query Params:
 - lat_min, lat_max, long_min, long_max: float (bounding box)
 - time_within: int (optional, time in seconds, default 24hrs ie 60 * 60 * 24)
-- limit: int (optional, default 50, max 1000)
+- limit: int (optional, default 1_000, max 10_000)
 
 E.g. `/api/v1/vessels/bbox?lat_min=1.2535&lat_max=1.2664&long_min=103.8233&long_max=103.8559&limit=25&time_within=670`
 
