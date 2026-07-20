@@ -25,15 +25,15 @@ export default function TopBar() {
         pages.find((p) => location.pathname === p.path)?.path || false;
 
     return (
-        <AppBar position="static" elevation={1}>
+        <>
+        <AppBar position="fixed" elevation={1}>
             <Toolbar
                 variant="dense"
                 sx={{
-                    minHeight: 44,
+                    minHeight: 35,
                     px: 2,
                 }}
             >
-
 
                 <Tabs
                     value={currentTab}
@@ -41,7 +41,7 @@ export default function TopBar() {
                     textColor="inherit"
                     indicatorColor="secondary"
                     sx={{
-                        minHeight: 44,
+                        minHeight: 35,
                         "& .MuiTabs-indicator": {
                             height: 3,
                         },
@@ -53,7 +53,7 @@ export default function TopBar() {
                             value={page.path}
                             label={page.label}
                             sx={{
-                                minHeight: 44,
+                                minHeight: 35,
                                 textTransform: "none",
                                 fontSize: "0.9rem",
                                 px: 2,
@@ -63,5 +63,12 @@ export default function TopBar() {
                 </Tabs>
             </Toolbar>
         </AppBar>
+        <Toolbar
+            variant="dense"
+            sx={{
+                minHeight: 44,
+            }}
+        />
+        </>
     );
 }

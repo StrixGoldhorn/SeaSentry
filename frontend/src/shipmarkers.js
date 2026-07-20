@@ -199,9 +199,8 @@ function ShipMarker({ ship }) {
                         <div>
                             <button
                                 onClick={() => {
-                                    window.open(
+                                    navigate(
                                         `/vessel-history/${ship.vessel_data_id}`,
-                                        "_blank"
                                     );
                                 }}
                             >
