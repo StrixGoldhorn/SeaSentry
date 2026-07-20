@@ -192,7 +192,7 @@ function MapPage() {
           />
         </LayersControl.BaseLayer>
 
-        <LayersControl.Overlay checked name="Nautical Chart (OpenSeaMap)">
+        <LayersControl.Overlay name="Nautical Chart (OpenSeaMap)">
           <TileLayer
             url="https://tiles.openseamap.org/seamark/{z}/{x}/{y}.png"
             opacity={1}

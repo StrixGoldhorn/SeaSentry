@@ -24,7 +24,7 @@ function getColorFromShiptype(ship_type) {
         "Tanker" : "#e6c72c",
         "Tug" : "#41b14a"
     }
-    return colorMap[ship_type];
+    return colorMap[ship_type] || "#707070";
 }
 
 export function createShipIcon(shipname, hasHeading, ship_type, size = 20) {
