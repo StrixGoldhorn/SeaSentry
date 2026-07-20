@@ -131,8 +131,15 @@ export async function update_ship_using_data_id({
     appendIfNotNull(formData, "ship_name", ship_name);
     appendIfNotNull(formData, "ship_type", ship_type);
     appendIfNotNull(formData, "flag", flag);
-    appendIfNotNull(formData, "length_meters", length_meters);
-    appendIfNotNull(formData, "beam_meters", beam_meters);
+    
+    if (length_meters != null && length_meters > 0) {
+        formData.append("length_meters", length_meters);
+    }
+
+    if (beam_meters != null && beam_meters > 0) {
+        formData.append("beam_meters", beam_meters);
+    }
+
 
     if (user_tags !== null) {
         formData.append("user_tags", JSON.stringify(user_tags));
