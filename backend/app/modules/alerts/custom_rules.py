@@ -119,11 +119,15 @@ def build_sqlalchemy_expression(node: Union[LeafRule, GroupRule]):
 
         # speed
         elif node.field == 'speed':
-            if node.operator == '>': return VesselLocation.vessel_location_speed_knots > float(node.value)
-            if node.operator == '<': return VesselLocation.vessel_location_speed_knots < float(node.value)
-            if node.operator == '>=': return VesselLocation.vessel_location_speed_knots >= float(node.value)
-            if node.operator == '<=': return VesselLocation.vessel_location_speed_knots <= float(node.value)
-            if node.operator == '=': return VesselLocation.vessel_location_speed_knots == float(node.value)
+            try:
+                val = float(node.value)
+            except (ValueError, TypeError):
+                raise ValueError("Speed value must be a valid number")
+            if node.operator == '>': return VesselLocation.vessel_location_speed_knots > val
+            if node.operator == '<': return VesselLocation.vessel_location_speed_knots < val
+            if node.operator == '>=': return VesselLocation.vessel_location_speed_knots >= val
+            if node.operator == '<=': return VesselLocation.vessel_location_speed_knots <= val
+            if node.operator == '=': return VesselLocation.vessel_location_speed_knots == val
             raise ValueError("Invalid operator for speed")
 
         # proximity to shipname
