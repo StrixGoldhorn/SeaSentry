@@ -3,6 +3,8 @@ import { Marker, Popup } from "react-leaflet";
 import "leaflet-rotatedmarker";
 import "./styles.css";
 import { useNavigate } from "react-router";
+import { useState } from "react";
+import VesselEditDialog from "./VesselEditDialog";
 
 function getColorFromShiptype(ship_type) {
     if (ship_type == null) {
@@ -154,6 +156,7 @@ const getNavStatusString = (nav_status) => {
 
 function ShipMarker({ ship }) {
     const navigate = useNavigate();
+    const [isEditOpen, setIsEditOpen] = useState(false);
 
     const hasHeading =
         ship.heading_deg != null &&
@@ -166,16 +169,17 @@ function ShipMarker({ ship }) {
     );
 
     return (
-        <Marker
-            position={[ship.latitude, ship.longitude]}
-            icon={customIcon}
-            rotationOrigin="center"
-            rotationAngle={shipDegCheck(ship.heading_deg)}
-            zIndexOffset={600}
-        >
-            <Popup autoPan={false} className="vesselpopup">
-                <div>
-                    <h3>{ship.ship_name}</h3>
+        <>
+            <Marker
+                position={[ship.latitude, ship.longitude]}
+                icon={customIcon}
+                rotationOrigin="center"
+                rotationAngle={shipDegCheck(ship.heading_deg)}
+                zIndexOffset={600}
+            >
+                <Popup autoPan={false} className="vesselpopup">
+                    <div>
+                        <h3>{ship.ship_name}</h3>
                         {ship.ship_type != null && ship.ship_type !== '' && <p><i>Type: {ship.ship_type}</i></p>}
                         <hr />
                         <div className="info">
@@ -191,20 +195,37 @@ function ShipMarker({ ship }) {
                             {ship.nav_status != null && ship.nav_status !== '' && ship.nav_status !== 15 && <p>Navigation Status: {getNavStatusString(ship.nav_status)}</p>}
                             {ship.user_tags != null && ship.user_tags !== '' && <p>User Tags: {ship.user_tags.join(', ')}</p>}
                         </div>
-                        <i>Last pinged: {getTimeAgo(new Date(ship.timestamp))}</i><br/>
-                    <button
-                        onClick={() =>
-                            window.open(
-                                `/vessel-history/${ship.vessel_data_id}`,
-                                "_blank"
-                            )
-                        }
-                    >
-                        View History
-                    </button>
-                </div>
-            </Popup>
-        </Marker>
+                        <i>Last pinged: {getTimeAgo(new Date(ship.timestamp))}</i><br />
+                        <div>
+                            <button
+                                onClick={() => {
+                                    window.open(
+                                        `/vessel-history/${ship.vessel_data_id}`,
+                                        "_blank"
+                                    );
+                                }}
+                            >
+                                View History
+                            </button>
+                            <button
+                                onClick={() => setIsEditOpen(true)}
+                            >
+                                Edit
+                            </button>
+                        </div>
+                    </div>
+                </Popup>
+            </Marker>
+            {isEditOpen && (
+                <VesselEditDialog
+                    ship={ship}
+                    onClose={() => setIsEditOpen(false)}
+                    onSaved={() => {
+                        setIsEditOpen(false);
+                    }}
+                />
+            )}
+        </>
     );
 }
 
