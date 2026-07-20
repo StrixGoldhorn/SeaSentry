@@ -72,6 +72,8 @@ export default function VesselHistoryMap({
     start_time_str = null,
     end_time_str = null,
 }) {
+    history.reverse();
+
     const first = history[0];
     const last = history[history.length - 1];
 
