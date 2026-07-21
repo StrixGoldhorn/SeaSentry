@@ -26,7 +26,7 @@ export default function TopBar() {
 
     return (
         <>
-        <AppBar position="fixed" elevation={1}>
+        <AppBar position="fixed" elevation={1} sx={{backgroundColor: "darkblue", color: "white"}}>
             <Toolbar
                 variant="dense"
                 sx={{
@@ -42,6 +42,14 @@ export default function TopBar() {
                     indicatorColor="secondary"
                     sx={{
                         minHeight: 35,
+                        "& .MuiTab-root": {
+                            color: "white",
+                            opacity: 1,
+                        },
+                        "& .Mui-selected": {
+                            color: "#ffffff",
+                            fontWeight: 600,
+                        },
                         "& .MuiTabs-indicator": {
                             height: 3,
                         },
