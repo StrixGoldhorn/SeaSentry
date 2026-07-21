@@ -17,7 +17,6 @@ export default function TopBar() {
         { label: "Inputs", path: "/inputs" },
         { label: "Draw AOI", path: "/drawAOIsidebar" },
         { label: "Draw Geofence", path: "/drawGeofenceSidebar" },
-        { label: "Unread Alerts", path: "/alerts/history/unread" },
         { label: "All Alerts", path: "/alerts/history/all" },
     ];
 
@@ -31,6 +30,7 @@ export default function TopBar() {
                 variant="dense"
                 sx={{
                     minHeight: 35,
+                    justifyContent: "center",
                     px: 2,
                 }}
             >

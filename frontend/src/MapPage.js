@@ -8,7 +8,10 @@ import * as utils from './utils.js';
 import { MapBoundsTracker, MapStateSaver, getMapCenter, getMapZoom } from "./screenbounds.js";
 import { RenderAOIs, RenderGeofences } from "./Boundsrenders.js";
 import EditableAOILayer from "./EditableAOILayer.js";
-import { NavigateToUnreadAlertHistoryButton, NavigateToAOIDrawButton, NavigateToGeofenceDrawButton, NavigateToInputsButton, NavigateToVesselsButton } from "./NavigateButtons.js";
+import ThinSidebar from "./ThinSidebar.js";
+import SlidingSidebar from "./SlidingSidebar.js";
+import AOIPolygonDrawerNew from "./AOIPolygonDrawerNew.js";
+import GeofencePolygonDrawerNew from "./GeofencePolygonDrawerNew.js";
 import CopernicusImageryLayerControl from "./CopernicusImageryLayerControl.js";
 
 
@@ -30,7 +33,51 @@ function MapPage() {
   const [editedName, setEditedName] = useState("");
   const [editedDescription, setEditedDescription] = useState("");
 
+  const [sidebarMode, setSidebarMode] = useState(null);
+
+  const [drawing, setDrawing] = useState(false);
+
+  const [coords, setCoords] = useState([]);
+  const [name, setName] = useState("");
+  const [desc, setDesc] = useState("");
+
   const [refreshKey, setRefreshKey] = useState(0);
+
+  const openAOI = () => {
+      setSidebarMode("aoi");
+      setDrawing(true);
+  };
+
+  const openGeofence = () => {
+      setSidebarMode("geofence");
+      setDrawing(true);
+  };
+
+  const closeSidebar = () => {
+      setSidebarMode(null);
+      setDrawing(false);
+
+      setCoords([]);
+      setName("");
+      setDesc("");
+  };
+
+  const handleSidebarSelect = (mode) => {
+      // Clicking the currently open tool closes it
+      if (sidebarMode === mode) {
+          closeSidebar();
+          return;
+      }
+
+      // Otherwise switch to the selected tool
+      setSidebarMode(mode);
+      setDrawing(true);
+
+      // Optional: clear previous drawing
+      setCoords([]);
+      setName("");
+      setDesc("");
+  };
 
   function startEditing(item, type) {
 
@@ -165,6 +212,25 @@ function MapPage() {
   //HTML return
   return (
     <>
+    <ThinSidebar onSelect={handleSidebarSelect} />
+
+    <SlidingSidebar
+        open={sidebarMode !== null}
+        mode={sidebarMode}
+        close={closeSidebar}
+
+        drawing={drawing}
+        setDrawing={setDrawing}
+
+        coords={coords}
+        setCoords={setCoords}
+
+        name={name}
+        setName={setName}
+
+        desc={desc}
+        setDesc={setDesc}
+    />
     <MapContainer center={initialCenter} zoom={initialZoom} scrollWheelZoom={true}>
 
       <MapStateSaver/>
@@ -233,6 +299,22 @@ function MapPage() {
         setCoords={setEditedCoords}/>)}
 
     <CopernicusImageryLayerControl />
+
+    {sidebarMode === "aoi" && (
+        <AOIPolygonDrawerNew
+            drawing
+            coords={coords}
+            setCoords={setCoords}
+        />
+    )}
+
+    {sidebarMode === "geofence" && (
+        <GeofencePolygonDrawerNew
+            drawing
+            coords={coords}
+            setCoords={setCoords}
+        />
+    )}
     </MapContainer>
     {editing && (
       <div
@@ -303,12 +385,6 @@ function MapPage() {
 
       </div>
       )}
-
-    <NavigateToInputsButton />
-    <NavigateToAOIDrawButton />
-    <NavigateToGeofenceDrawButton />
-    <NavigateToUnreadAlertHistoryButton />
-    <NavigateToVesselsButton />
     </>
   );
 }

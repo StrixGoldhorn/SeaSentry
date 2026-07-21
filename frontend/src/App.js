@@ -4,7 +4,6 @@ import MapPage from "./MapPage";
 import { RequestInputPage } from "./RequestInputPage";
 import SidebarAOIDrawPage from "./SidebarAOIDraw";
 import SidebarGeofenceDrawPage from "./SidebarGeofenceDraw";
-import UnreadAlertHistoryPage from "./UnreadAlertHistoryPage";
 import AllAlertHistoryPage from "./AllAlertHistoryPage";
 import VesselTablePage from "./VesselTablePage";
 import VesselHistoryMap from "./VesselHistoryMap";
@@ -25,7 +24,6 @@ function App() {
         path="/vessel-history/:vesselDataId"
         element={<VesselHistoryPage />}
       />
-      <Route path="/alerts/history/unread" element={<UnreadAlertHistoryPage/>} />
       <Route path="/alerts/history/all" element={<AllAlertHistoryPage/>} />
     </Routes>
     </>

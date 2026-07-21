@@ -69,7 +69,7 @@ export default function AOIPolygonDrawerNew({
             <GeomanControls
 
                 options={{
-                    position: "topleft",
+                    position: "topright",
 
                     drawMarker: false,
                     drawCircle: false,

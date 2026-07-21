@@ -7,8 +7,6 @@ import { ShipMarkers, CourseDirMarkers } from "./shipmarkers.js";
 import * as utils from './utils.js';
 import { MapBoundsTracker, MapStateSaver, getMapCenter, getMapZoom } from "./screenbounds.js";
 import { RenderAOIs, RenderGeofences } from "./Boundsrenders.js";
-import { NavigateToInputsButton,  NavigateToMapButton } from "./NavigateButtons.js";
-
 
 import GeofencePolygonDrawerNew from "./GeofencePolygonDrawerNew.js";
 import GeofenceSidebar from "./GeofenceSidebar.js";
@@ -118,7 +116,6 @@ export default function SidebarGeofenceDrawPage() {
                         setCoords={setCoords}
                     />
                 </MapContainer>
-                <NavigateToMapButton/>
             </div>
         </div>
     );
