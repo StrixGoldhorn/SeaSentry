@@ -1,0 +1,24 @@
+.thin-sidebar-paper {
+    overflow-x: hidden;
+    background-color: darkblue !important;
+    color: white;
+}
+
+.thin-sidebar-button {
+    color: white !important;
+    justify-content: center !important;
+}
+
+.thin-sidebar-button:hover {
+    background-color: #3949ab !important;
+}
+
+.thin-sidebar-button.Mui-selected {
+    background-color: #303f9f !important;
+}
+
+.thin-sidebar-icon {
+    color: white !important;
+    min-width: 0 !important;
+    justify-content: center;
+}

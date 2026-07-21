@@ -1,0 +1,38 @@
+.topbar {
+    background-color: darkblue !important;
+    color: white !important;
+}
+
+.topbar-toolbar {
+    min-height: 35px !important;
+    justify-content: center;
+    padding-left: 16px;
+    padding-right: 16px;
+}
+
+.topbar-tabs {
+    min-height: 35px !important;
+}
+
+.topbar-tabs .MuiTab-root {
+    color: white !important;
+    opacity: 1 !important;
+    min-height: 35px;
+    text-transform: none;
+    font-size: 0.9rem;
+    padding-left: 16px;
+    padding-right: 16px;
+}
+
+.topbar-tabs .Mui-selected {
+    color: white !important;
+    font-weight: 600;
+}
+
+.topbar-tabs .MuiTabs-indicator {
+    height: 3px;
+}
+
+.topbar-offset {
+    min-height: 44px !important;
+}

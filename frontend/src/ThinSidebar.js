@@ -1,17 +1,16 @@
+import "./ThinSidebar.css";
+
 import {
     Drawer,
     List,
     ListItemButton,
     ListItemIcon,
-    ListItemText,
 } from "@mui/material";
 
-import CropIcon from '@mui/icons-material/Crop';
-import FenceIcon from '@mui/icons-material/Fence';
+import CropIcon from "@mui/icons-material/Crop";
+import FenceIcon from "@mui/icons-material/Fence";
 
-export default function ThinSidebar({
-    onSelect,
-}) {
+export default function ThinSidebar({ onSelect }) {
     return (
         <Drawer
             variant="permanent"
@@ -23,64 +22,30 @@ export default function ThinSidebar({
                     width: 40,
                     top: 42,
                     height: "calc(100% - 48px)",
-                    overflowX: "hidden",
-                    backgroundColor: "darkblue",
-                    color: "white",
                 },
+            }}
+            classes={{
+                paper: "thin-sidebar-paper",
             }}
         >
             <List>
-
                 <ListItemButton
                     onClick={() => onSelect("aoi")}
-                    sx={{
-                        color: "white",
-                        justifyContent: "center",
-
-                        "&:hover": {
-                            backgroundColor: "#3949ab",
-                        },
-
-                        "&.Mui-selected": {
-                            backgroundColor: "#303f9f",
-                        },
-                    }}
+                    className="thin-sidebar-button"
                 >
-                    <ListItemIcon 
-                        sx={{
-                            color: "white",
-                            minWidth: "0",
-                            justifyContent: "center",
-                        }}>
+                    <ListItemIcon className="thin-sidebar-icon">
                         <CropIcon />
                     </ListItemIcon>
                 </ListItemButton>
 
                 <ListItemButton
                     onClick={() => onSelect("geofence")}
-                    sx={{
-                        color: "white",
-                        justifyContent: "center",
-
-                        "&:hover": {
-                            backgroundColor: "#3949ab",
-                        },
-
-                        "&.Mui-selected": {
-                            backgroundColor: "#303f9f",
-                        },
-                    }}
+                    className="thin-sidebar-button"
                 >
-                    <ListItemIcon
-                        sx={{
-                            color: "white",
-                            minWidth: "0",
-                            justifyContent: "center",
-                        }}>
+                    <ListItemIcon className="thin-sidebar-icon">
                         <FenceIcon />
                     </ListItemIcon>
                 </ListItemButton>
-
             </List>
         </Drawer>
     );

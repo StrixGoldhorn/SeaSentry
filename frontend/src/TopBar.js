@@ -1,10 +1,11 @@
+import "./TopBar.css";
+
 import { useNavigate, useLocation } from "react-router";
 import {
     AppBar,
     Toolbar,
     Tabs,
     Tab,
-    Typography,
 } from "@mui/material";
 
 export default function TopBar() {
@@ -25,58 +26,37 @@ export default function TopBar() {
 
     return (
         <>
-        <AppBar position="fixed" elevation={1} sx={{backgroundColor: "darkblue", color: "white"}}>
+            <AppBar
+                position="fixed"
+                elevation={1}
+                className="topbar"
+            >
+                <Toolbar
+                    variant="dense"
+                    className="topbar-toolbar"
+                >
+                    <Tabs
+                        value={currentTab}
+                        onChange={(_, value) => navigate(value)}
+                        textColor="inherit"
+                        indicatorColor="secondary"
+                        className="topbar-tabs"
+                    >
+                        {pages.map((page) => (
+                            <Tab
+                                key={page.path}
+                                value={page.path}
+                                label={page.label}
+                            />
+                        ))}
+                    </Tabs>
+                </Toolbar>
+            </AppBar>
+
             <Toolbar
                 variant="dense"
-                sx={{
-                    minHeight: 35,
-                    justifyContent: "center",
-                    px: 2,
-                }}
-            >
-
-                <Tabs
-                    value={currentTab}
-                    onChange={(_, value) => navigate(value)}
-                    textColor="inherit"
-                    indicatorColor="secondary"
-                    sx={{
-                        minHeight: 35,
-                        "& .MuiTab-root": {
-                            color: "white",
-                            opacity: 1,
-                        },
-                        "& .Mui-selected": {
-                            color: "#ffffff",
-                            fontWeight: 600,
-                        },
-                        "& .MuiTabs-indicator": {
-                            height: 3,
-                        },
-                    }}
-                >
-                    {pages.map((page) => (
-                        <Tab
-                            key={page.path}
-                            value={page.path}
-                            label={page.label}
-                            sx={{
-                                minHeight: 35,
-                                textTransform: "none",
-                                fontSize: "0.9rem",
-                                px: 2,
-                            }}
-                        />
-                    ))}
-                </Tabs>
-            </Toolbar>
-        </AppBar>
-        <Toolbar
-            variant="dense"
-            sx={{
-                minHeight: 44,
-            }}
-        />
+                className="topbar-offset"
+            />
         </>
     );
 }
