@@ -26,6 +26,7 @@ const getNavStatusString = (navStatus) => {
 export default function VesselHistorySidebar({
     vessel,
     history,
+    historyError,
     historyWindow,
     setHistoryWindow,
     maxHistoryWindow,
@@ -44,6 +45,20 @@ export default function VesselHistorySidebar({
 
   return (
     <div className="history-sidebar">
+      {historyError && (
+          <div
+              style={{
+                  marginTop: 12,
+                  padding: 10,
+                  borderRadius: 4,
+                  backgroundColor: "#fff3cd",
+                  color: "#856404",
+                  border: "1px solid #ffeeba",
+              }}
+          >
+              {historyError}
+          </div>
+      )}
 
         <div
             style={{
