@@ -69,13 +69,15 @@ function PolylineArrows({ positions }) {
 export default function VesselHistoryMap({
     vessel,
     history = [],
+    historyWindow,
     start_time_str = null,
     end_time_str = null,
 }) {
-    history.reverse();
+    const orderedHistory = [...history].reverse();
 
-    const first = history[0];
-    const last = history[history.length - 1];
+    const first = orderedHistory[0];
+    const last = orderedHistory[orderedHistory.length - 1];
+
 
     const startIcon = createShipIcon(
         vessel?.ship_name,
@@ -94,15 +96,15 @@ export default function VesselHistoryMap({
     const [selectedPoint, setSelectedPoint] = useState(null);
 
     const positions = useMemo(
-    () =>
-        history.map((p) => [
-        p.latitude,
-        p.longitude,
-        ]),
-    [history]
+        () =>
+            orderedHistory.map((p) => [
+                p.latitude,
+                p.longitude,
+            ]),
+        [orderedHistory]
     );
 
-    if (history.length === 0) {
+    if (orderedHistory.map.length === 0) {
     return <div>No location history found.</div>;
     }
 
@@ -136,7 +138,7 @@ export default function VesselHistoryMap({
 
         <PolylineArrows positions={positions} />
 
-        {history.map((point) => (
+        {orderedHistory.map((point) => (
             <CircleMarker
             key={point.location_id}
             center={[point.latitude, point.longitude]}
