@@ -18,10 +18,12 @@ export default function ThinSidebar({ onSelect }) {
             sx={{
                 width: 40,
                 flexShrink: 0,
+                zIndex: 1200,
                 "& .MuiDrawer-paper": {
                     width: 40,
                     top: 42,
                     height: "calc(100% - 48px)",
+                    zIndex: 1200,
                 },
             }}
             classes={{

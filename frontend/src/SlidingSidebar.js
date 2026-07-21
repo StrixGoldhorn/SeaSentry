@@ -17,12 +17,14 @@ export default function SlidingSidebar({
             open={open}
             variant="persistent"
             sx={{
+                zIndex: 1100,
                 "& .MuiDrawer-paper": {
                     width: 320,
                     left: 40,
                     top: 42,
                     height: "calc(100% - 48px)",
                     padding: 2,
+                    zIndex: 1100,
                 },
             }}
         >
