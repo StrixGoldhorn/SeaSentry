@@ -5,6 +5,7 @@ import "./styles.css";
 import { useNavigate } from "react-router";
 import { useState } from "react";
 import VesselEditDialog from "./VesselEditDialog";
+import { memo } from 'react';
 
 function getColorFromShiptype(ship_type) {
     if (ship_type == null) {
@@ -154,7 +155,39 @@ const getNavStatusString = (nav_status) => {
     return "Unknown";
 }
 
-function ShipMarker({ ship }) {
+const isShipEqual = (prevProps, nextProps) => {
+    const prev = prevProps.ship;
+    const next = nextProps.ship;
+
+    if (prev.vessel_data_id !== next.vessel_data_id) return false;
+
+    return (
+        prev.latitude === next.latitude &&
+        prev.longitude === next.longitude &&
+        prev.heading_deg === next.heading_deg &&
+        prev.course_deg === next.course_deg &&
+        prev.ship_type === next.ship_type &&
+        prev.speed_knots === next.speed_knots &&
+        prev.nav_status === next.nav_status &&
+        prev.timestamp === next.timestamp
+    );
+};
+
+const isCourseEqual = (prevProps, nextProps) => {
+    const prev = prevProps.ship;
+    const next = nextProps.ship;
+
+    if (prev.vessel_data_id !== next.vessel_data_id) return false;
+
+    return (
+        prev.latitude === next.latitude &&
+        prev.longitude === next.longitude &&
+        prev.course_deg === next.course_deg &&
+        prev.ship_type === next.ship_type
+    );
+};
+
+const ShipMarker = memo(function ShipMarker({ ship }) {
     const navigate = useNavigate();
     const [isEditOpen, setIsEditOpen] = useState(false);
 
@@ -226,7 +259,20 @@ function ShipMarker({ ship }) {
             )}
         </>
     );
-}
+}, isShipEqual);
+
+const CourseLineMarker = memo(function CourseLineMarker({ ship }) {
+    const lineIcon = createCourseLineIcon(getColorFromShiptype(ship.ship_type));
+    return (
+        <Marker
+            position={[ship.latitude, ship.longitude]}
+            icon={lineIcon}
+            rotationOrigin="center"
+            rotationAngle={shipDegCheck(ship.course_deg)}
+            interactive={false}
+        />
+    );
+}, isCourseEqual);
 
 export function ShipMarkers({ shipdata }) {
     if (!Array.isArray(shipdata)) {
@@ -249,20 +295,9 @@ export function CourseDirMarkers({ shipdata }) {
     return shipdata
         // filter out those with no course data
         .filter(ship => ship.course_deg != null && ship.course_deg !== '' && ship.course_deg !== 0)
-        .map((ship) => {
-            const lineIcon = createCourseLineIcon(getColorFromShiptype(ship.ship_type));
-
-            return (
-                <Marker
-                    key={`course-${ship.vessel_data_id}`}
-                    position={[ship.latitude, ship.longitude]}
-                    icon={lineIcon}
-                    rotationOrigin="center"
-                    rotationAngle={shipDegCheck(ship.course_deg)}
-                    interactive={false}
-                />
-            );
-        });
+        .map((ship) => (
+            <CourseLineMarker key={`course-${ship.vessel_data_id}`} ship={ship} />
+        ));
 }
 
 // export function ShipMarkers({ shipdata }) {

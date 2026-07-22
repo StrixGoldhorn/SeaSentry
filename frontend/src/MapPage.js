@@ -14,6 +14,9 @@ import AOIPolygonDrawerNew from "./AOIPolygonDrawerNew.js";
 import GeofencePolygonDrawerNew from "./GeofencePolygonDrawerNew.js";
 import CopernicusImageryLayerControl from "./CopernicusImageryLayerControl.js";
 import ExportRectangleDrawer from "./ExportRectangleDrawer";
+import Cluster from 'react-leaflet-cluster';
+import 'react-leaflet-cluster/dist/assets/MarkerCluster.css'
+import 'react-leaflet-cluster/dist/assets/MarkerCluster.Default.css'
 
 const SHIP_TYPES = [
   "Cargo",
@@ -63,6 +66,17 @@ function MapPage() {
 
 
   const [refreshKey, setRefreshKey] = useState(0);
+  
+  const [currentZoom, setCurrentZoom] = useState(getMapZoom() || 14);
+  function ZoomTracker({ onZoomChange }) {
+    useMapEvents({
+      zoomend: (e) => {
+        onZoomChange(e.target.getZoom());
+    console.log(e.target.getZoom());
+      },
+    });
+    return null;
+  }
 
   const openAOI = () => {
       setSidebarMode("aoi");
@@ -176,98 +190,26 @@ function MapPage() {
       }
   }
 
-  function startEditing(item, type) {
-
-      setEditingItem(item);
-      setEditingType(type);
-
-      if (type === "aoi") {
-
-          setEditedCoords(item.area_of_interest_polygon);
-          setEditedName(item.area_of_interest_name);
-          setEditedDescription(
-              item.area_of_interest_description ?? ""
-          );
-
-      } else {
-
-          setEditedCoords(item.geofence_polygon);
-          setEditedName(item.geofence_name);
-          setEditedDescription(
-              item.geofence_description ?? ""
-          );
-
-      }
-
-      setEditing(true);
-
-  }
-
-  function cancelEditing() {
-
-      setEditing(false);
-
-      setEditingItem(null);
-      setEditingType(null);
-
-      setEditedCoords([]);
-      setEditedName("");
-      setEditedDescription("");
-
-      setRefreshKey(prev => prev + 1);
-
-  }
-
-  async function finishEditing() {
-      try {
-          if (editingType === "aoi") {
-              await utils.update_AOI({
-                  aoi_id:
-                      editingItem.area_of_interest_id,
-                  name: editedName,
-                  desc: editedDescription,
-                  coords:
-                      editedCoords
-              });
-              loadAOIs();
-          }
-
-          if (editingType === "geofence") {
-              await utils.update_geofence({
-                  geofence_id:
-                      editingItem.geofence_id,
-                  name: editedName,
-                  desc: editedDescription,
-                  coords:
-                      editedCoords
-              });
-              loadGeofences();
-          }
-          cancelEditing();
-      }
-
-      catch (err) {
-          console.error(err);
-          alert("Failed to update.");
-      }
-  }
-
 
   //useEffects
   useEffect(() => {
       if (!mapBounds) return;
 
+    const timeoutId = setTimeout(() => {
       const filterParams = { ...mapBounds };
       if (appliedShiptype) {
         filterParams.shiptype = appliedShiptype;
       }
 
       utils.get_ships_on_screen(filterParams)
-          .then(fetchdata => {
-              if (fetchdata) {
-                  setshipData(fetchdata);
-              }
-          });
+        .then(fetchdata => {
+          if (fetchdata) {
+            setshipData(fetchdata);
+          }
+        });
+    }, 500);
+
+    return () => clearTimeout(timeoutId);
   }, [mapBounds, appliedShiptype]);
 
   useEffect(() => {
@@ -325,6 +267,12 @@ function MapPage() {
     setAppliedShiptype("");
   };
 
+  const getClusterRadius = (zoom) => {
+    if (zoom >= 12) return 60;
+    if (zoom >= 10) return 100;
+    if (zoom >= 8) return 200;
+    return 500;
+  };
 
   let initialCenter = getMapCenter();
   let initialZoom = getMapZoom();
@@ -364,9 +312,10 @@ function MapPage() {
         appliedShiptype={appliedShiptype}
         setAppliedShiptype={setAppliedShiptype}
     />
-    <MapContainer center={initialCenter} zoom={initialZoom} scrollWheelZoom={true}>
+    <MapContainer center={initialCenter} zoom={initialZoom} maxZoom={20} scrollWheelZoom={true}>
 
       <MapStateSaver/>
+      <ZoomTracker onZoomChange={setCurrentZoom} />
 
      <LayersControl position="topleft">
 
@@ -407,13 +356,17 @@ function MapPage() {
       </LayersControl>
 
       <MapBoundsTracker onBoundsChange={setmapBounds} />
-      {!editing && shipData?.data && (
-          <ShipMarkers shipdata={shipData.data} />
-      )}
 
-      {!editing && shipData?.data && (
-          <CourseDirMarkers shipdata={shipData.data} />
-      )}
+      {/* ENABLE CLUSTERING HERE IF NEEDED!!! @JUNLIANG */}
+      <Cluster 
+        chunkedLoading
+        showCoverageOnHover={false}
+        maxClusterRadius={getClusterRadius(currentZoom)}
+        disableClusteringAtZoom={14}
+      >
+        {shipData?.data && <ShipMarkers shipdata={shipData.data} />}
+        {shipData?.data && <CourseDirMarkers shipdata={shipData.data} />}
+      </Cluster>
 
       {aoiData?.data && (<RenderAOIs 
       aoicoordsdata={aoiData.data}
