@@ -13,6 +13,8 @@ import SlidingSidebar from "./SlidingSidebar.js";
 import AOIPolygonDrawerNew from "./AOIPolygonDrawerNew.js";
 import GeofencePolygonDrawerNew from "./GeofencePolygonDrawerNew.js";
 import CopernicusImageryLayerControl from "./CopernicusImageryLayerControl.js";
+import ExportRectangleDrawer from "./ExportRectangleDrawer";
+
 
 
 
@@ -23,6 +25,7 @@ function MapPage() {
   const [shipData, setshipData] = useState({});
   const [aoiData, setaoiData] = useState({});
   const [geofenceData, setgeofenceData] = useState({});
+  const [exportBounds, setExportBounds] = useState(null);
   const [mapBounds, setmapBounds] = useState(null);
 
   const [editingItem, setEditingItem] = useState(null);
@@ -323,6 +326,10 @@ function MapPage() {
         setInstanceId={setInstanceId}
         selectedLayer={selectedLayer}
         setSelectedLayer={setSelectedLayer}
+
+        bounds={exportBounds}
+        setBounds={setExportBounds}
+
     />
     <MapContainer center={initialCenter} zoom={initialZoom} scrollWheelZoom={true}>
 
@@ -428,6 +435,14 @@ function MapPage() {
             setCoords={setCoords}
         />
     )}
+
+    {sidebarMode === "export" && (
+        <ExportRectangleDrawer
+            bounds={exportBounds}
+            setBounds={setExportBounds}
+        />
+    )}
+
     </MapContainer>
     {editing && (
       <div

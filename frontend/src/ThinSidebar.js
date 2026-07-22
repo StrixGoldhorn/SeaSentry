@@ -10,6 +10,8 @@ import {
 import CropIcon from "@mui/icons-material/Crop";
 import FenceIcon from "@mui/icons-material/Fence";
 import SatelliteAltIcon from "@mui/icons-material/SatelliteAlt";
+import FileDownloadIcon from "@mui/icons-material/FileDownload";
+
 
 export default function ThinSidebar({ onSelect }) {
     return (
@@ -41,18 +43,22 @@ export default function ThinSidebar({ onSelect }) {
 
                 <ListItemButton
                     onClick={() => onSelect("imagery")}
-                    sx={{ color: "white", justifyContent: "center" }}
+                    className="thin-sidebar-button"
                 >
-                    <ListItemIcon
-                        sx={{
-                            color: "white",
-                            minWidth: 0,
-                            justifyContent: "center",
-                        }}
-                    >
+                    <ListItemIcon className="thin-sidebar-icon">
                         <SatelliteAltIcon />
                     </ListItemIcon>
                 </ListItemButton>
+
+                <ListItemButton
+                    onClick={() => onSelect("export")}
+                    className="thin-sidebar-button"
+                >
+                    <ListItemIcon className="thin-sidebar-icon">
+                        <FileDownloadIcon />
+                    </ListItemIcon>
+                </ListItemButton>
+
             </List>
         </Drawer>
     );
