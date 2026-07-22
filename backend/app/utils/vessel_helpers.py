@@ -11,7 +11,7 @@ from app.models.vessel import VesselData, VesselLocation
 
 logger = logging.getLogger(__name__)
 
-def get_all_vessels_in_bbox(envelope, time_lower_bound: datetime, limit: int) -> List:
+def get_all_vessels_in_bbox(envelope, time_lower_bound: datetime, limit: int, shiptype: str = None) -> List:
     '''
     Fetches all Vessels in given bounding box
 
@@ -37,6 +37,9 @@ def get_all_vessels_in_bbox(envelope, time_lower_bound: datetime, limit: int) ->
         ).distinct(
             VesselLocation.vessel_location_vessel_data_id
         ).subquery('latest_locations')
+
+        if shiptype and shiptype != "":
+            query = query.filter(VesselData.vessel_data_ship_type.ilike(f"%{shiptype}%"))
 
         query = session.query(VesselLocation, VesselData).join(
             VesselData,
