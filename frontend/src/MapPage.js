@@ -159,6 +159,82 @@ function MapPage() {
       }
   }
 
+  function startEditing(item, type) {
+
+      setEditingItem(item);
+      setEditingType(type);
+
+      if (type === "aoi") {
+
+          setEditedCoords(item.area_of_interest_polygon);
+          setEditedName(item.area_of_interest_name);
+          setEditedDescription(
+              item.area_of_interest_description ?? ""
+          );
+
+      } else {
+
+          setEditedCoords(item.geofence_polygon);
+          setEditedName(item.geofence_name);
+          setEditedDescription(
+              item.geofence_description ?? ""
+          );
+
+      }
+
+      setEditing(true);
+
+  }
+
+  function cancelEditing() {
+
+      setEditing(false);
+
+      setEditingItem(null);
+      setEditingType(null);
+
+      setEditedCoords([]);
+      setEditedName("");
+      setEditedDescription("");
+
+      setRefreshKey(prev => prev + 1);
+
+  }
+
+  async function finishEditing() {
+      try {
+          if (editingType === "aoi") {
+              await utils.update_AOI({
+                  aoi_id:
+                      editingItem.area_of_interest_id,
+                  name: editedName,
+                  desc: editedDescription,
+                  coords:
+                      editedCoords
+              });
+              loadAOIs();
+          }
+
+          if (editingType === "geofence") {
+              await utils.update_geofence({
+                  geofence_id:
+                      editingItem.geofence_id,
+                  name: editedName,
+                  desc: editedDescription,
+                  coords:
+                      editedCoords
+              });
+              loadGeofences();
+          }
+          cancelEditing();
+      }
+
+      catch (err) {
+          console.error(err);
+          alert("Failed to update.");
+      }
+  }
+
 
   //useEffects
   useEffect(() => {

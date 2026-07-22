@@ -1,6 +1,7 @@
 .topbar {
-    background-color: darkblue !important;
-    color: white !important;
+    background-color: var(--pri-c) !important;
+    color: var(--pri) !important;
+    height: var(--top-bar-height)
 }
 
 .topbar-toolbar {
@@ -11,11 +12,11 @@
 }
 
 .topbar-tabs {
-    min-height: 35px !important;
+  min-height: var(--top-bar-height) !important;
 }
 
 .topbar-tabs .MuiTab-root {
-    color: white !important;
+    color: var(--pri) !important;
     opacity: 1 !important;
     min-height: 35px;
     text-transform: none;
@@ -25,14 +26,18 @@
 }
 
 .topbar-tabs .Mui-selected {
-    color: white !important;
-    font-weight: 600;
+  color: var(--pri) !important;
+  font-weight: 600;
 }
 
 .topbar-tabs .MuiTabs-indicator {
-    height: 3px;
+  height: 3px;
 }
 
 .topbar-offset {
-    min-height: 44px !important;
+  min-height: var(--top-bar-height) !important;
+}
+
+.topbar-tabs .MuiTabs-indicator {
+  background-color: var(--highlight);
 }

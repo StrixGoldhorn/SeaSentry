@@ -41,6 +41,8 @@ export default function TopBar() {
                         textColor="inherit"
                         indicatorColor="secondary"
                         className="topbar-tabs"
+                        variant="scrollable"
+                        allowScrollButtonsMobile
                     >
                         {pages.map((page) => (
                             <Tab
