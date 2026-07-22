@@ -1,3 +1,14 @@
+:root {
+    /* magic values */
+    --pri: #C2E2EB;
+    --pri-c: #273043;
+    --sec: #D4E6C7;
+    --sec-c: #3A5426;
+    --highlight: #FFE2FE;
+
+    --top-bar-height: 42px;
+}
+
 .App {
     font-family: sans-serif;
     text-align: center;
@@ -20,7 +31,7 @@
 
 /* sizing of map container*/
 .leaflet-container {
-    height: calc(100vh - 50px);
+    height: calc(100vh - var(--top-bar-height));
 }
 
 
