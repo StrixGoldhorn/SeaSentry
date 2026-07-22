@@ -9,7 +9,7 @@ function appendIfNotNull(formData, key, value) {
 
 //VESSELS
 //Query latest vessel positions within a bounding box
-export async function get_ships_on_screen({lat_min, lat_max, long_min, long_max, limit = null, time_within = null}) {
+export async function get_ships_on_screen({lat_min, lat_max, long_min, long_max, limit = null, time_within = null, shiptype = null}) {
     if (lat_min == null || lat_max == null || long_min == null || long_max == null) {
         return null;
     }
@@ -26,6 +26,10 @@ export async function get_ships_on_screen({lat_min, lat_max, long_min, long_max,
 
     if (time_within !== null) {
         url = url + `&time_within=${time_within}`;
+    }
+
+    if (shiptype !== null && shiptype !== "") {
+        url = url + `&shiptype=${encodeURIComponent(shiptype)}`;
     }
 
     return await fetch(url)

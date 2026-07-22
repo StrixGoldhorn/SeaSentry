@@ -6,8 +6,7 @@ import AOISidebar from "./AOISidebar";
 import GeofenceSidebar from "./GeofenceSidebar";
 import CopernicusImageryLayerControl from "./CopernicusImageryLayerControl";
 import ExportAreaSidebar from "./ExportAreaSidebar";
-
-
+import FilterSidebar from "./FilterSidebar";
 
 export default function SlidingSidebar({
     mode,
@@ -58,6 +57,8 @@ export default function SlidingSidebar({
                     {...props}
                 />
             )}
+
+            {mode === "filter" && <FilterSidebar {...props} />}
 
         </Drawer>
     );

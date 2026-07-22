@@ -15,9 +15,20 @@ import GeofencePolygonDrawerNew from "./GeofencePolygonDrawerNew.js";
 import CopernicusImageryLayerControl from "./CopernicusImageryLayerControl.js";
 import ExportRectangleDrawer from "./ExportRectangleDrawer";
 
-
-
-
+const SHIP_TYPES = [
+  "Cargo",
+  "Fishing",
+  "High Speed Craft",
+  "Law Enforcement",
+  "Medical Transport",
+  "Military",
+  "Passenger",
+  "Pleasure Craft",
+  "Sailing",
+  "SAR",
+  "Tanker",
+  "Tug"
+];
 
 function MapPage() {
 
@@ -27,6 +38,9 @@ function MapPage() {
   const [geofenceData, setgeofenceData] = useState({});
   const [exportBounds, setExportBounds] = useState(null);
   const [mapBounds, setmapBounds] = useState(null);
+
+  const [selectedShiptype, setSelectedShiptype] = useState("");
+  const [appliedShiptype, setAppliedShiptype] = useState("");
 
   const [editingItem, setEditingItem] = useState(null);
   const [editingType, setEditingType] = useState(null);
@@ -78,7 +92,7 @@ function MapPage() {
 
       // Otherwise switch to the selected tool
       setSidebarMode(mode);
-      setDrawing(true);
+      setDrawing(mode === "aoi" || mode === "geofence");
 
       // Optional: clear previous drawing
       setCoords([]);
@@ -243,13 +257,18 @@ function MapPage() {
   useEffect(() => {
       if (!mapBounds) return;
 
-      utils.get_ships_on_screen(mapBounds)
+      const filterParams = { ...mapBounds };
+      if (appliedShiptype) {
+        filterParams.shiptype = appliedShiptype;
+      }
+
+      utils.get_ships_on_screen(filterParams)
           .then(fetchdata => {
               if (fetchdata) {
                   setshipData(fetchdata);
               }
           });
-  }, [mapBounds]);
+  }, [mapBounds, appliedShiptype]);
 
   useEffect(() => {
       loadAOIs();
@@ -297,6 +316,16 @@ function MapPage() {
     })
   }
 
+  const handleApplyFilter = () => {
+    setAppliedShiptype(selectedShiptype);
+  };
+
+  const handleClearFilter = () => {
+    setSelectedShiptype("");
+    setAppliedShiptype("");
+  };
+
+
   let initialCenter = getMapCenter();
   let initialZoom = getMapZoom();
 
@@ -329,7 +358,11 @@ function MapPage() {
 
         bounds={exportBounds}
         setBounds={setExportBounds}
-
+        
+        selectedShiptype={selectedShiptype}
+        setSelectedShiptype={setSelectedShiptype}
+        appliedShiptype={appliedShiptype}
+        setAppliedShiptype={setAppliedShiptype}
     />
     <MapContainer center={initialCenter} zoom={initialZoom} scrollWheelZoom={true}>
 
