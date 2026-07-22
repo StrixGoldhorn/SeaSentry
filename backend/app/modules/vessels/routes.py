@@ -31,6 +31,7 @@ def get_vessels_in_bbox():
     - time_within: int (time in seconds, default 24hrs ie 60 * 60 * 24)
     - lat_min, lat_max, long_min, long_max: float (bounding box)
     - limit: int (default 500, max 5000)
+    - shiptype: str (optional, for filtering by ship type)
     '''
 
     try:
@@ -53,6 +54,8 @@ def get_vessels_in_bbox():
             time_lower_bound = datetime.now(timezone.utc) - timedelta(seconds = time_within)
         except ValueError:
             return jsonify({"error": "Invalid time_within format. Ensure it is in seconds."}), 400
+        
+        shiptype = request.args.get('shiptype', type=str)
 
         envelope = func.ST_MakeEnvelope(
             bbox["long_min"], bbox["lat_min"],
@@ -60,7 +63,7 @@ def get_vessels_in_bbox():
             4326
         )
 
-        results = get_all_vessels_in_bbox(envelope, time_lower_bound, limit)
+        results = get_all_vessels_in_bbox(envelope, time_lower_bound, limit, shiptype)
 
         data = []
         for location, vessel in results:

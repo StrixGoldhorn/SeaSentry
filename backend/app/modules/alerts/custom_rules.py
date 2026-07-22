@@ -21,7 +21,8 @@ ALLOWED_FIELDS = Literal[
     'inside_geofence',
     'enter_geofence',
     'exit_geofence',
-    'is_vessel_of_interest'
+    'is_vessel_of_interest',
+    'has_usertag'
 ]
 ALLOWED_OPERATORS = Literal['=', '!=', '>', '<', '>=', '<=', 'LIKE']
 ALLOWED_COMBINATORS = Literal['and', 'or', 'not']
@@ -118,11 +119,15 @@ def build_sqlalchemy_expression(node: Union[LeafRule, GroupRule]):
 
         # speed
         elif node.field == 'speed':
-            if node.operator == '>': return VesselLocation.vessel_location_speed_knots > float(node.value)
-            if node.operator == '<': return VesselLocation.vessel_location_speed_knots < float(node.value)
-            if node.operator == '>=': return VesselLocation.vessel_location_speed_knots >= float(node.value)
-            if node.operator == '<=': return VesselLocation.vessel_location_speed_knots <= float(node.value)
-            if node.operator == '=': return VesselLocation.vessel_location_speed_knots == float(node.value)
+            try:
+                val = float(node.value)
+            except (ValueError, TypeError):
+                raise ValueError("Speed value must be a valid number")
+            if node.operator == '>': return VesselLocation.vessel_location_speed_knots > val
+            if node.operator == '<': return VesselLocation.vessel_location_speed_knots < val
+            if node.operator == '>=': return VesselLocation.vessel_location_speed_knots >= val
+            if node.operator == '<=': return VesselLocation.vessel_location_speed_knots <= val
+            if node.operator == '=': return VesselLocation.vessel_location_speed_knots == val
             raise ValueError("Invalid operator for speed")
 
         # proximity to shipname
@@ -236,6 +241,10 @@ def build_sqlalchemy_expression(node: Union[LeafRule, GroupRule]):
                 )
             )
             return exists(subquery)
+
+        # has user tag
+        elif node.field == 'has_usertag':
+            return VesselData.vessel_data_user_tags.any(str(node.value))
 
     elif isinstance(node, GroupRule):
         # recursively build expressions for all rules in group
