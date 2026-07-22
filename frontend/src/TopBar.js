@@ -15,9 +15,9 @@ export default function TopBar() {
     const pages = [
         { label: "Map", path: "/" },
         { label: "Vessels", path: "/vessels" },
+        { label: "AOIs", path: "/aois" },
+        { label: "Geofences", path: "/geofences" },
         { label: "Inputs", path: "/inputs" },
-        { label: "Draw AOI", path: "/drawAOIsidebar" },
-        { label: "Draw Geofence", path: "/drawGeofenceSidebar" },
         { label: "All Alerts", path: "/alerts/history/all" },
     ];
 
