@@ -52,7 +52,18 @@ def get_all_vessels_in_bbox(envelope, time_lower_bound: datetime, limit: int, sh
             )
         ).filter(
             VesselLocation.vessel_location_coords.ST_Within(envelope)
-        ).limit(limit)
+        )
+
+        if shiptype and shiptype != "":
+            query = query.filter(VesselData.vessel_data_ship_type.ilike(f"%{shiptype}%"))
+
+        if limit > 200:
+            query = query.order_by(
+                VesselLocation.vessel_location_vessel_data_id,
+                func.random()
+            )
+
+        query.limit(limit)
 
         return query.all()
 
