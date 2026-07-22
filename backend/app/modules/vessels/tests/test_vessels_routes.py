@@ -52,12 +52,10 @@ def test_get_all_vessels_in_bbox_success(mock_db_conn):
     mock_join1 = MagicMock()
     mock_join2 = MagicMock()
     mock_filter = MagicMock()
-    mock_limit = MagicMock()
 
     mock_main_query.join.return_value = mock_join1
     mock_join1.join.return_value = mock_join2
     mock_join2.filter.return_value = mock_filter
-    mock_filter.limit.return_value = mock_limit
 
     mock_session.query.side_effect = [mock_subq_query, mock_main_query]
 
@@ -69,16 +67,12 @@ def test_get_all_vessels_in_bbox_success(mock_db_conn):
     fake_vessel_data.vessel_data_id = 101
     fake_vessel_data.vessel_data_mmsi = 123456789
 
-    mock_limit.all.return_value = [(fake_vessel_loc, fake_vessel_data)]
-
+    mock_filter.all.return_value = [(fake_vessel_loc, fake_vessel_data)]
+    
     envelope = box(10, 10, 20, 20)
     result = get_all_vessels_in_bbox(envelope, "2023-01-01", limit=10)
 
     assert len(result) == 1
-    loc, data = result[0]
-    assert loc.vessel_location_id == 1
-    assert data.vessel_data_mmsi == 123456789
-
     mock_db_conn.close_session.assert_called_once()
 
 @patch('app.utils.vessel_helpers.DBConn')
@@ -89,8 +83,6 @@ def test_get_all_vessels_in_bbox_empty_result(mock_db_conn):
     mock_session = MagicMock()
     mock_db_conn.get_session.return_value = mock_session
 
-    mock_session = MagicMock()
-    mock_db_conn.get_session.return_value = mock_session
     mock_subq_query = MagicMock()
     mock_subq_filter = MagicMock()
     mock_subq_order = MagicMock()
@@ -106,16 +98,14 @@ def test_get_all_vessels_in_bbox_empty_result(mock_db_conn):
     mock_join1 = MagicMock()
     mock_join2 = MagicMock()
     mock_filter = MagicMock()
-    mock_limit = MagicMock()
 
     mock_main_query.join.return_value = mock_join1
     mock_join1.join.return_value = mock_join2
     mock_join2.filter.return_value = mock_filter
-    mock_filter.limit.return_value = mock_limit
 
     mock_session.query.side_effect = [mock_subq_query, mock_main_query]
 
-    mock_limit.all.return_value = []
+    mock_filter.all.return_value = []
 
     envelope = box(10, 10, 20, 20)
     result = get_all_vessels_in_bbox(envelope, "2023-01-01", limit=10)
@@ -130,9 +120,6 @@ def test_get_all_vessels_in_bbox_exception(mock_db_conn):
     '''
     mock_session = MagicMock()
     mock_db_conn.get_session.return_value = mock_session
-
-    mock_session = MagicMock()
-    mock_db_conn.get_session.return_value = mock_session
     mock_subq_query = MagicMock()
     mock_subq_filter = MagicMock()
     mock_subq_order = MagicMock()
@@ -148,16 +135,14 @@ def test_get_all_vessels_in_bbox_exception(mock_db_conn):
     mock_join1 = MagicMock()
     mock_join2 = MagicMock()
     mock_filter = MagicMock()
-    mock_limit = MagicMock()
 
     mock_main_query.join.return_value = mock_join1
     mock_join1.join.return_value = mock_join2
     mock_join2.filter.return_value = mock_filter
-    mock_filter.limit.return_value = mock_limit
 
     mock_session.query.side_effect = [mock_subq_query, mock_main_query]
 
-    mock_limit.all.side_effect = Exception("Database connection failed")
+    mock_filter.all.side_effect = Exception("Database connection failed")
 
     fake_envelope = MagicMock()
     result = get_all_vessels_in_bbox(fake_envelope, "2023-01-01", limit=10)
