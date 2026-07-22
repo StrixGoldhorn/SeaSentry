@@ -341,6 +341,7 @@ function MapPage() {
           <TileLayer
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             attribution="OpenStreetMap"
+            zIndex={1}
           />
         </LayersControl.BaseLayer>
 
@@ -348,6 +349,7 @@ function MapPage() {
           <TileLayer
             url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}.jpg"
             attribution="ESRI"
+            zIndex={1}
           />
         </LayersControl.BaseLayer>
 
@@ -355,6 +357,7 @@ function MapPage() {
           <TileLayer
             url="https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}"
             attribution="Google"
+            zIndex={1}
           />
         </LayersControl.BaseLayer>
 
@@ -364,6 +367,7 @@ function MapPage() {
             opacity={1}
             updateWhenIdle={true}
             attribution="OpenSeaMap"
+            zIndex={10}
           />
         </LayersControl.Overlay>
 
@@ -406,6 +410,7 @@ function MapPage() {
             transparent={true}
             version="1.3.0"
             attribution="Sentinel-2 imagery"
+            zIndex={5}
         />
     )}
 
@@ -417,6 +422,7 @@ function MapPage() {
             transparent={true}
             version="1.3.0"
             attribution="Sentinel-1 imagery"
+            zIndex={5}
         />
     )}
 
