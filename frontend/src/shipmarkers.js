@@ -241,6 +241,30 @@ export function ShipMarkers({ shipdata }) {
     ));
 }
 
+export function CourseDirMarkers({ shipdata }) {
+    if (!Array.isArray(shipdata)) {
+        return null;
+    }
+
+    return shipdata
+        // filter out those with no course data
+        .filter(ship => ship.course_deg != null && ship.course_deg !== '' && ship.course_deg !== 0)
+        .map((ship) => {
+            const lineIcon = createCourseLineIcon(getColorFromShiptype(ship.ship_type));
+
+            return (
+                <Marker
+                    key={`course-${ship.vessel_data_id}`}
+                    position={[ship.latitude, ship.longitude]}
+                    icon={lineIcon}
+                    rotationOrigin="center"
+                    rotationAngle={shipDegCheck(ship.course_deg)}
+                    interactive={false}
+                />
+            );
+        });
+}
+
 // export function ShipMarkers({ shipdata }) {
 //     if (!Array.isArray(shipdata)) {
 //         return null;
@@ -284,27 +308,3 @@ export function ShipMarkers({ shipdata }) {
 //         );
 //     });
 // }
-
-export function CourseDirMarkers({ shipdata }) {
-    if (!Array.isArray(shipdata)) {
-        return null;
-    }
-
-    return shipdata
-        // filter out those with no course data
-        .filter(ship => ship.course_deg != null && ship.course_deg !== '' && ship.course_deg !== 0)
-        .map((ship) => {
-            const lineIcon = createCourseLineIcon(getColorFromShiptype(ship.ship_type));
-
-            return (
-                <Marker
-                    key={`course-${ship.vessel_data_id}`}
-                    position={[ship.latitude, ship.longitude]}
-                    icon={lineIcon}
-                    rotationOrigin="center"
-                    rotationAngle={shipDegCheck(ship.course_deg)}
-                    interactive={false}
-                />
-            );
-        });
-}

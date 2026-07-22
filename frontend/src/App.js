@@ -10,6 +10,7 @@ import AOITablePage from "./AOITablePage";
 import GeofenceTablePage from "./GeofenceTablePage";
 import VesselHistoryMap from "./VesselHistoryMap";
 import VesselHistoryPage from "./VesselHistoryPage";
+import VesselMapPage from "./VesselMapPage";
 
 
 function App() {
@@ -27,6 +28,10 @@ function App() {
       <Route
         path="/vessel-history/:vesselDataId"
         element={<VesselHistoryPage />}
+      />
+      <Route
+          path="/vessel/:vessel_data_id"
+          element={<VesselMapPage />}
       />
       <Route path="/alerts/history/all" element={<AllAlertHistoryPage/>} />
     </Routes>
