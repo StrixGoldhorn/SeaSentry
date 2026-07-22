@@ -1,3 +1,18 @@
+# THEME AND HOW TO USE
+
+- Primary: #C2E2EB
+- Primary contrast: #273043
+- Secondary: #D4E6C7
+- Seconadry contrast: #3A5426
+- Highlight: #FFE2FE
+
+Use primary and primary contrast for main text color and background
+
+Use secondary and secondary contrast for main text color and background
+
+Use highlight sparingly!!!
+
+
 # Getting Started with Create React App
 
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).

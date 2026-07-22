@@ -1,0 +1,33 @@
+.thin-sidebar-root {
+    flex-shrink: 0;
+    z-index: 1200;
+}
+
+.thin-sidebar-paper {
+    width: 40px;
+    top: var(--top-bar-height) !important;
+    height: calc(100% - var(--top-bar-height));
+    z-index: 1200;
+    overflow-x: hidden;
+    background-color: var(--pri-c) !important;
+    color: var(--pri);
+}
+
+.thin-sidebar-button {
+    color: var(--pri) !important;
+    justify-content: center !important;
+}
+
+.thin-sidebar-button:hover {
+    background-color: #465474 !important;
+}
+
+.thin-sidebar-button.Mui-selected {
+    background-color: #617092 !important;
+}
+
+.thin-sidebar-icon {
+    color: var(--pri) !important;
+    min-width: 0 !important;
+    justify-content: center;
+}

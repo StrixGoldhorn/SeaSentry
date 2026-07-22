@@ -1,24 +1,43 @@
 .topbar {
-    height: 50px;
-    width: 100%;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 0 12px;
-    background-color: #1f2937;
-    box-sizing: border-box;
+    background-color: var(--pri-c) !important;
+    color: var(--pri) !important;
+    height: var(--top-bar-height)
 }
 
-.topbar-button {
-    background-color: #374151;
-    color: white;
-    border: none;
-    border-radius: 5px;
-    padding: 7px 14px;
-    cursor: pointer;
-    font-size: 14px;
+.topbar-toolbar {
+    min-height: 35px !important;
+    justify-content: center;
+    padding-left: 16px;
+    padding-right: 16px;
 }
 
-.topbar-button:hover {
-    background-color: #4b5563;
+.topbar-tabs {
+  min-height: var(--top-bar-height) !important;
+}
+
+.topbar-tabs .MuiTab-root {
+    color: var(--pri) !important;
+    opacity: 1 !important;
+    min-height: 35px;
+    text-transform: none;
+    font-size: 0.9rem;
+    padding-left: 16px;
+    padding-right: 16px;
+}
+
+.topbar-tabs .Mui-selected {
+  color: var(--pri) !important;
+  font-weight: 600;
+}
+
+.topbar-tabs .MuiTabs-indicator {
+  height: 3px;
+}
+
+.topbar-offset {
+  min-height: var(--top-bar-height) !important;
+}
+
+.topbar-tabs .MuiTabs-indicator {
+  background-color: var(--highlight);
 }

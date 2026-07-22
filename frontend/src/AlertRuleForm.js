@@ -20,6 +20,7 @@ export const fields = [
   { name: "enter_geofence", label: "Enter Geofence" },
   { name: "exit_geofence", label: "Exit Geofence" },
   { name: "is_vessel_of_interest", label: "Is Vessel Of Interest" },
+  { name: "has_usertag", label: "Has User Tag" },
 ];
 
 const combinators = [

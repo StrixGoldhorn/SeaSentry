@@ -26,10 +26,11 @@ const getNavStatusString = (navStatus) => {
 export default function VesselHistorySidebar({
     vessel,
     history,
-    startTime,
-    endTime,
-    setStartTime,
-    setEndTime,
+    historyError,
+    historyWindow,
+    setHistoryWindow,
+    maxHistoryWindow,
+    setMaxHistoryWindow,
 }) {
   if (!vessel) {
     return (
@@ -44,6 +45,20 @@ export default function VesselHistorySidebar({
 
   return (
     <div className="history-sidebar">
+      {historyError && (
+          <div
+              style={{
+                  marginTop: 12,
+                  padding: 10,
+                  borderRadius: 4,
+                  backgroundColor: "#fff3cd",
+                  color: "#856404",
+                  border: "1px solid #ffeeba",
+              }}
+          >
+              {historyError}
+          </div>
+      )}
 
         <div
             style={{
@@ -53,46 +68,55 @@ export default function VesselHistorySidebar({
         >
             <h3>History Filter</h3>
 
+        <label>
+            Show last {historyWindow} hours
+        </label>
+
+        <input
+            type="range"
+            min="1"
+            max={maxHistoryWindow}
+            value={historyWindow}
+            onChange={(e) =>
+                setHistoryWindow(Number(e.target.value))
+            }
+            style={{
+                width: "100%",
+            }}
+        />
+
+        <div
+            style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+                marginTop: "10px",
+            }}
+        >
             <label>
-                Start Time
+                Maximum:
             </label>
 
             <input
-                type="datetime-local"
-                value={startTime}
-                onChange={(e) => setStartTime(e.target.value)}
+                type="number"
+                min="1"
+                value={maxHistoryWindow}
+                onChange={(e) => {
+                    const value = Number(e.target.value);
+
+                    setMaxHistoryWindow(value);
+
+                    if (historyWindow > value) {
+                        setHistoryWindow(value);
+                    }
+                }}
                 style={{
-                    width: "100%",
-                    marginBottom: "10px",
+                    width: "80px",
                 }}
             />
 
-            <label>
-                End Time
-            </label>
-
-            <input
-                type="datetime-local"
-                value={endTime}
-                onChange={(e) => setEndTime(e.target.value)}
-                style={{
-                    width: "100%",
-                }}
-            />
-
-            <button
-                onClick={() => {
-                    setStartTime("");
-                    setEndTime("");
-                }}
-                style={{
-                    marginTop: "10px",
-                    fontSize: "12px",
-                    padding: "4px 8px",
-                }}
-            >
-                Clear Filters
-            </button>
+            hours
+        </div>
         </div>
 
       <h2>{vessel.ship_name}</h2>

@@ -1,51 +1,64 @@
-import { useNavigate } from "react-router";
 import "./TopBar.css";
+
+import { useNavigate, useLocation } from "react-router";
+import {
+    AppBar,
+    Toolbar,
+    Tabs,
+    Tab,
+} from "@mui/material";
 
 export default function TopBar() {
     const navigate = useNavigate();
+    const location = useLocation();
 
-    const buttons = [
-        {
-            label: "Map",
-            path: "/",
-        },
-        {
-            label: "Vessels",
-            path: "/vessels",
-        },
-        {
-            label: "Inputs",
-            path: "/inputs",
-        },
-        {
-            label: "Draw AOI",
-            path: "/drawAOIsidebar",
-        },
-        {
-            label: "Draw Geofence",
-            path: "/drawGeofenceSidebar",
-        },
-        {
-            label: "Unread Alerts",
-            path: "/alerts/history/unread",
-        },
-        {
-            label: "All Alerts",
-            path: "/alerts/history/all",
-        },
+    const pages = [
+        { label: "Map", path: "/" },
+        { label: "Vessels", path: "/vessels" },
+        { label: "Inputs", path: "/inputs" },
+        { label: "Draw AOI", path: "/drawAOIsidebar" },
+        { label: "Draw Geofence", path: "/drawGeofenceSidebar" },
+        { label: "All Alerts", path: "/alerts/history/all" },
     ];
 
+    const currentTab =
+        pages.find((p) => location.pathname === p.path)?.path || false;
+
     return (
-        <div className="topbar">
-            {buttons.map((button) => (
-                <button
-                    key={button.path}
-                    className="topbar-button"
-                    onClick={() => navigate(button.path)}
+        <>
+            <AppBar
+                position="fixed"
+                elevation={1}
+                className="topbar"
+            >
+                <Toolbar
+                    variant="dense"
+                    className="topbar-toolbar"
                 >
-                    {button.label}
-                </button>
-            ))}
-        </div>
+                    <Tabs
+                        value={currentTab}
+                        onChange={(_, value) => navigate(value)}
+                        textColor="inherit"
+                        indicatorColor="secondary"
+                        className="topbar-tabs"
+                        variant="scrollable"
+                        allowScrollButtonsMobile
+                    >
+                        {pages.map((page) => (
+                            <Tab
+                                key={page.path}
+                                value={page.path}
+                                label={page.label}
+                            />
+                        ))}
+                    </Tabs>
+                </Toolbar>
+            </AppBar>
+
+            <Toolbar
+                variant="dense"
+                className="topbar-offset"
+            />
+        </>
     );
 }

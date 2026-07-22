@@ -7,7 +7,6 @@ import { ShipMarkers, CourseDirMarkers } from "./shipmarkers.js";
 import * as utils from './utils.js';
 import { MapBoundsTracker, MapStateSaver, getMapCenter, getMapZoom } from "./screenbounds.js";
 import { RenderAOIs, RenderGeofences } from "./Boundsrenders.js";
-import { NavigateToInputsButton,  NavigateToMapButton } from "./NavigateButtons.js";
 
 import AOIPolygonDrawerNew from "./AOIPolygonDrawerNew";
 import AOISidebar from "./AOISidebar";
@@ -119,7 +118,6 @@ export default function SidebarAOIDrawPage() {
                         setCoords={setCoords}
                     />
                 </MapContainer>
-                <NavigateToMapButton/>
               </div>
           </div>
     );

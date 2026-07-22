@@ -8,7 +8,10 @@ import * as utils from './utils.js';
 import { MapBoundsTracker, MapStateSaver, getMapCenter, getMapZoom } from "./screenbounds.js";
 import { RenderAOIs, RenderGeofences } from "./Boundsrenders.js";
 import EditableAOILayer from "./EditableAOILayer.js";
-import { NavigateToUnreadAlertHistoryButton, NavigateToAOIDrawButton, NavigateToGeofenceDrawButton, NavigateToInputsButton, NavigateToVesselsButton } from "./NavigateButtons.js";
+import ThinSidebar from "./ThinSidebar.js";
+import SlidingSidebar from "./SlidingSidebar.js";
+import AOIPolygonDrawerNew from "./AOIPolygonDrawerNew.js";
+import GeofencePolygonDrawerNew from "./GeofencePolygonDrawerNew.js";
 import CopernicusImageryLayerControl from "./CopernicusImageryLayerControl.js";
 
 
@@ -20,7 +23,137 @@ function MapPage() {
   const [shipData, setshipData] = useState({});
   const [aoiData, setaoiData] = useState({});
   const [geofenceData, setgeofenceData] = useState({});
-  const [mapBounds, setmapBounds] = useState({lat_min:0, lat_max:0, long_min:0, long_max:0});
+  const [mapBounds, setmapBounds] = useState(null);
+
+  const [editingItem, setEditingItem] = useState(null);
+  const [editingType, setEditingType] = useState(null);
+  const [editedCoords, setEditedCoords] = useState([]);
+  const [editing, setEditing] = useState(false);
+
+  const [editedName, setEditedName] = useState("");
+  const [editedDescription, setEditedDescription] = useState("");
+
+  const [sidebarMode, setSidebarMode] = useState(null);
+
+  const [drawing, setDrawing] = useState(false);
+
+  const [coords, setCoords] = useState([]);
+  const [name, setName] = useState("");
+  const [desc, setDesc] = useState("");
+
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  const openAOI = () => {
+      setSidebarMode("aoi");
+      setDrawing(true);
+  };
+
+  const openGeofence = () => {
+      setSidebarMode("geofence");
+      setDrawing(true);
+  };
+
+  const closeSidebar = () => {
+      setSidebarMode(null);
+      setDrawing(false);
+
+      setCoords([]);
+      setName("");
+      setDesc("");
+  };
+
+  const handleSidebarSelect = (mode) => {
+      // Clicking the currently open tool closes it
+      if (sidebarMode === mode) {
+          closeSidebar();
+          return;
+      }
+
+      // Otherwise switch to the selected tool
+      setSidebarMode(mode);
+      setDrawing(true);
+
+      // Optional: clear previous drawing
+      setCoords([]);
+      setName("");
+      setDesc("");
+  };
+
+  function startEditing(item, type) {
+
+      setEditingItem(item);
+      setEditingType(type);
+
+      if (type === "aoi") {
+
+          setEditedCoords(item.area_of_interest_polygon);
+          setEditedName(item.area_of_interest_name);
+          setEditedDescription(
+              item.area_of_interest_description ?? ""
+          );
+
+      } else {
+
+          setEditedCoords(item.geofence_polygon);
+          setEditedName(item.geofence_name);
+          setEditedDescription(
+              item.geofence_description ?? ""
+          );
+
+      }
+
+      setEditing(true);
+
+  }
+
+  function cancelEditing() {
+
+      setEditing(false);
+
+      setEditingItem(null);
+      setEditingType(null);
+
+      setEditedCoords([]);
+      setEditedName("");
+      setEditedDescription("");
+
+      setRefreshKey(prev => prev + 1);
+
+  }
+
+  async function finishEditing() {
+      try {
+          if (editingType === "aoi") {
+              await utils.update_AOI({
+                  aoi_id:
+                      editingItem.area_of_interest_id,
+                  name: editedName,
+                  desc: editedDescription,
+                  coords:
+                      editedCoords
+              });
+              loadAOIs();
+          }
+
+          if (editingType === "geofence") {
+              await utils.update_geofence({
+                  geofence_id:
+                      editingItem.geofence_id,
+                  name: editedName,
+                  desc: editedDescription,
+                  coords:
+                      editedCoords
+              });
+              loadGeofences();
+          }
+          cancelEditing();
+      }
+
+      catch (err) {
+          console.error(err);
+          alert("Failed to update.");
+      }
+  }
 
   const [editingItem, setEditingItem] = useState(null);
   const [editingType, setEditingType] = useState(null);
@@ -111,14 +244,14 @@ function MapPage() {
 
   //useEffects
   useEffect(() => {
-    utils.get_ships_on_screen(mapBounds)
-      .then(fetchdata => {
-          if (fetchdata === null) {
-            console.log("API did not return data");
-          } else {
-            setshipData(fetchdata);
-          }
-        })
+      if (!mapBounds) return;
+
+      utils.get_ships_on_screen(mapBounds)
+          .then(fetchdata => {
+              if (fetchdata) {
+                  setshipData(fetchdata);
+              }
+          });
   }, [mapBounds]);
 
   useEffect(() => {
@@ -165,6 +298,25 @@ function MapPage() {
   //HTML return
   return (
     <>
+    <ThinSidebar onSelect={handleSidebarSelect} />
+
+    <SlidingSidebar
+        open={sidebarMode !== null}
+        mode={sidebarMode}
+        close={closeSidebar}
+
+        drawing={drawing}
+        setDrawing={setDrawing}
+
+        coords={coords}
+        setCoords={setCoords}
+
+        name={name}
+        setName={setName}
+
+        desc={desc}
+        setDesc={setDesc}
+    />
     <MapContainer center={initialCenter} zoom={initialZoom} scrollWheelZoom={true}>
 
       <MapStateSaver/>
@@ -192,7 +344,7 @@ function MapPage() {
           />
         </LayersControl.BaseLayer>
 
-        <LayersControl.Overlay checked name="Nautical Chart (OpenSeaMap)">
+        <LayersControl.Overlay name="Nautical Chart (OpenSeaMap)">
           <TileLayer
             url="https://tiles.openseamap.org/seamark/{z}/{x}/{y}.png"
             opacity={1}
@@ -233,6 +385,22 @@ function MapPage() {
         setCoords={setEditedCoords}/>)}
 
     <CopernicusImageryLayerControl />
+
+    {sidebarMode === "aoi" && (
+        <AOIPolygonDrawerNew
+            drawing
+            coords={coords}
+            setCoords={setCoords}
+        />
+    )}
+
+    {sidebarMode === "geofence" && (
+        <GeofencePolygonDrawerNew
+            drawing
+            coords={coords}
+            setCoords={setCoords}
+        />
+    )}
     </MapContainer>
     {editing && (
       <div
@@ -303,12 +471,6 @@ function MapPage() {
 
       </div>
       )}
-
-    <NavigateToInputsButton />
-    <NavigateToAOIDrawButton />
-    <NavigateToGeofenceDrawButton />
-    <NavigateToUnreadAlertHistoryButton />
-    <NavigateToVesselsButton />
     </>
   );
 }
