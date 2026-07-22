@@ -9,6 +9,7 @@ import {
 
 import CropIcon from "@mui/icons-material/Crop";
 import FenceIcon from "@mui/icons-material/Fence";
+import SatelliteAltIcon from "@mui/icons-material/SatelliteAlt";
 
 export default function ThinSidebar({ onSelect }) {
     return (
@@ -46,6 +47,21 @@ export default function ThinSidebar({ onSelect }) {
                 >
                     <ListItemIcon className="thin-sidebar-icon">
                         <FenceIcon />
+                    </ListItemIcon>
+                </ListItemButton>
+
+                <ListItemButton
+                    onClick={() => onSelect("imagery")}
+                    sx={{ color: "white", justifyContent: "center" }}
+                >
+                    <ListItemIcon
+                        sx={{
+                            color: "white",
+                            minWidth: 0,
+                            justifyContent: "center",
+                        }}
+                    >
+                        <SatelliteAltIcon />
                     </ListItemIcon>
                 </ListItemButton>
             </List>

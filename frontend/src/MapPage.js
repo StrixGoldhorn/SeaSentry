@@ -1,6 +1,6 @@
 import "leaflet/dist/leaflet.css";
 import './styles.css';
-import { MapContainer, TileLayer, Marker, Popup, Rectangle, Polygon, useMapEvent, useMapEvents, LayersControl } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, Rectangle, Polygon, useMapEvent, useMapEvents, LayersControl, WMSTileLayer } from 'react-leaflet';
 import { Icon } from "leaflet";
 import { useEffect, useState } from "react";
 import { ShipMarkers, CourseDirMarkers } from "./shipmarkers.js";
@@ -40,6 +40,10 @@ function MapPage() {
   const [coords, setCoords] = useState([]);
   const [name, setName] = useState("");
   const [desc, setDesc] = useState("");
+
+  const [instanceId, setInstanceId] = useState("");
+  const [selectedLayer, setSelectedLayer] = useState("none");
+
 
   const [refreshKey, setRefreshKey] = useState(0);
 
@@ -183,6 +187,14 @@ function MapPage() {
     })
   }, [mapBounds]);
 
+  useEffect(() => {
+        const savedId = localStorage.getItem("sentinelHubInstanceId");
+        if (savedId) {
+            setInstanceId(savedId);
+        }
+    }, []);
+
+
 
   const loadAOIs = () => {
     utils.get_all_AOI()
@@ -230,6 +242,11 @@ function MapPage() {
 
         desc={desc}
         setDesc={setDesc}
+
+        instanceId={instanceId}
+        setInstanceId={setInstanceId}
+        selectedLayer={selectedLayer}
+        setSelectedLayer={setSelectedLayer}
     />
     <MapContainer center={initialCenter} zoom={initialZoom} scrollWheelZoom={true}>
 
@@ -298,7 +315,27 @@ function MapPage() {
         coords={editedCoords}
         setCoords={setEditedCoords}/>)}
 
-    <CopernicusImageryLayerControl />
+    {instanceId && selectedLayer === "sentinel2" && (
+        <WMSTileLayer
+            url={`https://sh.dataspace.copernicus.eu/ogc/wms/${instanceId}`}
+            layers="TRUE_S2L2A"
+            format="image/png"
+            transparent={true}
+            version="1.3.0"
+            attribution="Sentinel-2 imagery"
+        />
+    )}
+
+    {instanceId && selectedLayer === "sentinel1" && (
+        <WMSTileLayer
+            url={`https://sh.dataspace.copernicus.eu/ogc/wms/${instanceId}`}
+            layers="SAR_VV_VH"
+            format="image/png"
+            transparent={true}
+            version="1.3.0"
+            attribution="Sentinel-1 imagery"
+        />
+    )}
 
     {sidebarMode === "aoi" && (
         <AOIPolygonDrawerNew

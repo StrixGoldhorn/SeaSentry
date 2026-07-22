@@ -4,6 +4,8 @@ import {
 
 import AOISidebar from "./AOISidebar";
 import GeofenceSidebar from "./GeofenceSidebar";
+import CopernicusImageryLayerControl from "./CopernicusImageryLayerControl";
+
 
 export default function SlidingSidebar({
     mode,
@@ -37,6 +39,15 @@ export default function SlidingSidebar({
             {mode === "geofence" && (
                 <GeofenceSidebar
                     {...props}
+                />
+            )}
+
+            {mode === "imagery" && (
+                <CopernicusImageryLayerControl
+                    instanceId={props.instanceId}
+                    setInstanceId={props.setInstanceId}
+                    selectedLayer={props.selectedLayer}
+                    setSelectedLayer={props.setSelectedLayer}
                 />
             )}
         </Drawer>

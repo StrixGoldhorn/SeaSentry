@@ -200,6 +200,11 @@ pre {
 
 }
 
+.leaflet-top.leaflet-left {
+    left: 50px;
+}
+
+
 .form-group {
 
     margin-bottom: 15px;
