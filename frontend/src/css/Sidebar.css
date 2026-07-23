@@ -1,0 +1,29 @@
+.sidebar {
+  width: 350px;
+  background: white;
+  border-right: 1px solid #ddd;
+  padding: 20px;
+  overflow-y: auto;
+  height: 100vh;
+}
+.sidebar h2 { margin-top: 20px; }
+
+.form-group { margin-bottom: 15px; }
+.form-group label { display: block; margin-bottom: 5px; font-weight: 600; }
+
+.coord-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+
+.history-sidebar {
+  width: 30%;
+  height: 100%;
+  overflow-y: auto;
+  padding: 20px;
+  box-sizing: border-box;
+  background: white;
+  border-left: 1px solid #ddd;
+}
+.history-sidebar h2 { margin-top: 0; }
+.history-sidebar table { width: 100%; border-collapse: collapse; }
+.history-sidebar td { padding: 6px 0; vertical-align: top; }
+.history-sidebar td:first-child { font-weight: bold; width: 40%; }
+.history-sidebar hr { margin: 18px 0; }

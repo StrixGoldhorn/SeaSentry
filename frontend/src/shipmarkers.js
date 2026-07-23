@@ -1,7 +1,8 @@
 import * as L from "leaflet";
 import { Marker, Popup } from "react-leaflet";
 import "leaflet-rotatedmarker";
-import "./styles.css";
+import "./css/styles.css";
+import "./css/VesselPopup.css";
 import { useNavigate } from "react-router";
 import { useState } from "react";
 import VesselEditDialog from "./VesselEditDialog";

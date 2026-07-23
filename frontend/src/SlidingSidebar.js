@@ -1,7 +1,7 @@
 import {
     Drawer,
 } from "@mui/material";
-
+import './css/Sidebar.css';
 import AOISidebar from "./AOISidebar";
 import GeofenceSidebar from "./GeofenceSidebar";
 import CopernicusImageryLayerControl from "./CopernicusImageryLayerControl";

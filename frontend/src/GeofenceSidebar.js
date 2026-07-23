@@ -1,4 +1,5 @@
 import { add_poly_geofence } from "./utils";
+import './css/Sidebar.css';
 
 export default function GeofenceSidebar({
     coords,

@@ -1,5 +1,5 @@
 import "leaflet/dist/leaflet.css";
-import "./styles.css";
+import "./css/styles.css";
 
 import { useEffect, useState } from "react";
 import {
