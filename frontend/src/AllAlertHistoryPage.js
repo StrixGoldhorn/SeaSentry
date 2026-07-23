@@ -1,5 +1,4 @@
-import './css/styles.css';
-import './css/Alerts.css';
+import './styles.css';
 
 import { useEffect, useMemo, useState } from "react";
 

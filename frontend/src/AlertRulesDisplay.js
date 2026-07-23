@@ -5,7 +5,6 @@ import {
     disable_alert_rule,
     delete_alert_rule
 } from "./utils";
-import './css/Alerts.css';
 
 export default function AlertRulesList({
     onEdit,
@@ -141,7 +140,7 @@ export default function AlertRulesList({
                             Delete
                         </button>
 
-                        <details>
+                        <details style={{ marginTop: "10px" }}>
                             <summary>Show Rule JSON</summary>
 
                             <pre>

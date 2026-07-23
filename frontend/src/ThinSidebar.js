@@ -1,4 +1,4 @@
-import "./css/ThinSidebar.css";
+import "./ThinSidebar.css";
 
 import {
     Drawer,

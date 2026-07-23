@@ -1,4 +1,4 @@
-import "./css/styles.css";
+import "./styles.css";
 
 const getNavStatusString = (navStatus) => {
     const statusMap = {

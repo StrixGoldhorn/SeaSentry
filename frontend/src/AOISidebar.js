@@ -1,5 +1,4 @@
 import { add_poly_AOI } from "./utils";
-import './css/Sidebar.css';
 
 export default function AOISidebar({
     coords,

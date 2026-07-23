@@ -1,4 +1,4 @@
-import './css/styles.css';
+import './styles.css';
 import AOIPanel from "./AOIForm";
 import GeofencePanel from "./GeofenceForm";
 import VOIList from "./VOIDisplay";

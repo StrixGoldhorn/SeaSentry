@@ -1,7 +1,5 @@
 import "leaflet/dist/leaflet.css";
-import './css/styles.css';
-import './css/AOIGeofenceEdit.css';
-import './css/MapLayout.css';
+import './styles.css';
 import { MapContainer, TileLayer, Marker, Popup, Rectangle, Polygon, useMapEvent, useMapEvents, LayersControl, WMSTileLayer } from 'react-leaflet';
 import { Icon } from "leaflet";
 import { useEffect, useState } from "react";
@@ -439,31 +437,72 @@ function MapPage() {
 
     </MapContainer>
     {editing && (
-      <div>
-          <h3>Editing {editingType === "aoi" ? "AOI" : "Geofence"}</h3>
+      <div
+          style={{
+              position: "absolute",
+              top: 20,
+              right: 20,
+              zIndex: 1000,
+              background: "white",
+              padding: 20,
+              borderRadius: 8,
+              boxShadow: "0 2px 8px rgba(0,0,0,.3)",
+              width: 300
+          }}
+      >
+
+          <h3>
+              Editing {editingType === "aoi" ? "AOI" : "Geofence"}
+          </h3>
 
           <label>Name</label>
+
           <input
               value={editedName}
               onChange={(e) =>
                   setEditedName(e.target.value)
               }
+              style={{
+                  width: "100%",
+                  marginBottom: 12
+              }}
           />
 
           <label>Description</label>
+
           <textarea
               rows={4}
               value={editedDescription}
               onChange={(e) =>
                   setEditedDescription(e.target.value)
               }
+              style={{
+                  width: "100%",
+                  marginBottom: 12
+              }}
           />
 
-          <p>Vertices: {editedCoords.length}</p>
+          <p>
+              Vertices: {editedCoords.length}
+          </p>
 
-          <button onClick={finishEditing}>Save Changes</button>
+          <button
+              onClick={finishEditing}
+              style={{ width: "100%" }}
+          >
+              Save Changes
+          </button>
 
-          <button className="cancel-btn" onClick={cancelEditing}>Cancel</button>
+          <button
+              onClick={cancelEditing}
+              style={{
+                  width: "100%",
+                  marginTop: 10
+              }}
+          >
+              Cancel
+          </button>
+
       </div>
       )}
     </>

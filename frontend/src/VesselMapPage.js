@@ -1,7 +1,5 @@
 import "leaflet/dist/leaflet.css";
-import "./css/styles.css";
-import "./css/MapLayout.css";
-import "./css/VesselPopup.css";
+import "./styles.css";
 
 import {
     MapContainer,
