@@ -11,11 +11,15 @@ import {
 } from "@mui/material";
 
 import EditIcon from "@mui/icons-material/Edit";
+import VisibilityIcon from "@mui/icons-material/Visibility";
+import { useNavigate } from "react-router";
+
 
 import { get_all_ships } from "./utils";
 import VesselEditDialog from "./VesselEditDialog";
 
 export default function VesselTablePage() {
+  const navigate = useNavigate();
   const [data, setData] = useState([]);
   const [rowCount, setRowCount] = useState(0);
 
@@ -135,17 +139,36 @@ export default function VesselTablePage() {
 
     onPaginationChange: setPagination,
 
-    renderRowActions: ({ row }) => (
-      <Tooltip title="Edit">
+renderRowActions: ({ row }) => (
+    <>
+        <Tooltip title="View">
 
-        <IconButton
-          onClick={() => setEditingShip(row.original)}
-        >
-          <EditIcon />
-        </IconButton>
+            <IconButton
+                onClick={() =>
+                    navigate(
+                        `/vessel/${row.original.vessel_data_id}`
+                    )
+                }
+            >
+                <VisibilityIcon/>
+            </IconButton>
 
-      </Tooltip>
-    ),
+        </Tooltip>
+
+
+        <Tooltip title="Edit">
+
+            <IconButton
+                onClick={() =>
+                    setEditingShip(row.original)
+                }
+            >
+                <EditIcon/>
+            </IconButton>
+
+        </Tooltip>
+    </>
+),
 
     enableRowActions: true,
 

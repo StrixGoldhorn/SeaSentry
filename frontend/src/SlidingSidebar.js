@@ -4,6 +4,9 @@ import {
 
 import AOISidebar from "./AOISidebar";
 import GeofenceSidebar from "./GeofenceSidebar";
+import CopernicusImageryLayerControl from "./CopernicusImageryLayerControl";
+import ExportAreaSidebar from "./ExportAreaSidebar";
+import FilterSidebar from "./FilterSidebar";
 
 export default function SlidingSidebar({
     mode,
@@ -19,10 +22,10 @@ export default function SlidingSidebar({
             sx={{
                 zIndex: 1100,
                 "& .MuiDrawer-paper": {
-                    width: 320,
+                    width: 350,
                     left: 40,
                     top: 42,
-                    height: "calc(100% - 48px)",
+                    height: "calc(100% - 40px)",
                     padding: 2,
                     zIndex: 1100,
                 },
@@ -39,6 +42,24 @@ export default function SlidingSidebar({
                     {...props}
                 />
             )}
+
+            {mode === "imagery" && (
+                <CopernicusImageryLayerControl
+                    instanceId={props.instanceId}
+                    setInstanceId={props.setInstanceId}
+                    selectedLayer={props.selectedLayer}
+                    setSelectedLayer={props.setSelectedLayer}
+                />
+            )}
+
+            {mode === "export" && (
+                <ExportAreaSidebar
+                    {...props}
+                />
+            )}
+
+            {mode === "filter" && <FilterSidebar {...props} />}
+
         </Drawer>
     );
 }

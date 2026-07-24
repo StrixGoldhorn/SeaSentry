@@ -9,7 +9,7 @@ function appendIfNotNull(formData, key, value) {
 
 //VESSELS
 //Query latest vessel positions within a bounding box
-export async function get_ships_on_screen({lat_min, lat_max, long_min, long_max, limit = null, time_within = null}) {
+export async function get_ships_on_screen({lat_min, lat_max, long_min, long_max, limit = null, time_within = null, shiptype = null}) {
     if (lat_min == null || lat_max == null || long_min == null || long_max == null) {
         return null;
     }
@@ -26,6 +26,10 @@ export async function get_ships_on_screen({lat_min, lat_max, long_min, long_max,
 
     if (time_within !== null) {
         url = url + `&time_within=${time_within}`;
+    }
+
+    if (shiptype !== null && shiptype !== "") {
+        url = url + `&shiptype=${encodeURIComponent(shiptype)}`;
     }
 
     return await fetch(url)
@@ -155,6 +159,46 @@ export async function update_ship_using_data_id({
         .then(res => res.json())
         .catch(err => console.error(err));
 }
+
+//Query historical vessel positions within a bounding box and time range. Streams exports to JSON, GeoJSON, or CSV to prevent memory overload on large responses.
+export async function export_area({
+    lat_min = null,
+    lat_max = null,
+    long_min = null,
+    long_max = null,
+    start_time = null,
+    end_time = null,
+    format = "json"
+}) {
+
+    const params = new URLSearchParams();
+
+    if (lat_min !== null) params.append("lat_min", lat_min);
+    if (lat_max !== null) params.append("lat_max", lat_max);
+    if (long_min !== null) params.append("long_min", long_min);
+    if (long_max !== null) params.append("long_max", long_max);
+
+    if (start_time) params.append("start_time", start_time);
+    if (end_time) params.append("end_time", end_time);
+
+    if (format) params.append("format", format);
+
+    const url =
+        `${config.api_url}/api/v1/vessels/exportArea?${params.toString()}`;
+
+    return await fetch(url)
+        .then(res => {
+            if (!res.ok) {
+                throw new Error(`Export failed (${res.status})`);
+            }
+            return res.blob();
+        })
+        .catch(err => {
+            console.error(err);
+            return null;
+        });
+}
+
 
 //VESSELS OF INTEREST
 //Query for all vessels of interest

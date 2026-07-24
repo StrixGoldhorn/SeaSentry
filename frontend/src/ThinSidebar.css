@@ -8,26 +8,40 @@
     top: var(--top-bar-height) !important;
     height: calc(100% - var(--top-bar-height));
     z-index: 1200;
-    overflow-x: hidden;
+    overflow: hidden;
     background-color: var(--pri-c) !important;
     color: var(--pri);
+    transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
+
+.thin-sidebar-paper:hover {
+    width: 200px !important;
+}
+
 
 .thin-sidebar-button {
     color: var(--pri) !important;
     justify-content: center !important;
+    height: 56px !important;
+    min-height: 56px !important;
+    max-height: 56px !important;
 }
 
 .thin-sidebar-button:hover {
-    background-color: #465474 !important;
-}
-
-.thin-sidebar-button.Mui-selected {
-    background-color: #617092 !important;
+    background-color: var(--pri-hover) !important;
 }
 
 .thin-sidebar-icon {
     color: var(--pri) !important;
-    min-width: 0 !important;
+    min-width: 40px !important;
     justify-content: center;
+}
+
+.thin-sidebar-text {
+    opacity: 0;
+    pointer-events: none;
+}
+
+.thin-sidebar-paper:hover .thin-sidebar-text {
+    opacity: 1;
 }
