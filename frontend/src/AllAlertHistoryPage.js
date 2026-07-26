@@ -42,7 +42,6 @@ export default function AllAlertHistoryPage() {
         setLoading(false);
     };
 
-
     useEffect(() => {
         loadAlerts();
     }, []);
