@@ -22,23 +22,18 @@ class Settings():
             # "enabled": True,
             "enabled": False,
             "interval_seconds": 10
-            # "interval_seconds": (300, 600)
         },
         "AISFriends_Scraper": {
             "enabled": True,
-            # "enabled": False,
-            "interval_seconds": (300, 600)
+            "interval_seconds": (120, 300)
         },
         "aprs_Scraper": {
-            # "enabled": True,
-            "enabled": False,
-            "interval_seconds": (600, 1800)
+            "enabled": True,
+            "interval_seconds": (240, 360)
         },
         "VesselFinder_Scraper": {
-            # "enabled": True,
-            "enabled": False,
-            "interval_seconds": (600, 1800)
-            # "interval_seconds": (300, 600)
+            "enabled": True,
+            "interval_seconds": (240, 360)
         }
     }
 

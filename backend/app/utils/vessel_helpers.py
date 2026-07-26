@@ -38,6 +38,9 @@ def get_all_vessels_in_bbox(envelope, time_lower_bound: datetime, limit: int, sh
             VesselLocation.vessel_location_vessel_data_id
         ).subquery('latest_locations')
 
+        if shiptype and shiptype != "":
+            query = query.filter(VesselData.vessel_data_ship_type.ilike(f"%{shiptype}%"))
+
         query = session.query(VesselLocation, VesselData).join(
             VesselData,
             VesselLocation.vessel_location_vessel_data_id == VesselData.vessel_data_id,
