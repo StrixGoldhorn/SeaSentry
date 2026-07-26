@@ -3,6 +3,7 @@ import { Polygon, Popup } from "react-leaflet";
 export function PolygonOverlay({
     item,
     color = "black",
+    zIndexOffset = 0,
 
     polygonField,
     idField,
@@ -11,9 +12,14 @@ export function PolygonOverlay({
     timestampField,
 
     deleteFunction,
+    scrapeFunction,
     refreshFunction,
+    onEdit,
+    editing,
 
-    deleteLabel = "Delete"
+    editLabel = "Edit",
+    deleteLabel = "Delete",
+    scrapeLabel = "Scrape"
 }) {
 
     const polyOptions = {
@@ -21,7 +27,9 @@ export function PolygonOverlay({
         weight: 3,
         opacity: 0.3,
         fillColor: color,
-        fillOpacity: 0.03
+        fillOpacity: 0.03,
+        pmIgnore: true,
+        zIndexOffset
     };
 
     const polyBounds =
@@ -59,10 +67,40 @@ export function PolygonOverlay({
         }
     }
 
+    async function handleScrape() {
+
+        const confirmed = window.confirm(
+            `Confirm scrape "${item[nameField]}"?\nDo not spam this too often, even with different AOIs.`
+        );
+
+        if (!confirmed) {
+            return;
+        }
+
+        try {
+
+            await scrapeFunction({
+                id: item[idField]
+            });
+
+            if (refreshFunction) {
+                refreshFunction();
+            }
+
+        } catch (err) {
+
+            console.error(err);
+
+            alert("Force scrape failed");
+
+        }
+    }
+
     return (
         <Polygon
             positions={polyBounds}
             pathOptions={polyOptions}
+            interactive={!editing}
         >
             <Popup autoPan={false}>
 
@@ -105,19 +143,44 @@ export function PolygonOverlay({
                         {item[polygonField].length}
                     </p>
 
-                    {
-                        deleteFunction && (
+                    <div style={{
+                        display: 'grid',
+                        gridTemplateColumns: '1fr 1fr',
+                        gap: '10px',
+                        padding: '0px'
+                    }}>
+                        {scrapeFunction && (
                             <button
-                                onClick={handleDelete}
                                 style={{
-                                    width: "100%",
-                                    marginTop: "10px"
+                                    gridColumn: 'span 2',
+                                    margin: '0px',
+
                                 }}
+                                onClick={handleScrape}
                             >
-                                {deleteLabel}
+                                {scrapeLabel}
                             </button>
-                        )
-                    }
+                        )}
+
+                        <button
+                            style={{
+                                margin: '0px',
+                            }}
+                            onClick={() => onEdit(item)}
+                        >
+                            {editLabel}
+                        </button>
+
+                        <button
+                            style={{
+                                background: "#c01e1e",
+                                margin: '0px',
+                            }}
+                            onClick={handleDelete}
+                        >
+                            {deleteLabel}
+                        </button>
+                    </div>                    
 
                 </div>
 

@@ -26,6 +26,8 @@ from app.utils.aoi_helpers import DBG_INSERT_DEFAULT_AOI
 from app.utils.geofence_helpers import DBG_INSERT_DEFAULT_GEOFENCE
 from app.utils.cleaner import clear_data_ingestion_audit_log_thirty_days
 from app.modules.alerts.engine import check_all_vessels
+from app.modules.bad_data_detection.engine import bad_data_check
+from app.modules.atak_integration.atak_integration import start_atak_background
 
 logging.basicConfig(level=logging.DEBUG) # NOTE: PLEASE ONLY CONTROL LOGGER LEVEL FROM HERE
 logger = logging.getLogger(__name__)
@@ -56,6 +58,18 @@ def schedules(scheduler):
         misfire_grace_time = 300
     )
 
+    bad_data_check(30)
+    scheduler.add_job(
+        func = bad_data_check,
+        args=[Settings.BAD_DATA_CHECK_PREVIOUS_MINUTES,],
+        trigger = IntervalTrigger(minutes=Settings.BAD_DATA_RECHECK_MINUTES),
+        id = f"bad_data_check{Settings.BAD_DATA_RECHECK_MINUTES}",
+        max_instances = 1,
+        coalesce = True,
+        replace_existing = True,
+        misfire_grace_time = 300
+    )
+
 def create_app():
     app = Flask(__name__)
 
@@ -66,6 +80,15 @@ def create_app():
     app.register_blueprint(vessel_of_interest_bp)
 
     CORS(app, resources={r"/api/*": {"origins": Settings.CORS_ALLOWED}})
+
+    # force headers to be no cache to fix the filtering stuff
+    @app.after_request
+    def add_no_cache_headers(response):
+        if response.content_type.startswith("application/json"):
+            response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+            response.headers["Pragma"] = "no-cache"
+            response.headers["Expires"] = "0"
+        return response
 
     @app.teardown_appcontext
     def teardown_session(exception = None):
@@ -118,6 +141,12 @@ def main():
     signal.signal(signal.SIGINT, shutdown_handler)
     signal.signal(signal.SIGTERM, shutdown_handler)
 
+    if Settings.ENABLE_ATAK_INTEGRATION:
+        logger.info("ATAK enabled, starting ATAK server")
+        start_atak_background()
+    else:
+        logger.info("ATAK disabled, change in config.py to enable")
+
     logger.info("Starting SeaSentry Backend + Scraper...")
 
     schedules(scheduler)
@@ -129,9 +158,4 @@ def main():
 
 if __name__ == "__main__":
     _scraper_started = False
-    try:
-        DBG_INSERT_DEFAULT_AOI()
-        DBG_INSERT_DEFAULT_GEOFENCE()
-    except:
-        pass
     main()

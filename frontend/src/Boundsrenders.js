@@ -1,11 +1,13 @@
 import { PolygonOverlay } from "./Polygon";
-import { delete_AOI, delete_geofence } from "./utils";
+import { delete_AOI, delete_geofence, scrape_aoi } from "./utils";
 
 
 
 export function RenderAOIs({
     aoicoordsdata,
-    refreshAOIs
+    refreshAOIs,
+    onEdit,
+    editing
 }) {
 
     if (!Array.isArray(aoicoordsdata)) {
@@ -32,9 +34,16 @@ export function RenderAOIs({
                 })
             }
 
+            scrapeFunction={({ id }) => scrape_aoi(id)}
+
             refreshFunction={refreshAOIs}
 
+            onEdit={onEdit}
+            editing={editing}
+
+            editLabel="Edit AOI"
             deleteLabel="Delete AOI"
+            scrapeLabel="Scrape AOI"
         />
 
     ));
@@ -42,7 +51,9 @@ export function RenderAOIs({
 
 export function RenderGeofences({
     geofencecoordsdata,
-    refreshGeofences
+    refreshGeofences,
+    onEdit,
+    editing
 }) {
 
     if (!Array.isArray(geofencecoordsdata)) {
@@ -55,6 +66,7 @@ export function RenderGeofences({
             key={geofence.geofence_id}
             item={geofence}
             color="red"
+            zIndexOffset={1}
 
             polygonField="geofence_polygon"
             idField="geofence_id"
@@ -71,6 +83,10 @@ export function RenderGeofences({
 
             refreshFunction={refreshGeofences}
 
+            onEdit={onEdit}
+            editing={editing}
+
+            editLabel="Edit Geofence"
             deleteLabel="Delete Geofence"
         />
 

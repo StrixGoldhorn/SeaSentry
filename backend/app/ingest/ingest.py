@@ -246,6 +246,7 @@ class IngestToDB:
                 return existing.data_source_id
 
         except Exception as e:
+            session.rollback()
             logger.warning("Error while attempting to insert data source, %s, with error %s", data_source_name, str(e))
             write_audit_log("Unknown Exception while attempting to insert data source",
                             __name__, {"error": str(e), "data source name": str(data_source_name)}, "ERROR")
@@ -294,6 +295,7 @@ class IngestToDB:
                 return existing.raw_data_id
 
         except Exception as e:
+            session.rollback()
             logger.warning("Error while attempting to insert raw data, %s, with error %s", str(raw_data), str(e))
             # TODO: Add exception handling
             return None
@@ -340,6 +342,7 @@ class IngestToDB:
                 return existing.vessel_location_id
 
         except Exception as e:
+            session.rollback()
             logger.warning("Error while attempting to insert vessel location, %s, with error %s", str(vloc), str(e))
             write_audit_log("Unknown Exception while attempting to insert vessel location",
                             __name__, {"error": str(e), "vloc": str(vloc)}, "ERROR")

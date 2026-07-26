@@ -1,61 +1,119 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { add_VOI } from "./utils";
+import { update_VOI } from "./utils";
 
-export default function VOIPanel(){
+export default function VOIPanel({
+    initialVOI = null,
+    onSaved = null,
+}){
 
-    const [form,setForm]=useState({
-        name:"",
-        desc:"",
-        mmsi:"",
-        imo:""
-    });
+    const emptyForm = {
+        name: "",
+        desc: "",
+        mmsi: "",
+        imo: "",
+    };
+
+    const [form, setForm] = useState(
+        initialVOI
+            ? {
+                name: initialVOI.vessel_of_interest_desc_name,
+                desc: initialVOI.vessel_of_interest_description ?? "",
+                mmsi: initialVOI.vessel_of_interest_mmsi ?? "",
+                imo: initialVOI.vessel_of_interest_imo ?? "",
+            }
+            : emptyForm
+    );
 
     const [response,setResponse]=useState("");
 
-    const submit=async()=>{
+    const submit = async () => {
+        let data;
 
-        const data=await add_VOI({
-
-            name:form.name,
-
-            desc:form.desc||null,
-
-            mmsi:form.mmsi||null,
-
-            imo:form.imo||null
-
-        });
-
-        setResponse(JSON.stringify(data,null,2));
-
+        if (initialVOI) {
+            data = await update_VOI({
+                voi_id: initialVOI.vessel_of_interest_id,
+                name: form.name,
+                desc: form.desc || null,
+                mmsi: form.mmsi || null,
+                imo: form.imo || null,
+            });
+        } else {
+            data = await add_VOI({
+                name: form.name,
+                desc: form.desc || null,
+                mmsi: form.mmsi || null,
+                imo: form.imo || null,
+            });
+        }
+        setResponse(JSON.stringify(data, null, 2));
+        onSaved?.();
+        if (!initialVOI) {
+            setForm(emptyForm);
+        }
     };
+
+    useEffect(() => {
+        if (!initialVOI) {
+            setForm(emptyForm);
+            return;
+        }
+
+        setForm({
+            name: initialVOI.vessel_of_interest_desc_name,
+            desc: initialVOI.vessel_of_interest_description ?? "",
+            mmsi: initialVOI.vessel_of_interest_mmsi ?? "",
+            imo: initialVOI.vessel_of_interest_imo ?? "",
+        });
+    }, [initialVOI]);
 
     return(
 
         <div className="coord-grid">
         <div className="form-group">
 
-            <h2>Add Vessel Of Interest</h2>
+            <h2>
+                {initialVOI
+                    ? "Edit Vessel Of Interest"
+                    : "Add Vessel Of Interest"}
+            </h2>
 
             <input placeholder="Name"
-                onChange={e=>setForm({...form,name:e.target.value})}
+            value={form.name}
+            onChange={e=>setForm({...form,name:e.target.value})}
             />
 
             <input placeholder="Description"
-                onChange={e=>setForm({...form,desc:e.target.value})}
+            value={form.desc}
+            onChange={e=>setForm({...form,desc:e.target.value})}
             />
 
             <input placeholder="MMSI"
-                onChange={e=>setForm({...form,mmsi:e.target.value})}
+            value={form.mmsi}
+            onChange={e=>setForm({...form,mmsi:e.target.value})}
             />
 
             <input placeholder="IMO"
-                onChange={e=>setForm({...form,imo:e.target.value})}
+            value={form.imo}
+            onChange={e=>setForm({...form,imo:e.target.value})}
             />
 
             <button onClick={submit}>
-                Add VOI
+                {initialVOI
+                    ? "Edit VOI"
+                    : "Add VOI"}
             </button>
+
+            {initialVOI && (
+                <button
+                    onClick={() => {
+                        setForm(emptyForm);
+                        onSaved?.();
+                    }}
+                >
+                    Cancel
+                </button>
+            )}
 
             <pre>{response}</pre>
 

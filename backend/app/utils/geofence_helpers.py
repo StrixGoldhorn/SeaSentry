@@ -173,6 +173,8 @@ def update_geofence_in_db(geofence_id: int, name: str = None, desc: str = None, 
             return False
 
         if name is not None:
+            if check_if_geofence_name_exists(name) and geofence.geofence_name != name: return False
+        if name is not None:
             geofence.geofence_name = name
         if desc is not None:
             geofence.geofence_description = desc
@@ -189,12 +191,13 @@ def update_geofence_in_db(geofence_id: int, name: str = None, desc: str = None, 
     finally:
         DBConn.close_session()
 
-def check_if_geofence_name_exists(name: str):
+def check_if_geofence_name_exists(name: str, exclude_id: int = None):
     '''
     Checks if geofence with given name exists
     
     Args:
         name: geofence name to query
+        exclude_id: excludes id from search
 
     Returns:
         True if geofence with name already exists, False otherwise
@@ -203,6 +206,10 @@ def check_if_geofence_name_exists(name: str):
     session = DBConn.get_session()
     try:
         query = session.query(Geofence).filter(Geofence.geofence_name == name)
+
+        if exclude_id is not None:
+            query = query.filter(Geofence.geofence_id != exclude_id)
+
         res = query.first()
         if res is not None: return True
         return False
@@ -210,8 +217,6 @@ def check_if_geofence_name_exists(name: str):
         session.rollback()
         logger.error("DB Error in check_if_geofence_name_exists: %s", e)
         raise
-    finally:
-        DBConn.close_session()
 
 
 def delete_geofence_in_db(geofence_id: int):

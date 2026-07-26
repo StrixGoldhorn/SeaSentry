@@ -18,25 +18,45 @@ class Settings():
     ]
 
     SCRAPER_CONFIGS: dict = {
+        "UDP_Scraper": {
+            # "enabled": True,
+            "enabled": False,
+            "interval_seconds": 10
+        },
         "AISFriends_Scraper": {
             "enabled": True,
-            # "enabled": False,
-            "interval_seconds": (300, 600)
+            "interval_seconds": (120, 300)
         },
         "aprs_Scraper": {
             "enabled": True,
-            # "enabled": False,
-            "interval_seconds": (300, 900)
+            "interval_seconds": (240, 360)
         },
         "VesselFinder_Scraper": {
             "enabled": True,
-            # "enabled": False,
-            "interval_seconds": (300, 900)
+            "interval_seconds": (240, 360)
         }
     }
 
+    # UDP Listener
+    # .\start.bat -u 127.0.0.1 10110
+    UDP_IP = "0.0.0.0"
+    UDP_PORT = 10110
+
+    # Bad data detection
+    BAD_DATA_RECHECK_MINUTES: int = 10
+    BAD_DATA_CHECK_PREVIOUS_MINUTES: int = 30
+    TIME_TOLERANCE_SECONDS: int = 5
+    SPATIAL_TOLERANCE_METERS: float = 100
+    SPEED_CHECK_WINDOW_MINUTES: int = 15
+    SPEED_BUFFER_KNOTS: float = 10
+
+    # ATAK
+    # ENABLE_ATAK_INTEGRATION: bool =  True
+    ENABLE_ATAK_INTEGRATION: bool =  False
+    ATAK_SERVER_IP: str = os.getenv("ATAK_SERVER_IP")
+
     # Alerts
-    ALERT_RECHECK_MINUTES: int = 1
+    ALERT_RECHECK_MINUTES: int = 10
     ALERT_CHECK_PREVIOUS_MINUTES: int = 180
 
     # env
@@ -59,3 +79,6 @@ class Settings():
     DATABASE_URL = f"postgresql://{POSTGRES_USER}:{POSTGRES_PASSWORD}@{POSTGRES_HOST}:{POSTGRES_PORT}/{POSTGRES_DB}"
 
     EXEC_INFO_API: bool = os.getenv("EXEC_INFO_API")
+
+    ENABLE_EASTER_EGG: bool = True
+    EASTER_EGG_TOLERANCE: int = 8

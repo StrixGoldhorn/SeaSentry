@@ -146,8 +146,9 @@ def test_get_all_voi_success(mock_get_all, client):
     assert data['data'][0]['vessel_of_interest_desc_name'] == "Test VOI"
     assert data['data'][0]['vessel_of_interest_mmsi'] == "123456789"
 
+@patch('app.modules.vessel_of_interest.routes.write_audit_log')
 @patch('app.modules.vessel_of_interest.routes.get_all_vessel_of_interest')
-def test_get_all_voi_internal_error(mock_get_all, client):
+def test_get_all_voi_internal_error(mock_get_all, mock_audit, client):
     '''
     Test /api/v1/vessel_of_interest/get/all when an exception occurs
     '''
@@ -199,8 +200,9 @@ def test_get_voi_by_id_not_found(mock_get_voi, client):
     data = json.loads(response.data)
     assert data['error'] == "Vessel of interest with ID 999 not found."
 
+@patch('app.modules.vessel_of_interest.routes.write_audit_log')
 @patch('app.modules.vessel_of_interest.routes.get_vessel_of_interest_by_vessel_of_interest_id')
-def test_get_voi_by_id_internal_error(mock_get_voi, client):
+def test_get_voi_by_id_internal_error(mock_get_voi, mock_audit, client):
     '''
     Test GET /api/v1/vessel_of_interest/<int:vessel_of_interest_id> when an exception occurs
     '''

@@ -1,135 +1,99 @@
-import { useState } from "react";
-
-import {
-    Polygon,
-    Polyline,
-    CircleMarker,
-    useMapEvents
-} from "react-leaflet";
-
-function AOIClickHandler({
-    drawing,
-    onPointAdd,
-    onMouseMove
-}) {
-
-    useMapEvents({
-
-        click(e) {
-
-            if (!drawing) return;
-
-            onPointAdd([
-                e.latlng.lng,
-                e.latlng.lat
-            ]);
-        },
-
-        mousemove(e) {
-
-            if (!drawing) return;
-
-            onMouseMove([
-                e.latlng.lng,
-                e.latlng.lat
-            ]);
-        }
-
-    });
-
-    return null;
-}
+import { useEffect, useRef } from "react";
+import { FeatureGroup } from "react-leaflet";
+import { GeomanControls } from "react-leaflet-geoman-v2";
 
 export default function AOIPolygonDrawerNew({
-    drawing,
     coords,
     setCoords
 }) {
 
-    const [mousePos, setMousePos] =
-        useState(null);
+    const polygonRef = useRef(null);
 
-    const previewCoords =
-        drawing &&
-        mousePos &&
-        coords.length > 0
-            ? [...coords, mousePos]
-            : coords;
+    const updateCoords = (layer) => {
+
+        const latlngs = layer.getLatLngs()[0];
+
+        setCoords(
+            latlngs.map(({ lat, lng }) => [
+                lng,
+                lat
+            ])
+        );
+    };
+
+    const handleCreate = ({ layer }) => {
+
+        if (polygonRef.current) {
+            polygonRef.current.remove();
+        }
+
+        polygonRef.current = layer;
+
+        updateCoords(layer);
+
+        layer.pm.enable();
+
+    };
+
+    const handleEdit = ({ layer }) => {
+        updateCoords(layer);
+    };
+
+    const handleRemove = () => {
+
+        polygonRef.current = null;
+
+        setCoords([]);
+
+    };
+
+    useEffect(() => {
+
+        if (
+            coords.length === 0 &&
+            polygonRef.current
+        ) {
+
+            polygonRef.current.remove();
+
+            polygonRef.current = null;
+
+        }
+
+    }, [coords]);
 
     return (
-        <>
-            <AOIClickHandler
-                drawing={drawing}
-                onPointAdd={(point) =>
-                    setCoords(prev => [
-                        ...prev,
-                        point
-                    ])
-                }
-                onMouseMove={setMousePos}
+
+        <FeatureGroup>
+
+            <GeomanControls
+
+                options={{
+                    position: "topright",
+
+                    drawMarker: false,
+                    drawCircle: false,
+                    drawCircleMarker: false,
+                    drawPolyline: false,
+                    drawRectangle: false,
+                    drawText: false,
+                    removalMode: false
+                }}
+
+                globalOptions={{
+                    continueDrawing: false
+                }}
+
+                onCreate={handleCreate}
+
+                onEdit={handleEdit}
+
+                onRemove={handleRemove}
+
             />
 
-            {coords.map(
-                ([lng, lat], index) => (
-                    <CircleMarker
-                        key={index}
-                        center={[lat, lng]}
-                        radius={6}
-                    />
-                )
-            )}
+        </FeatureGroup>
 
-            {drawing &&
-                mousePos &&
-                coords.length > 0 && (
-
-                <Polyline
-                    positions={[
-                        [
-                            coords[
-                                coords.length - 1
-                            ][1],
-                            coords[
-                                coords.length - 1
-                            ][0]
-                        ],
-                        [
-                            mousePos[1],
-                            mousePos[0]
-                        ]
-                    ]}
-                />
-
-            )}
-
-            {
-                drawing &&
-                mousePos && (
-                    <CircleMarker
-                        center={[
-                            mousePos[1],
-                            mousePos[0]
-                        ]}
-                        radius={6}
-                        weight={2}
-                        opacity={0.7}
-                        fillOpacity={0.5}
-                    />
-                )
-            }
-
-            {previewCoords.length > 1 && (
-                <Polygon
-                    positions={
-                        previewCoords.map(
-                            ([lng, lat]) => [
-                                lat,
-                                lng
-                            ]
-                        )
-                    }
-                />
-            )}
-        </>
     );
+
 }

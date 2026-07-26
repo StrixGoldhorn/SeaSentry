@@ -8,9 +8,11 @@ Fields are compulsory unless otherwise stated
   - [Table of Contents](#table-of-contents)
   - [Vessels](#vessels)
     - [GET `/api/v1/vessels/bbox`](#get-apiv1vesselsbbox)
+    - [GET `/api/v1/vessels/all`](#get-apiv1vesselsall)
     - [GET `/api/v1/vessels/<vessel_data_id>`](#get-apiv1vesselsvessel_data_id)
+    - [GET `/api/v1/vessels/<vessel_data_id>/history`](#get-apiv1vesselsvessel_data_idhistory)
     - [POST/PATCH `/api/v1/vessels/<vessel_data_id>/update`](#postpatch-apiv1vesselsvessel_data_idupdate)
-    - [GET `/api/v1/vessels/history`](#get-apiv1vesselshistory)
+    - [GET `/api/v1/vessels/exportArea`](#get-apiv1vesselsexportarea)
   - [Vessel of Interest](#vessel-of-interest)
     - [GET `/api/v1/vessel_of_interest/get/all`](#get-apiv1vessel_of_interestgetall)
     - [GET `/api/v1/vessel_of_interest/<vessel_of_interest_id>`](#get-apiv1vessel_of_interestvessel_of_interest_id)
@@ -24,6 +26,7 @@ Fields are compulsory unless otherwise stated
     - [POST `/api/v1/aois/add/polygon`](#post-apiv1aoisaddpolygon)
     - [POST/PATCH `/api/v1/aois/<aoi_id>/update`](#postpatch-apiv1aoisaoi_idupdate)
     - [DELETE `/api/v1/aois/<aoi_id>/delete`](#delete-apiv1aoisaoi_iddelete)
+    - [POST `/api/v1/aois/<aoi_id>/scrape`](#post-apiv1aoisaoi_idscrape)
   - [Geofences](#geofences)
     - [GET `/api/v1/geofences/get/all`](#get-apiv1geofencesgetall)
     - [GET `/api/v1/geofences/<geofence_id>`](#get-apiv1geofencesgeofence_id)
@@ -50,13 +53,17 @@ Fields are compulsory unless otherwise stated
     - [shiptype](#shiptype)
     - [mmsi](#mmsi)
     - [speed](#speed)
+    - [proximity\_to\_shipname](#proximity_to_shipname)
     - [proximity\_to\_shiptype](#proximity_to_shiptype)
+    - [proximity\_to\_mmsi](#proximity_to_mmsi)
     - [inside\_geofence](#inside_geofence)
     - [enter\_geofence](#enter_geofence)
     - [exit\_geofence](#exit_geofence)
     - [is\_vessel\_of\_interest](#is_vessel_of_interest)
+    - [has\_usertag](#has_usertag)
   - [Using Combinators](#using-combinators)
   - [Nested Rules](#nested-rules)
+    - [POST `/api/v1/alerts/rescan`](#post-apiv1alertsrescan)
 
 
 
@@ -69,11 +76,31 @@ Summary: Query latest vessel positions within a bounding box
 Query Params:
 - lat_min, lat_max, long_min, long_max: float (bounding box)
 - time_within: int (optional, time in seconds, default 24hrs ie 60 * 60 * 24)
-- limit: int (optional, default 50, max 1000)
+- limit: int (optional, default 500, max 5000)
+- shiptype: str (optional, for filtering by ship type)
 
 E.g. `/api/v1/vessels/bbox?lat_min=1.2535&lat_max=1.2664&long_min=103.8233&long_max=103.8559&limit=25&time_within=670`
 
 This will return the 25 latest vessel locations with its corresponding unique vessels within the given area in the past 670 seconds.
+
+Returns:
+- 200 with JSON with latest vessel location and details
+- 400 if missing fields
+- 500 if internal server error
+
+### GET `/api/v1/vessels/all`
+
+Summary: Query for all vessels in database, filters available
+
+Query Params:
+  - querystr: string, will be matched with name, mmsi, or imo LIKE given string
+  - name: string, will be matched with name LIKE given string
+  - mmsi: string, will be matched with mmsi LIKE given string
+  - imo: string, will be matched with imo LIKE given string
+  - shiptype: string, will be matched with shiptype LIKE given string
+  - flag: string, will be matched with flag LIKE given string
+  - limit: integer, max number of records to return (e.g., 50)
+  - offset: integer, number of records to skip for pagination (e.g., 0)
 
 Returns:
 - 200 with JSON with latest vessel location and details
@@ -87,6 +114,20 @@ Summary: Query for vessel data with given vessel_data_id
 Returns:
 - 200 with details of vessel
 - 400 if missing fields
+- 500 if internal server error
+
+### GET `/api/v1/vessels/<vessel_data_id>/history`
+
+Summary: Returns list of vessel locations tagged to the vessel
+
+Query Params (all optional):
+- start_time: (optional, datetime, eg '2026-06-07T12:00:00Z', default datetime.min)
+- end_time: (optional, datetime, eg '2026-06-07T12:00:00Z', default datetime.now)
+
+Returns:
+- 200 with list of vessel locations
+- 400 if missing/malformed fields
+- 404 if no such history
 - 500 if internal server error
 
 ### POST/PATCH `/api/v1/vessels/<vessel_data_id>/update`
@@ -107,14 +148,14 @@ Returns:
 - 404 if Vessel with id does not exist
 - 500 if internal server error
 
-### GET `/api/v1/vessels/history`
+### GET `/api/v1/vessels/exportArea`
 
 Summary: Query historical vessel positions within a bounding box and time range. Streams exports to JSON, GeoJSON, or CSV to prevent memory overload on large responses.
 
 Query Params:
-- lat_min, lat_max, long_min, long_max: float (bounding box)
-- start_time: str (ISO datetime string, e.g., '2023-10-01T12:00:00Z')
-- end_time: str (ISO datetime string, e.g., '2023-10-02T12:00:00Z')
+- lat_min, lat_max, long_min, long_max: float (optional, bounding box, default whole Earth)
+- start_time: str (optional, ISO datetime string, e.g., '2023-10-01T12:00:00Z', default datetime.min)
+- end_time: str (optional, ISO datetime string, e.g., '2023-10-02T12:00:00Z', default datetime.now)
 - format: str (optional, 'json', 'geojson', or 'csv', default 'json')
 
 Returns:
@@ -275,6 +316,16 @@ Returns:
 - 404 if AOI with id does not exist
 - 500 if internal server error
 
+
+### POST `/api/v1/aois/<aoi_id>/scrape`
+
+Summary: Forces enabled scrapers to start scanning the selected AOI instantly. Does not affect scheduled scrapes.
+
+Returns:
+- 200 if function triggers
+- 404 if AOI with given id does not exist
+- 500 if internal server error
+
 ## Geofences
 
 ### GET `/api/v1/geofences/get/all`
@@ -367,11 +418,33 @@ Query Params (all optional):
 - end_time: ISO format datetime string (e.g., 2023-10-28T10:00:00)
 - limit: integer, max number of records to return (e.g., 50)
 - offset: integer, number of records to skip for pagination (e.g., 0)
+- by_alert_rule_id: integer, filters for history generated by alert rule with given id (e.g., 21)
+
+**Note**: Offset is the number of **records** skipped, NOT pages skipped.
 
 Returns:
 - 200 with JSON with history of all alerts
 - 400 if malformed fields
 - 500 if internal server error
+
+eg, for 25 per page,
+Page 1:
+```
+limit = 25
+offset = 0
+```
+
+Page 2:
+```
+limit = 25
+offset = 25
+```
+
+Page 3:
+```
+limit = 25
+offset = 50
+```
 
 ### GET `/api/v1/alerts/history/unread`
 
@@ -476,6 +549,7 @@ Refer to Rule Configuration below for all allowed fields, operators, combinators
 Returns:
 - 201 with the new alert_rule_id if inserted successfully
 - 400 if missing/malformed fields
+- 403 if name already exists
 - 500 if internal server error
 
 ### POST `/api/v1/alerts/rule/<alert_rule_id>/update`
@@ -544,7 +618,9 @@ shipname
 shiptype
 mmsi
 speed
+proximity_to_shipname
 proximity_to_shiptype
+proximity_to_mmsi
 inside_geofence
 enter_geofence
 exit_geofence
@@ -575,12 +651,19 @@ Allowed fields
 shipname
 shiptype
 mmsi
+
 speed
+
+proximity_to_shipname
 proximity_to_shiptype
+proximity_to_mmsi
+
 inside_geofence
 enter_geofence
 exit_geofence
+
 is_vessel_of_interest
+has_usertag
 ```
 
 ### shipname
@@ -655,6 +738,23 @@ Example
 }
 ```
 
+### proximity_to_shipname
+Requires a special field, `valueShipname`.
+
+Will return any ships within `value` meters of any `valueShipname` ship.
+
+Operator can be any (will be ignored).
+
+Example
+```
+{
+  "field": "proximity_to_shipname",
+  "operator": true,
+  "value": 100,
+  "valueShipname": "ENG HUP ARGO"
+}
+```
+
 ### proximity_to_shiptype
 Requires a special field, `valueShiptype`.
 
@@ -669,6 +769,23 @@ Example
   "operator": true,
   "value": 100,
   "valueShiptype": "Cargo"
+}
+```
+
+### proximity_to_mmsi
+Requires a special field, `valueShipmmsi`.
+
+Will return any ships within `value` meters of any `valueShipmmsi` ship.
+
+Operator can be any (will be ignored).
+
+Example
+```
+{
+  "field": "proximity_to_mmsi",
+  "operator": true,
+  "value": 150,
+  "valueShipmmsi": "987654321"
 }
 ```
 
@@ -739,6 +856,22 @@ Example
 }
 ```
 
+### has_usertag
+Will return true if vessel contains the defined user-tag
+
+Generally used with combinators.
+
+Operator can be any (will be ignored).
+
+Example
+```
+{
+  "field": "has_usertag",
+  "operator": true,
+  "value": "Custom Usertag 1"
+}
+```
+
 ## Using Combinators
 Combinators can be used to combine singular rules.
 
@@ -806,3 +939,15 @@ For example, the rule below evaluates true if `(vessel is NOT inside geofence 1)
 ],
 "combinator": "and"
 ```
+
+### POST `/api/v1/alerts/rescan`
+
+Summary: Force rescan of all rules for vessel locations within the past n minutes.
+
+Request Body:
+- n: int (minutes)
+
+Returns:
+- 202 if scan function is called
+- 400 if missing/malformed field
+- 500 if internal server error

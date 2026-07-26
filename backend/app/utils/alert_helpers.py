@@ -1,8 +1,9 @@
 # backend/app/utils/alert_helpers.py
 
 import logging
-from typing import List, Optional, Dict
+from typing import List, Optional, Dict, Any
 from datetime import datetime
+from sqlalchemy import func
 from sqlalchemy.exc import IntegrityError
 
 from app.core.database import DBConn
@@ -10,31 +11,9 @@ from app.models.alert import AlertRule, AlertHistory
 
 logger = logging.getLogger(__name__)
 
-def get_alert_rule_by_id(id: int):
-    '''
-    Returns alert rule with given ID
-    
-    Args:
-        id: id of Alert Rule
-
-    Returns:
-        AlertRule object if exists, None otherwise
-    '''
-
-    session = DBConn.get_session()
-    try:
-        query = session.query(AlertRule).filter(AlertRule.alert_rule_id == id)
-        res = query.first()
-        return res
-    except Exception as e:
-        session.rollback()
-        logger.error("DB Error in get_alert_rule_by_id: %s", str(e))
-        raise
-    finally:
-        DBConn.close_session()
-
 def get_all_alert_history(start_time: Optional[datetime] = None, end_time: Optional[datetime] = None,
-                          limit: Optional[int] = None, offset: Optional[int] = None, is_read: Optional[bool] = None) -> List[AlertHistory]:
+                          limit: Optional[int] = None, offset: Optional[int] = None, is_read: Optional[bool] = None,
+                          by_alert_rule_id: Optional[int] = None) -> Dict[str, Any]:
     '''
     Fetches all alert history from DB.
     Returns list of AlertHistory objects.
@@ -53,12 +32,21 @@ def get_all_alert_history(start_time: Optional[datetime] = None, end_time: Optio
         if is_read is not None:
             query = query.filter(AlertHistory.alert_history_read == is_read)
 
+        total_count = session.query(func.count()).select_from(query.subquery()).scalar()
+
         if offset is not None:
             query = query.offset(offset)
         if limit is not None:
             query = query.limit(limit)
+        if by_alert_rule_id is not None:
+            query = query.where(AlertHistory.alert_history_alert_rule_id == by_alert_rule_id)
 
-        return query.all()
+        res = query.all()
+
+        return {
+            "results": res,
+            "total": total_count
+        }
 
     except Exception as e:
         logger.error("Error in get_all_alert_history: %s", e, exc_info=True)
@@ -90,7 +78,7 @@ def get_all_alert_rule() -> List[AlertRule]:
 def get_alert_rule_by_id(alert_rule_id: int) -> AlertRule:
     '''
     Fetches alert rule with given alert_rule_id from DB.
-    Returns list of AlertRule objects.
+    Returns an AlertRule object.
     '''
 
     session = DBConn.get_session()
@@ -100,8 +88,9 @@ def get_alert_rule_by_id(alert_rule_id: int) -> AlertRule:
         return res
 
     except Exception as e:
-        logger.error("Error in get_all_alert_rule: %s", e, exc_info=True)
-        return []
+        session.rollback()
+        logger.error("DB Error in get_alert_rule_by_id: %s", str(e), exc_info=True)
+        raise
 
     finally:
         if session:
@@ -332,7 +321,32 @@ def delete_alert_rule_in_db(alert_rule_id: int):
 
     except Exception as e:
         session.rollback()
-        logger.error("DB Error in delete_aoi_in_db: %s", str(e))
+        logger.error("DB Error in delete_alert_rule_in_db: %s", str(e))
+        raise
+    finally:
+        DBConn.close_session()
+
+def check_if_alert_rule_name_exists(name: str):
+    '''
+    Checks if alert rule with given name exists
+    
+    Args:
+        name: Alert rule name to query
+
+    Returns:
+        True if alert rule with name already exists, False otherwise
+    '''
+
+    session = DBConn.get_session()
+    try:
+        query = session.query(AlertRule).filter(AlertRule.alert_rule_name == name)
+
+        res = query.first()
+        if res is not None: return True
+        return False
+    except Exception as e:
+        session.rollback()
+        logger.error("DB Error in check_if_alert_rule_name_exists: %s", e)
         raise
     finally:
         DBConn.close_session()

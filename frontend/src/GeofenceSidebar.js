@@ -1,8 +1,6 @@
 import { add_poly_geofence } from "./utils";
 
 export default function GeofenceSidebar({
-    drawing,
-    setDrawing,
     coords,
     setCoords,
     name,
@@ -14,7 +12,7 @@ export default function GeofenceSidebar({
     const submitPolygon = async () => {
 
         if (coords.length < 3) {
-            alert("Need at least 3 vertices");
+            alert("Please draw a Geofence first.");
             return;
         }
 
@@ -41,38 +39,34 @@ export default function GeofenceSidebar({
             alert("Geofence created");
 
             setCoords([]);
-            setDrawing(false);
+            setName("");
+            setDesc("");
 
         } catch (err) {
 
             console.error(err);
+            alert("Failed to create Geofence");
 
         }
+
     };
 
     return (
+
         <div
             style={{
-                width: "300px",
-                padding: "20px",
-                background: "#fff",
-                overflowY: "auto"
+                width: 300,
+                padding: 20,
+                background: "white"
             }}
         >
-            <h2>Geofence Drawing</h2>
 
-            <button
-                onClick={() =>
-                    setDrawing(!drawing)
-                }
-            >
-                {
-                    drawing
-                        ? "Stop Drawing"
-                        : "Start Drawing"
-                }
-            </button>
+            <h2>Draw Geofence</h2>
 
+            <p>
+                <strong>Use Polygon tools on the map.</strong>
+                
+            </p>
 
             <p>
                 Vertices: {coords.length}
@@ -81,32 +75,23 @@ export default function GeofenceSidebar({
             <input
                 placeholder="Geofence Name"
                 value={name}
-                onChange={(e) =>
-                    setName(e.target.value)
-                }
-                style={{
-                    width: "100%",
-                    marginTop: "10px"
-                }}
+                onChange={(e) => setName(e.target.value)}
+                style={{ width: "100%" }}
             />
 
             <textarea
                 placeholder="Description"
                 value={desc}
-                onChange={(e) =>
-                    setDesc(e.target.value)
-                }
+                onChange={(e) => setDesc(e.target.value)}
                 style={{
                     width: "100%",
-                    marginTop: "10px"
+                    marginTop: 10
                 }}
             />
 
             <button
                 onClick={submitPolygon}
-                style={{
-                    marginTop: "10px"
-                }}
+                style={{ marginTop: 10 }}
             >
                 Submit Geofence
             </button>
@@ -114,12 +99,15 @@ export default function GeofenceSidebar({
             <button
                 onClick={() => setCoords([])}
                 style={{
-                    marginTop: "10px",
-                    marginLeft: "10px"
+                    marginTop: 10,
+                    marginLeft: 10
                 }}
             >
                 Clear
             </button>
+
         </div>
+
     );
+
 }

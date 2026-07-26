@@ -15,6 +15,7 @@ from app.utils.aoi_helpers import (add_rectangle_aoi_to_db, add_polygon_aoi_to_d
                                    delete_aoi_in_db,
                                    check_if_aoi_name_exists)
 from app.utils.audit_log_helpers import write_audit_log
+from app.modules.scrapers.scrape import run_force_all_scrapers_for_aoi
 import logging
 
 logger = logging.getLogger(__name__)
@@ -42,7 +43,7 @@ def add_aoi_box():
             return jsonify({"error": "Bounding box expected."}), 400
 
         name = str(request.form.get("name"))
-        if name is None:
+        if name is None or name.strip() == "":
             return jsonify({"error": "Name of AOI expected."}), 400
 
         desc = str(request.form.get("desc"))
@@ -81,7 +82,7 @@ def add_aoi_polygon():
 
     try:
         name = str(request.form.get("name"))
-        if name is None:
+        if name is None or name.strip() == "":
             return jsonify({"error": "Name of AOI expected."}), 400
 
         desc = str(request.form.get("desc"))
@@ -209,12 +210,18 @@ def update_aoi_by_id(aoi_id):
         desc_raw = request.form.get("desc")
         coords_raw = request.form.get("coords")
 
+        name = str(name_raw).strip() if name_raw is not None else None
+        desc = str(desc_raw).strip() if desc_raw is not None else None
+
         bbox_params = ["lat_min", "lat_max", "long_min", "long_max"]
         bbox_values = [request.form.get(p, type=float) for p in bbox_params]
         has_bbox = all(v is not None for v in bbox_values)
 
-        if not name_raw and not desc_raw and not coords_raw and not has_bbox:
+        if not name and not desc and not coords_raw and not has_bbox:
             return jsonify({"error": "Requires at least 1 field to update."}), 400
+
+        if name is not None and check_if_aoi_name_exists(name, exclude_id=aoi_id):
+            return jsonify({"error": f"AOI with name '{name}' already exists."}), 403
 
         if coords_raw is not None and has_bbox:
             return jsonify({"error": "Provide either 'coords' for a polygon OR bounding box parameters, not both."}), 400
@@ -243,8 +250,8 @@ def update_aoi_by_id(aoi_id):
 
         success = update_aoi_in_db(
             aoi_id=aoi_id,
-            name=str(name_raw).strip() if name_raw is not None else None,
-            desc=str(desc_raw).strip() if desc_raw is not None else None,
+            name=name,
+            desc=desc,
             geometry_wkb=geom_wkb
         )
 
@@ -298,3 +305,27 @@ def delete_aoi_by_id_web(aoi_id):
         write_audit_log("Error in delete_aoi_by_id_web", __name__, {"aoi_id": aoi_id, "info": str(e)}, "ERROR")
 
         return jsonify({"error": "Internal server error"}), 500
+
+@aois_bp.route('/<int:aoi_id>/scrape', methods=['POST'])
+def force_scrape_aoi_by_id_web(aoi_id):
+    '''
+    POST /api/v1/aois/<int:aoi_id>/scrape
+    Forces enabled scrapers to start scanning the selected AOI instantly. Does not affect scheduled scrapes.
+    '''
+
+    try:
+        aoi = get_aoi_by_id(aoi_id)
+        if not aoi:
+            return jsonify({"error": f"AOI with ID {aoi_id} not found."}), 404
+
+        SCRAPER_CONFIGS = Settings.SCRAPER_CONFIGS
+        threads = run_force_all_scrapers_for_aoi(aoi_id, SCRAPER_CONFIGS)
+
+        return jsonify({
+            "status": "success",
+        }), 200
+
+    except Exception as e:
+        logger.error("Error in force_scrape_aoi_by_id_web: %s", e, exc_info=Settings.EXEC_INFO_API)
+        write_audit_log("Error in force_scrape_aoi_by_id_web", __name__, {"info": str(e)}, "ERROR")
+        return jsonify({"error": "Internal server error", "details": str(e)}), 500

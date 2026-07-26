@@ -1,15 +1,17 @@
 # backend/app/utils/vessel_helpers.py
 
 import logging
-from typing import List
-from datetime import datetime
+from typing import List, Tuple, Dict, Any, Optional
+from datetime import datetime, timedelta, timezone
+from sqlalchemy import desc, func, or_, and_
+from geoalchemy2.functions import ST_X, ST_Y
 
 from app.core.database import DBConn
 from app.models.vessel import VesselData, VesselLocation
 
 logger = logging.getLogger(__name__)
 
-def get_all_vessels_in_bbox(envelope, time_lower_bound: datetime, limit: int) -> List:
+def get_all_vessels_in_bbox(envelope, time_lower_bound: datetime, limit: int, shiptype: str = None) -> List:
     '''
     Fetches all Vessels in given bounding box
 
@@ -24,22 +26,150 @@ def get_all_vessels_in_bbox(envelope, time_lower_bound: datetime, limit: int) ->
 
     session = DBConn.get_session()
     try:
-        query = session.query(VesselLocation, VesselData).join(
-            VesselData,
-            VesselLocation.vessel_location_vessel_data_id == VesselData.vessel_data_id,
+        latest_locations_subq = session.query(
+            VesselLocation.vessel_location_vessel_data_id,
+            VesselLocation.vessel_location_timestamp
         ).filter(
-            VesselLocation.vessel_location_timestamp >= time_lower_bound,
-            VesselLocation.vessel_location_coords.ST_Within(envelope)
+            VesselLocation.vessel_location_timestamp >= time_lower_bound
         ).order_by(
             VesselLocation.vessel_location_vessel_data_id,
             VesselLocation.vessel_location_timestamp.desc()
-        ).distinct(VesselLocation.vessel_location_vessel_data_id).limit(limit)
+        ).distinct(
+            VesselLocation.vessel_location_vessel_data_id
+        ).subquery('latest_locations')
+
+        query = session.query(VesselLocation, VesselData).join(
+            VesselData,
+            VesselLocation.vessel_location_vessel_data_id == VesselData.vessel_data_id,
+        ).join(
+            latest_locations_subq,
+            and_(
+                VesselLocation.vessel_location_vessel_data_id == latest_locations_subq.c.vessel_location_vessel_data_id,
+                VesselLocation.vessel_location_timestamp == latest_locations_subq.c.vessel_location_timestamp
+            )
+        ).filter(
+            VesselLocation.vessel_location_coords.ST_Within(envelope)
+        )
+
+        if shiptype and shiptype != "":
+            query = query.filter(VesselData.vessel_data_ship_type.ilike(f"%{shiptype}%"))
+
+        if limit > 200:
+            query = query.order_by(
+                VesselLocation.vessel_location_vessel_data_id,
+                func.random()
+            )
+
+        query.limit(limit)
 
         return query.all()
 
     except Exception as e:
-        logger.error("Error in get_all_aois: %s", e, exc_info=True)
+        logger.error("Error in get_all_vessels_in_bbox: %s", e, exc_info=True)
         return []
+
+    finally:
+        if session:
+            DBConn.close_session()
+
+def get_vessels_in_polygon(coords: List[Tuple[float, float]], time_threshold_minutes: int = 15) -> List:
+    """
+    Queries the database for vessels located within a given polygon and updated within a specific time threshold.
+
+    Args:
+        coords: List of (longitude, latitude) tuples defining the polygon vertices.
+        time_threshold_minutes: How far back to look for vessel location updates.
+
+    Returns:
+        A list of dictionaries containing vessel information.
+    """
+    if not coords or len(coords) < 3:
+        logger.warning("Invalid polygon coordinates provided.")
+        return []
+
+    session = DBConn.get_session()
+    try:
+        closed_coords = list(coords)
+        if closed_coords[0] != closed_coords[-1]:
+            closed_coords.append(closed_coords[0])
+
+        wkt_coords = ", ".join([f"{lon} {lat}" for lon, lat in closed_coords])
+        wkt_polygon = f"POLYGON(({wkt_coords}))"
+
+        polygon_geom = func.ST_GeomFromText(wkt_polygon, 4326)
+
+        threshold_time = datetime.now() - timedelta(minutes=time_threshold_minutes)
+
+        query = session.query(VesselLocation, VesselData).join(
+            VesselLocation, VesselData.vessel_data_id == VesselLocation.vessel_location_vessel_data_id
+        ).filter(
+            VesselLocation.vessel_location_timestamp >= threshold_time,
+            func.ST_Within(VesselLocation.vessel_location_coords, polygon_geom)
+        ).distinct(
+            VesselData.vessel_data_mmsi
+        ).order_by(
+            VesselData.vessel_data_mmsi,
+            desc(VesselLocation.vessel_location_timestamp)
+        )
+
+        return query.all()
+
+    except Exception as e:
+        logger.error(f"Error in get_vessels_in_polygon: {e}")
+        return []
+
+    finally:
+        session.close()
+
+def get_all_vessels(querystr: Optional[str] = None, name: Optional[str] = None,
+                    mmsi: Optional[str] = None, imo: Optional[str] = None,
+                    shiptype: Optional[str] = None, flag: Optional[str] = None,
+                    limit: Optional[int] = None, offset: Optional[int] = None) -> Dict[str, Any]:
+    '''
+    Fetches all vessels from DB.
+    Returns list of VesselData objects.
+    '''
+
+    session = DBConn.get_session()
+    try:
+        query = session.query(VesselData)
+
+        query = query.order_by(VesselData.vessel_data_id.desc())
+
+        if querystr is not None:
+            query = query.filter(or_(
+                VesselData.vessel_data_ship_name.ilike(f"%{querystr}%"),
+                VesselData.vessel_data_mmsi.ilike(f"%{querystr}%"),
+                VesselData.vessel_data_imo.ilike(f"%{querystr}%")
+            ))
+        if name is not None:
+            query = query.filter(VesselData.vessel_data_ship_name.ilike(f"%{name}%"))
+        if mmsi is not None:
+            query = query.filter(VesselData.vessel_data_mmsi.ilike(f"%{mmsi}%"))
+        if imo is not None:
+            query = query.filter(VesselData.vessel_data_imo.ilike(f"%{imo}%"))
+        if shiptype is not None:
+            query = query.filter(VesselData.vessel_data_ship_type.ilike(f"%{shiptype}%"))
+        if flag is not None:
+            query = query.filter(VesselData.vessel_data_flag.ilike(f"%{flag}%"))
+
+        total_count = session.query(func.count()).select_from(query.subquery()).scalar()
+
+        if offset is not None:
+            query = query.offset(offset)
+        if limit is not None:
+            query = query.limit(limit)
+
+        res = query.all()
+
+        return {
+            "results": res,
+            "total": total_count
+        }
+
+    except Exception as e:
+        logger.error("Error in get_all_vessels: %s", e, exc_info=True)
+        return {"results": [], "total": 0}
 
     finally:
         if session:
@@ -63,6 +193,29 @@ def get_vessel_by_vessel_data_id(vessel_data_id: int) -> VesselData:
         return res
     except Exception as e:
         logger.error("DB Error in get_vessel_by_vessel_data_id: %s", str(e))
+        raise
+    finally:
+        DBConn.close_session()
+
+
+def get_vessel_by_mmsi(mmsi: str) -> VesselData:
+    '''
+    Returns vessel with the MMSI
+
+    Args:
+        mmsi: The MMSI
+
+    Returns:
+        A VesselData object containing the vessel details
+    '''
+
+    session = DBConn.get_session()
+    try:
+        query = session.query(VesselData).filter(VesselData.vessel_data_mmsi == str(mmsi))
+        res = query.first()
+        return res
+    except Exception as e:
+        logger.error("DB Error in get_vessel_by_mmsi: %s", str(e))
         raise
     finally:
         DBConn.close_session()
@@ -150,7 +303,46 @@ def get_vessel_history_stream(envelope, start_time: datetime, end_time: datetime
             yield location, vessel
 
     except Exception as e:
-        logger.error("Error in get_vessel_history_in_bbox: %s", e, exc_info=True)
+        logger.error("Error in get_vessel_history_stream: %s", e, exc_info=True)
+        return []
+
+    finally:
+        if session:
+            DBConn.close_session()
+
+def get_vessel_history_by_vessel_data_id(vessel_data_id: int,
+                                       start_time: datetime = datetime.min, end_time: datetime = datetime.now(timezone.utc)) -> List[VesselLocation]:
+    '''
+    Fetches vessel historical locations in database for vessel
+    with given vessel_data_id and within start_time and end_time
+
+    Args:
+        vessel_data_id: bounding box
+        start_time: datetime object = datetime.min, representing the start of the time range
+        end_time: datetime object = datetime.now, representing the end of the time range
+
+    Returns:
+        List containing VesselLocation objects
+    '''
+
+    session = DBConn.get_session()
+    try:
+        query = session.query(VesselLocation).join(
+            VesselData,
+            VesselLocation.vessel_location_vessel_data_id == VesselData.vessel_data_id,
+        ).filter(
+            VesselLocation.vessel_location_timestamp <= end_time,
+            VesselLocation.vessel_location_timestamp >= start_time,
+            VesselData.vessel_data_id == vessel_data_id
+        ).order_by(
+            VesselLocation.vessel_location_vessel_data_id,
+            VesselLocation.vessel_location_timestamp.desc()
+        )
+
+        return query.all()
+
+    except Exception as e:
+        logger.error("Error in get_vessel_track_by_vessel_data_id: %s", e, exc_info=True)
         return []
 
     finally:

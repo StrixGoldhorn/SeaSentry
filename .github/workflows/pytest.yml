@@ -1,0 +1,36 @@
+name: Pytest Backend
+
+on:
+  push:
+    branches: [ "main", "dev", "backend" ]
+  pull_request:
+    branches: [ "main", "dev", "backend" ]
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-pytest:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./backend
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python 3.10
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.10"
+        cache: 'pip'
+        cache-dependency-path: backend/requirements.txt 
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install pytest 
+    - name: Test with pytest
+      run: |
+        pytest -m "not live" -v

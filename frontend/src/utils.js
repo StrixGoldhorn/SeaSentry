@@ -9,7 +9,7 @@ function appendIfNotNull(formData, key, value) {
 
 //VESSELS
 //Query latest vessel positions within a bounding box
-export async function get_ships_on_screen({lat_min, lat_max, long_min, long_max, limit = null, time_within = null}) {
+export async function get_ships_on_screen({lat_min, lat_max, long_min, long_max, limit = null, time_within = null, shiptype = null}) {
     if (lat_min == null || lat_max == null || long_min == null || long_max == null) {
         return null;
     }
@@ -28,7 +28,42 @@ export async function get_ships_on_screen({lat_min, lat_max, long_min, long_max,
         url = url + `&time_within=${time_within}`;
     }
 
+    if (shiptype !== null && shiptype !== "") {
+        url = url + `&shiptype=${encodeURIComponent(shiptype)}`;
+    }
+
     return await fetch(url)
+    .then(res => res.json())
+    .then(data => data)
+    .catch(err => console.error(err));
+}
+
+//Query for all vessels in database, filters available
+export async function get_all_ships({
+    querystr = null,
+    name = null,
+    mmsi = null,
+    imo = null,
+    shiptype = null,
+    flag = null,
+    limit = null,
+    offset = null,
+}) {
+    const params = new URLSearchParams();
+
+    if (querystr) params.append("querystr", querystr);
+    if (name) params.append("name", name);
+    if (mmsi) params.append("mmsi", mmsi);
+    if (imo) params.append("imo", imo);
+    if (shiptype) params.append("shiptype", shiptype);
+    if (flag) params.append("flag", flag);
+    if (limit !== null) params.append("limit", limit);
+    if (offset !== null) params.append("offset", offset);
+
+    const url =
+        `${config.api_url}/api/v1/vessels/all?${params.toString()}`;
+
+    return fetch(url)
     .then(res => res.json())
     .then(data => data)
     .catch(err => console.error(err));
@@ -39,8 +74,6 @@ export async function get_ship_using_data_id({vessel_data_id}) {
     if (vessel_data_id == null) {
         return null;
     }
-
-
     let url = config.api_url + `/api/v1/vessels/`
     +`${vessel_data_id}`;
 
@@ -49,6 +82,27 @@ export async function get_ship_using_data_id({vessel_data_id}) {
     .then(data => data)
     .catch(err => console.error(err));
 }
+
+//Returns list of vessel locations tagged to the vessel
+export async function get_ship_location_history({
+    vessel_data_id,
+    start_time_str = null,
+    end_time_str = null,
+}) {
+    const params = new URLSearchParams();
+
+    if (start_time_str) params.append("start_time", start_time_str);
+    if (end_time_str) params.append("end_time", end_time_str);
+
+    const url = `${config.api_url}/api/v1/vessels/${vessel_data_id}/history?${params.toString()}`;
+
+    return fetch(url)
+    .then(res => res.json())
+    .then(data => data)
+    .catch(err => console.error(err));
+}
+
+
 
 //Updates an existing Vessel. Supports partial updates.
 export async function update_ship_using_data_id({
@@ -81,8 +135,15 @@ export async function update_ship_using_data_id({
     appendIfNotNull(formData, "ship_name", ship_name);
     appendIfNotNull(formData, "ship_type", ship_type);
     appendIfNotNull(formData, "flag", flag);
-    appendIfNotNull(formData, "length_meters", length_meters);
-    appendIfNotNull(formData, "beam_meters", beam_meters);
+    
+    if (length_meters != null && length_meters > 0) {
+        formData.append("length_meters", length_meters);
+    }
+
+    if (beam_meters != null && beam_meters > 0) {
+        formData.append("beam_meters", beam_meters);
+    }
+
 
     if (user_tags !== null) {
         formData.append("user_tags", JSON.stringify(user_tags));
@@ -98,6 +159,46 @@ export async function update_ship_using_data_id({
         .then(res => res.json())
         .catch(err => console.error(err));
 }
+
+//Query historical vessel positions within a bounding box and time range. Streams exports to JSON, GeoJSON, or CSV to prevent memory overload on large responses.
+export async function export_area({
+    lat_min = null,
+    lat_max = null,
+    long_min = null,
+    long_max = null,
+    start_time = null,
+    end_time = null,
+    format = "json"
+}) {
+
+    const params = new URLSearchParams();
+
+    if (lat_min !== null) params.append("lat_min", lat_min);
+    if (lat_max !== null) params.append("lat_max", lat_max);
+    if (long_min !== null) params.append("long_min", long_min);
+    if (long_max !== null) params.append("long_max", long_max);
+
+    if (start_time) params.append("start_time", start_time);
+    if (end_time) params.append("end_time", end_time);
+
+    if (format) params.append("format", format);
+
+    const url =
+        `${config.api_url}/api/v1/vessels/exportArea?${params.toString()}`;
+
+    return await fetch(url)
+        .then(res => {
+            if (!res.ok) {
+                throw new Error(`Export failed (${res.status})`);
+            }
+            return res.blob();
+        })
+        .catch(err => {
+            console.error(err);
+            return null;
+        });
+}
+
 
 //VESSELS OF INTEREST
 //Query for all vessels of interest
@@ -145,6 +246,34 @@ export async function add_VOI({ name, desc = null, mmsi, imo }) {
         {
             method: "POST",
             body: formData
+        }
+    )
+        .then(res => res.json())
+        .catch(err => console.error(err));
+}
+
+// Updates an existing Vessel of Interest. Supports partial updates.
+export async function update_VOI({
+    voi_id,
+    name = null,
+    desc = null,
+    mmsi = null,
+    imo = null,
+}) {
+    if (voi_id == null) return null;
+
+    const formData = new FormData();
+
+    appendIfNotNull(formData, "name", name);
+    appendIfNotNull(formData, "desc", desc);
+    appendIfNotNull(formData, "mmsi", mmsi);
+    appendIfNotNull(formData, "imo", imo);
+
+    return await fetch(
+        config.api_url + `/api/v1/vessel_of_interest/${voi_id}/update`,
+        {
+            method: "PATCH",
+            body: formData,
         }
     )
         .then(res => res.json())
@@ -660,7 +789,7 @@ export async function get_all_alert_rules() {
         .catch(err => console.error(err));
 }
 
-//Adds a new custom alert rule. Does NOT support nesting currently.
+//Adds a new custom alert rule. 
 export async function add_alert_rule({
     name,
     description = null,
@@ -782,4 +911,33 @@ export async function enable_alert_rule({
     })
     .then(res => res.json())
     .catch(err => console.error(err));
+}
+
+//Deletes an existing alert rule
+export async function delete_alert_rule({
+    alert_rule_id,
+    alert_rule_name
+}) {
+    if (alert_rule_id == null || alert_rule_name == null) {
+        return null;
+    }
+
+    const url =
+        config.api_url +
+        `/api/v1/alerts/rule/${alert_rule_id}/delete?alert_rule_name=${encodeURIComponent(alert_rule_name)}`;
+
+    return await fetch(url, {
+        method: "DELETE"
+    })
+        .then(res => res.json())
+        .catch(err => console.error(err));
+}
+
+export async function scrape_aoi(aoi_id) {
+    const url = config.api_url + `/api/v1/aois/${aoi_id}/scrape`;
+    return await fetch(url, {
+        method: "POST"
+    })
+    .then(res => res.json())
+    .catch(err => console.error(err))
 }

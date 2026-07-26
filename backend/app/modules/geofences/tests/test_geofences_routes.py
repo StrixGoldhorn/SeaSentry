@@ -1,6 +1,7 @@
 import pytest
 import json
 from unittest.mock import patch, MagicMock
+from sqlalchemy.exc import IntegrityError
 from flask import Flask
 
 from app.modules.geofences.routes import geofences_bp
@@ -232,8 +233,9 @@ def test_get_geofence_by_id_not_found(mock_get_geofence, client):
     data = json.loads(response.data)
     assert data['error'] == "Geofence with ID 999 not found."
 
+@patch('app.modules.geofences.routes.write_audit_log')
 @patch('app.modules.geofences.routes.get_geofence_by_id')
-def test_get_geofence_by_id_internal_error(mock_get_geofence, client):
+def test_get_geofence_by_id_internal_error(mock_get_geofence, mock_audit, client):
     '''
     Test GET /api/v1/geofences/<int:geofence_id> when an exception occurs
     '''
@@ -251,11 +253,13 @@ def test_get_geofence_by_id_internal_error(mock_get_geofence, client):
 # ==========================================
 
 @patch('app.modules.geofences.routes.write_audit_log')
+@patch('app.modules.geofences.routes.check_if_geofence_name_exists')
 @patch('app.modules.geofences.routes.update_geofence_in_db')
-def test_update_geofence_by_id_success_name_desc(mock_update, mock_audit, client):
+def test_update_geofence_by_id_success_name_desc(mock_update, mock_check_name, mock_audit, client):
     '''
     Test updating Geofence with name and description
     '''
+    mock_check_name.return_value = False
     mock_update.return_value = True
 
     response = client.post('/api/v1/geofences/1/update', data={
@@ -268,13 +272,13 @@ def test_update_geofence_by_id_success_name_desc(mock_update, mock_audit, client
     assert data['geofence_id'] == 1
     mock_update.assert_called_once_with(geofence_id=1, name='NewName', desc='NewDesc', geometry_wkb=None)
 
+@patch('app.modules.geofences.routes.write_audit_log')
 @patch('app.modules.geofences.routes.update_geofence_in_db')
-def test_update_geofence_by_id_success_coords(mock_update, client):
+def test_update_geofence_by_id_success_coords(mock_update, mock_audit, client):
     '''
     Test updating Geofence with new coordinates
     '''
     mock_update.return_value = True
-    # Use a valid polygon (a square) to avoid Shapely invalid geometry errors
     coords = json.dumps([[0.0, 0.0], [0.0, 1.0], [1.0, 1.0], [1.0, 0.0], [0.0, 0.0]])
 
     response = client.patch('/api/v1/geofences/2/update', data={
@@ -289,8 +293,9 @@ def test_update_geofence_by_id_success_coords(mock_update, client):
     assert call_kwargs['desc'] is None
     assert call_kwargs['geometry_wkb'] is not None
 
+@patch('app.modules.geofences.routes.write_audit_log')
 @patch('app.modules.geofences.routes.update_geofence_in_db')
-def test_update_geofence_by_id_success_bbox(mock_update, client):
+def test_update_geofence_by_id_success_bbox(mock_update, mock_audit, client):
     '''
     Test updating Geofence with new bounding box
     '''
@@ -353,11 +358,13 @@ def test_update_geofence_by_id_invalid_polygon_geometry(mock_update, mock_poly_c
     assert response.status_code == 400
     assert 'Invalid polygon geometry' in json.loads(response.data)['error']
 
+@patch('app.modules.geofences.routes.check_if_geofence_name_exists')
 @patch('app.modules.geofences.routes.update_geofence_in_db')
-def test_update_geofence_by_id_not_found(mock_update, client):
+def test_update_geofence_by_id_not_found(mock_update, mock_check_name, client):
     '''
     Test updating Geofence that does not exist
     '''
+    mock_check_name.return_value = False
     mock_update.return_value = False
 
     response = client.post('/api/v1/geofences/999/update', data={
@@ -366,6 +373,25 @@ def test_update_geofence_by_id_not_found(mock_update, client):
 
     assert response.status_code == 404
     assert 'not found' in json.loads(response.data)['error']
+
+@patch('app.modules.geofences.routes.write_audit_log')
+@patch('app.modules.geofences.routes.check_if_geofence_name_exists')
+@patch('app.modules.geofences.routes.update_geofence_in_db')
+def test_update_geofence_by_id_duplicate_name(mock_update, mock_check_name, mock_audit, client):
+    '''
+    Test updating Geofence with a name that already exists in the database
+    '''
+    mock_check_name.return_value = True
+
+    # Adjust the endpoint URL if your geofence update route is different
+    response = client.post('/api/v1/geofences/1/update', data={
+        'name': 'ExistingName'
+    })
+
+    assert response.status_code == 403
+    data = json.loads(response.data)
+    # Adjust the expected error message if your geofence route formats it differently
+    assert data['error'] == "Geofence with name 'ExistingName' already exists."
 
 # ==========================================
 # Tests for DELETE /api/v1/geofences/<int:geofence_id>/delete

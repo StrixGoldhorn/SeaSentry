@@ -1,17 +1,37 @@
 import "leaflet/dist/leaflet.css";
 import './styles.css';
-import { MapContainer, TileLayer, Marker, Popup, Rectangle, Polygon, useMapEvent, useMapEvents } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, Rectangle, Polygon, useMapEvent, useMapEvents, LayersControl, WMSTileLayer } from 'react-leaflet';
 import { Icon } from "leaflet";
-import CursorIcon from "./cursor.png";
 import { useEffect, useState } from "react";
 import { ShipMarkers, CourseDirMarkers } from "./shipmarkers.js";
 import * as utils from './utils.js';
-import { MapBoundsTracker } from "./screenbounds.js";
+import { MapBoundsTracker, MapStateSaver, getMapCenter, getMapZoom } from "./screenbounds.js";
 import { RenderAOIs, RenderGeofences } from "./Boundsrenders.js";
-import { NavigateToUnreadAlertHistoryButton, NavigateToAOIDrawButton, NavigateToGeofenceDrawButton, NavigateToInputsButton } from "./NavigateButtons.js";
+import EditableAOILayer from "./EditableAOILayer.js";
+import ThinSidebar from "./ThinSidebar.js";
+import SlidingSidebar from "./SlidingSidebar.js";
+import AOIPolygonDrawerNew from "./AOIPolygonDrawerNew.js";
+import GeofencePolygonDrawerNew from "./GeofencePolygonDrawerNew.js";
+import CopernicusImageryLayerControl from "./CopernicusImageryLayerControl.js";
+import ExportRectangleDrawer from "./ExportRectangleDrawer";
+import Cluster from 'react-leaflet-cluster';
+import 'react-leaflet-cluster/dist/assets/MarkerCluster.css'
+import 'react-leaflet-cluster/dist/assets/MarkerCluster.Default.css'
 
-
-
+const SHIP_TYPES = [
+  "Cargo",
+  "Fishing",
+  "High Speed Craft",
+  "Law Enforcement",
+  "Medical Transport",
+  "Military",
+  "Passenger",
+  "Pleasure Craft",
+  "Sailing",
+  "SAR",
+  "Tanker",
+  "Tug"
+];
 
 function MapPage() {
 
@@ -19,20 +39,178 @@ function MapPage() {
   const [shipData, setshipData] = useState({});
   const [aoiData, setaoiData] = useState({});
   const [geofenceData, setgeofenceData] = useState({});
-  const [mapBounds, setmapBounds] = useState({lat_min:0, lat_max:0, long_min:0, long_max:0});
+  const [exportBounds, setExportBounds] = useState(null);
+  const [mapBounds, setmapBounds] = useState(null);
+
+  const [selectedShiptype, setSelectedShiptype] = useState("");
+  const [appliedShiptype, setAppliedShiptype] = useState("");
+
+  const [editingItem, setEditingItem] = useState(null);
+  const [editingType, setEditingType] = useState(null);
+  const [editedCoords, setEditedCoords] = useState([]);
+  const [editing, setEditing] = useState(false);
+
+  const [editedName, setEditedName] = useState("");
+  const [editedDescription, setEditedDescription] = useState("");
+
+  const [sidebarMode, setSidebarMode] = useState(null);
+
+  const [drawing, setDrawing] = useState(false);
+
+  const [coords, setCoords] = useState([]);
+  const [name, setName] = useState("");
+  const [desc, setDesc] = useState("");
+
+  const [instanceId, setInstanceId] = useState("");
+  const [selectedLayer, setSelectedLayer] = useState("none");
+
+
+  const [refreshKey, setRefreshKey] = useState(0);
+  
+  const [currentZoom, setCurrentZoom] = useState(getMapZoom() || 14);
+  function ZoomTracker({ onZoomChange }) {
+    useMapEvents({
+      zoomend: (e) => {
+        onZoomChange(e.target.getZoom());
+    console.log(e.target.getZoom());
+      },
+    });
+    return null;
+  }
+
+  const openAOI = () => {
+      setSidebarMode("aoi");
+      setDrawing(true);
+  };
+
+  const openGeofence = () => {
+      setSidebarMode("geofence");
+      setDrawing(true);
+  };
+
+  const closeSidebar = () => {
+      setSidebarMode(null);
+      setDrawing(false);
+
+      setCoords([]);
+      setName("");
+      setDesc("");
+  };
+
+  const handleSidebarSelect = (mode) => {
+      // Clicking the currently open tool closes it
+      if (sidebarMode === mode) {
+          closeSidebar();
+          return;
+      }
+
+      // Otherwise switch to the selected tool
+      setSidebarMode(mode);
+      setDrawing(mode === "aoi" || mode === "geofence");
+
+      // Optional: clear previous drawing
+      setCoords([]);
+      setName("");
+      setDesc("");
+  };
+
+  function startEditing(item, type) {
+
+      setEditingItem(item);
+      setEditingType(type);
+
+      if (type === "aoi") {
+
+          setEditedCoords(item.area_of_interest_polygon);
+          setEditedName(item.area_of_interest_name);
+          setEditedDescription(
+              item.area_of_interest_description ?? ""
+          );
+
+      } else {
+
+          setEditedCoords(item.geofence_polygon);
+          setEditedName(item.geofence_name);
+          setEditedDescription(
+              item.geofence_description ?? ""
+          );
+
+      }
+
+      setEditing(true);
+
+  }
+
+  function cancelEditing() {
+
+      setEditing(false);
+
+      setEditingItem(null);
+      setEditingType(null);
+
+      setEditedCoords([]);
+      setEditedName("");
+      setEditedDescription("");
+
+      setRefreshKey(prev => prev + 1);
+
+  }
+
+  async function finishEditing() {
+      try {
+          if (editingType === "aoi") {
+              await utils.update_AOI({
+                  aoi_id:
+                      editingItem.area_of_interest_id,
+                  name: editedName,
+                  desc: editedDescription,
+                  coords:
+                      editedCoords
+              });
+              loadAOIs();
+          }
+
+          if (editingType === "geofence") {
+              await utils.update_geofence({
+                  geofence_id:
+                      editingItem.geofence_id,
+                  name: editedName,
+                  desc: editedDescription,
+                  coords:
+                      editedCoords
+              });
+              loadGeofences();
+          }
+          cancelEditing();
+      }
+
+      catch (err) {
+          console.error(err);
+          alert("Failed to update.");
+      }
+  }
 
 
   //useEffects
   useEffect(() => {
-    utils.get_ships_on_screen(mapBounds)
-      .then(fetchdata => {
-          if (fetchdata === null) {
-            console.log("API did not return data");
-          } else {
+      if (!mapBounds) return;
+
+    const timeoutId = setTimeout(() => {
+      const filterParams = { ...mapBounds };
+      if (appliedShiptype) {
+        filterParams.shiptype = appliedShiptype;
+      }
+
+      utils.get_ships_on_screen(filterParams)
+        .then(fetchdata => {
+          if (fetchdata) {
             setshipData(fetchdata);
           }
-        })
-  }, [mapBounds]);
+        });
+    }, 500);
+
+    return () => clearTimeout(timeoutId);
+  }, [mapBounds, appliedShiptype]);
 
   useEffect(() => {
       loadAOIs();
@@ -49,6 +227,14 @@ function MapPage() {
     })
   }, [mapBounds]);
 
+  useEffect(() => {
+        const savedId = localStorage.getItem("sentinelHubInstanceId");
+        if (savedId) {
+            setInstanceId(savedId);
+        }
+    }, []);
+
+
 
   const loadAOIs = () => {
     utils.get_all_AOI()
@@ -61,133 +247,269 @@ function MapPage() {
     })
   }
 
+  const loadGeofences = () => {
+    utils.get_all_geofences()
+    .then(fetchdata => {
+      if (fetchdata === null) {
+        console.log("API did not return data");
+      } else {
+        setgeofenceData(fetchdata);
+      }
+    })
+  }
+
+  const handleApplyFilter = () => {
+    setAppliedShiptype(selectedShiptype);
+  };
+
+  const handleClearFilter = () => {
+    setSelectedShiptype("");
+    setAppliedShiptype("");
+  };
+
+  const getClusterRadius = (zoom) => {
+    if (zoom >= 12) return 60;
+    if (zoom >= 10) return 100;
+    if (zoom >= 8) return 200;
+    return 500;
+  };
+
+  let initialCenter = getMapCenter();
+  let initialZoom = getMapZoom();
+
   //HTML return
   return (
     <>
-    <MapContainer center={[1.2595764399413216, 103.8335830126783]} zoom={14} scrollWheelZoom={true}>
-      <TileLayer
-      attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-      url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-      />
+    <ThinSidebar onSelect={handleSidebarSelect} />
+
+    <SlidingSidebar
+        open={sidebarMode !== null}
+        mode={sidebarMode}
+        close={closeSidebar}
+
+        drawing={drawing}
+        setDrawing={setDrawing}
+
+        coords={coords}
+        setCoords={setCoords}
+
+        name={name}
+        setName={setName}
+
+        desc={desc}
+        setDesc={setDesc}
+
+        instanceId={instanceId}
+        setInstanceId={setInstanceId}
+        selectedLayer={selectedLayer}
+        setSelectedLayer={setSelectedLayer}
+
+        bounds={exportBounds}
+        setBounds={setExportBounds}
+        
+        selectedShiptype={selectedShiptype}
+        setSelectedShiptype={setSelectedShiptype}
+        appliedShiptype={appliedShiptype}
+        setAppliedShiptype={setAppliedShiptype}
+    />
+    <MapContainer center={initialCenter} zoom={initialZoom} maxZoom={20} scrollWheelZoom={true}>
+
+      <MapStateSaver/>
+      <ZoomTracker onZoomChange={setCurrentZoom} />
+
+     <LayersControl position="topleft">
+
+        <LayersControl.BaseLayer checked name="OpenStreetMap">
+          <TileLayer
+            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            attribution="OpenStreetMap"
+            zIndex={1}
+          />
+        </LayersControl.BaseLayer>
+
+        <LayersControl.BaseLayer name="ESRI World Imagery">
+          <TileLayer
+            url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}.jpg"
+            attribution="ESRI"
+            zIndex={1}
+          />
+        </LayersControl.BaseLayer>
+
+        <LayersControl.BaseLayer name="Google Satellite">
+          <TileLayer
+            url="https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}"
+            attribution="Google"
+            zIndex={1}
+          />
+        </LayersControl.BaseLayer>
+
+        <LayersControl.Overlay name="Nautical Chart (OpenSeaMap)">
+          <TileLayer
+            url="https://tiles.openseamap.org/seamark/{z}/{x}/{y}.png"
+            opacity={1}
+            updateWhenIdle={true}
+            attribution="OpenSeaMap"
+            zIndex={10}
+          />
+        </LayersControl.Overlay>
+
+      </LayersControl>
+
       <MapBoundsTracker onBoundsChange={setmapBounds} />
-      {shipData?.data && (<ShipMarkers shipdata={shipData.data} />)}
-      {shipData?.data && (<CourseDirMarkers shipdata={shipData.data} />)}
-      {aoiData?.data && (<RenderAOIs aoicoordsdata={aoiData.data} refreshAOIs={loadAOIs}/>)}
-      {geofenceData?.data && (<RenderGeofences geofencecoordsdata={geofenceData.data} />)}
+
+      {/* ENABLE CLUSTERING HERE IF NEEDED!!! @JUNLIANG */}
+      <Cluster 
+        chunkedLoading
+        showCoverageOnHover={false}
+        maxClusterRadius={getClusterRadius(currentZoom)}
+        disableClusteringAtZoom={14}
+      >
+        {shipData?.data && <ShipMarkers shipdata={shipData.data} />}
+        {shipData?.data && <CourseDirMarkers shipdata={shipData.data} />}
+      </Cluster>
+
+      {aoiData?.data && (<RenderAOIs 
+      aoicoordsdata={aoiData.data}
+      refreshAOIs={loadAOIs}
+      editing={editing}
+      onEdit={(item) => startEditing(item, "aoi")}
+      />)}
+
+      {geofenceData?.data && (<RenderGeofences 
+      geofencecoordsdata={geofenceData.data}
+      refreshGeofences={loadGeofences}
+      editing={editing}
+      onEdit={(item) => startEditing(item, "geofence")}
+      />)}
+
+      {editingItem && (
+        <EditableAOILayer
+        key={refreshKey}
+        coords={editedCoords}
+        setCoords={setEditedCoords}/>)}
+
+    {instanceId && selectedLayer === "sentinel2" && (
+        <WMSTileLayer
+            url={`https://sh.dataspace.copernicus.eu/ogc/wms/${instanceId}`}
+            layers="TRUE_S2L2A"
+            format="image/png"
+            transparent={true}
+            version="1.3.0"
+            attribution="Sentinel-2 imagery"
+            zIndex={5}
+        />
+    )}
+
+    {instanceId && selectedLayer === "sentinel1" && (
+        <WMSTileLayer
+            url={`https://sh.dataspace.copernicus.eu/ogc/wms/${instanceId}`}
+            layers="SAR_VV_VH"
+            format="image/png"
+            transparent={true}
+            version="1.3.0"
+            attribution="Sentinel-1 imagery"
+            zIndex={5}
+        />
+    )}
+
+    {sidebarMode === "aoi" && (
+        <AOIPolygonDrawerNew
+            drawing
+            coords={coords}
+            setCoords={setCoords}
+        />
+    )}
+
+    {sidebarMode === "geofence" && (
+        <GeofencePolygonDrawerNew
+            drawing
+            coords={coords}
+            setCoords={setCoords}
+        />
+    )}
+
+    {sidebarMode === "export" && (
+        <ExportRectangleDrawer
+            bounds={exportBounds}
+            setBounds={setExportBounds}
+        />
+    )}
+
     </MapContainer>
-    <NavigateToInputsButton />
-    <NavigateToAOIDrawButton />
-    <NavigateToGeofenceDrawButton />
-    <NavigateToUnreadAlertHistoryButton />
+    {editing && (
+      <div
+          style={{
+              position: "absolute",
+              top: 20,
+              right: 20,
+              zIndex: 1000,
+              background: "white",
+              padding: 20,
+              borderRadius: 8,
+              boxShadow: "0 2px 8px rgba(0,0,0,.3)",
+              width: 300
+          }}
+      >
+
+          <h3>
+              Editing {editingType === "aoi" ? "AOI" : "Geofence"}
+          </h3>
+
+          <label>Name</label>
+
+          <input
+              value={editedName}
+              onChange={(e) =>
+                  setEditedName(e.target.value)
+              }
+              style={{
+                  width: "100%",
+                  marginBottom: 12
+              }}
+          />
+
+          <label>Description</label>
+
+          <textarea
+              rows={4}
+              value={editedDescription}
+              onChange={(e) =>
+                  setEditedDescription(e.target.value)
+              }
+              style={{
+                  width: "100%",
+                  marginBottom: 12
+              }}
+          />
+
+          <p>
+              Vertices: {editedCoords.length}
+          </p>
+
+          <button
+              onClick={finishEditing}
+              style={{ width: "100%" }}
+          >
+              Save Changes
+          </button>
+
+          <button
+              onClick={cancelEditing}
+              style={{
+                  width: "100%",
+                  marginTop: 10
+              }}
+          >
+              Cancel
+          </button>
+
+      </div>
+      )}
     </>
   );
-  
 }
 
 export default MapPage;
 
 
-
-
-
-//DEPRECATED CODE
-  // const [aoiCoordList, setaoiCoordList] = useState([
-  //   {"lat_min":1.2535264424975803, "lat_max":1.266477533544827, "long_min":103.82335160632802, "long_max":103.85594676548685}
-  // ]);
-
-  // const [counter, setCounter] = useState(0);
-
-  // const [shipDataArray, setShipDataArray] = useState([]);
-
-  // function getAOIcoords(aoicoords) {
-  //   setaoiCoordList([
-  //     ...aoiCoordList,
-  //     aoicoords
-  //   ]);
-  // }
-
-  // function mapArrayToComponents(arrayofShipData) {
-  //   const markers = 
-  // }
-
-
-
-
-  // get_ships_past_day({lat_min:1.2535264424975803, lat_max:1.266477533544827, long_min:103.82335160632802, long_max:103.85594676548685});
-  // get_ships_past_day({lat_min:1.2535264424975803, lat_max:1.266477533544827, long_min:103.82335160632802, long_max:103.85594676548685, limit:3});
-  // get_ships_past_day({lat_min:1.2535264424975803, lat_max:1.266477533544827, long_min:103.82335160632802, long_max:103.85594676548685, limit:20});
-  // get_ships_past_day({lat_min:1.2535264424975803, lat_max:1.266477533544827, long_min:103.82335160632802, long_max:103.85594676548685, limit:100, time_within:3000});
-  // get_ships_past_day({lat_min:1.2535264424975803, lat_max:1.266477533544827, long_min:103.82335160632802, long_max:103.85594676548685, time_within:3000});
-  // get_ships_past_day({lat_min:1.266477533544827, lat_max:1.2535264424975803, long_min:103.82335160632802, long_max:103.85594676548685});
-
-
-  // latmin: 1.2550417490810404, latmax: 1.2679667570273256 , longmin: 103.8882165259278 , longmax: 103.90781049237695
-
-  
-  
-
-  /* useEffect for API */
-
-  // useEffect(
-  //   () => {
-  //     for (let i = 0; i < aoiCoordList.length; i++) {
-  //       get_ships_past_day(aoiCoordList[i])
-  //       .then(fetchdata => {
-  //         if (fetchdata === null) {
-  //           console.log("API did not return data");
-  //         } else {
-  //           setShipData(fetchdata);
-  //           console.log(shipData);
-  //           console.log(shipDataArray);
-  //           console.log(shipDataArray.length);
-  //           console.log(aoiCoordList);
-  //           let index = -1;
-  //           index = shipDataArray.findIndex(x => x?.filters?.bbox == aoiCoordList[i]);
-            
-  //           if (index === -1) {
-  //             setShipDataArray([
-  //               ...shipDataArray,
-  //               fetchdata
-  //             ]);
-  //           } else {
-  //             const newDataArray = shipDataArray.map((c, p) => {
-  //               if (p === index) {
-  //                 return fetchdata;
-  //               } else {
-  //                 return c;
-  //               }
-  //             })
-  //             setShipDataArray(newDataArray);
-  //           }
-  //         }
-  //       })
-  //     }
-  //   }, [aoiCoordList]
-  // )
-
-  // useEffect(() => {
-  //   get_ships_on_screen({lat_min:1.2535264424975803, lat_max:1.266477533544827, long_min:103.82335160632802, long_max:103.85594676548685})
-  //     .then(fetchdata => {
-  //       if (fetchdata === null) {
-  //         console.log("API did not return data");
-  //       } else {
-  //         setshipData(fetchdata);
-  //       }
-  //     })
-  //   }, [])
-
-
-  /* useEffect for local JSON */
-
-  // useEffect(() => {
-  //   fetch("./data/shiptestlocations.json", {})
-  //     .then(response => response.json())
-  //     .then(fetchdata => {
-  //       if (fetchdata === null) {
-  //         console.log("API did not return data");
-  //       } else {
-  //         setshipData(fetchdata);
-  //       }
-  //     })
-  //   }, [])
 

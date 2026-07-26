@@ -18,6 +18,27 @@ class AISFriendsScraper(AbstractScraper):
     name = "AISFriends_Scraper"
     default_interval_seconds = 1 * 60 # 1 min
 
+    SHIP_TYPE_MAP = {
+        "Fishing": [30],
+        "Tug": [31, 32, 50, 52, 53, 54],
+        "Military": [35],
+        "SAR": [51],
+        "Law Enforcement": [55],
+        "Medical Transport": [58],
+        "Sailing": [36],
+        "Pleasure Craft": [37],
+        "High Speed Craft": list(range(40, 50)),
+        "Passenger": list(range(60, 70)),
+        "Cargo": list(range(70, 80)),
+        "Tanker": list(range(80, 90))
+    }
+
+    def get_ship_type(ship_type_id):
+        for ship_type, ids in AISFriendsScraper.SHIP_TYPE_MAP.items():
+            if ship_type_id in ids:
+                return ship_type
+        return None
+
     base_url = "https://www.aisfriends.com/vessels/bounding-box"
 
     def fetch_data(self, coords: dict):
@@ -57,7 +78,7 @@ class AISFriendsScraper(AbstractScraper):
                 "mmsi": vessel["mmsi"],
                 "imo": vessel["imo"],
                 "ship_name": vessel["name_ais"],
-                # ship_type = item.get("ship_type"),
+                "ship_type": AISFriendsScraper.get_ship_type(vessel["ship_type_id"]),
                 "flag": vessel["flag"],
                 "length_meters": vessel["length"],
                 "beam_meters": vessel["beam"],

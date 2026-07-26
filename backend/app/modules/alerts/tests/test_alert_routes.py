@@ -54,7 +54,7 @@ def test_get_all_alert_history_success(mock_get_history, client):
     '''
     Test /api/v1/alerts/history/all with valid params
     '''
-    mock_get_history.return_value = [create_mock_alert_history(1, False), create_mock_alert_history(2, True)]
+    mock_get_history.return_value = {"results": [create_mock_alert_history(1, False), create_mock_alert_history(2, True)], "total": 2}
 
     response = client.get('/api/v1/alerts/history/all?limit=10&offset=0&start_time=2023-10-27T10:00:00&end_time=2023-10-28T10:00:00')
 
@@ -65,9 +65,9 @@ def test_get_all_alert_history_success(mock_get_history, client):
     assert data['filters_applied']['limit'] == 10
 
     mock_get_history.assert_called_once_with(
-        datetime.fromisoformat('2023-10-27T10:00:00'),
-        datetime.fromisoformat('2023-10-28T10:00:00'),
-        10, 0
+        start_time=datetime.fromisoformat('2023-10-27T10:00:00'),
+        end_time=datetime.fromisoformat('2023-10-28T10:00:00'),
+        limit=10, offset=0, by_alert_rule_id=None
     )
 
 @patch('app.modules.alerts.routes.get_all_alert_history')
@@ -93,6 +93,17 @@ def test_get_all_alert_history_invalid_limit(mock_get_history, client):
     data = json.loads(response.data)
     assert 'Limit must be a positive integer' in data['error']
 
+@patch('app.modules.alerts.routes.get_all_alert_history')
+def test_get_all_alert_history_invalid_by_alert_rule_id(mock_get_history, client):
+    '''
+    Test /api/v1/alerts/history/all with negative by_alert_rule_id
+    '''
+    response = client.get('/api/v1/alerts/history/all?by_alert_rule_id=-5')
+
+    assert response.status_code == 400
+    data = json.loads(response.data)
+    assert 'by_alert_rule_id must be a non-negative integer' in data['error']
+
 # ==========================================
 # Tests for GET /api/v1/alerts/history/unread
 # ==========================================
@@ -102,7 +113,7 @@ def test_get_unread_alert_history_success(mock_get_history, client):
     '''
     Test /api/v1/alerts/history/unread calls helper with unread=False flag
     '''
-    mock_get_history.return_value = [create_mock_alert_history(1, False)]
+    mock_get_history.return_value = {"results": [create_mock_alert_history(1, False)], "total": 1}
 
     response = client.get('/api/v1/alerts/history/unread')
 
@@ -111,7 +122,7 @@ def test_get_unread_alert_history_success(mock_get_history, client):
     assert data['count'] == 1
 
     # Verify the 5th argument is False (indicating unread only)
-    mock_get_history.assert_called_once_with(None, None, None, None, False)
+    mock_get_history.assert_called_once_with(start_time=None, end_time=None, limit=None, offset=None, is_read=False)
 
 # ==========================================
 # Tests for POST /api/v1/alerts/history/<id>/mark/read
@@ -184,10 +195,11 @@ def test_get_all_alert_rule_success(mock_get_rules, client):
 # ==========================================
 # Tests for POST /api/v1/alerts/rule/add
 # ==========================================
+@patch('app.modules.alerts.routes.check_if_alert_rule_name_exists')
 @patch('app.modules.alerts.routes.build_sqlalchemy_expression')
 @patch('app.modules.alerts.routes.add_alert_rule_to_db')
 @patch('app.modules.alerts.routes.RuleTreeAdapter.validate_python')
-def test_add_alert_rule_single_success(mock_validate, mock_add_db, mock_build_expr, client):
+def test_add_alert_rule_single_success(mock_validate, mock_add_db, mock_build_expr, mock_check_name, client):
     '''
     Test adding a single valid alert rule
     '''
@@ -195,6 +207,7 @@ def test_add_alert_rule_single_success(mock_validate, mock_add_db, mock_build_ex
     mock_validated_params.model_dump.return_value = {"field": "speed", "operator": ">", "value": 10.0}
     mock_validate.return_value = mock_validated_params
 
+    mock_check_name.return_value = False
     mock_build_expr.return_value = True
     mock_add_db.return_value = 42
 
@@ -214,16 +227,19 @@ def test_add_alert_rule_single_success(mock_validate, mock_add_db, mock_build_ex
     mock_validate.assert_called_once_with(payload['params'])
     mock_add_db.assert_called_once_with("High Speed Alert", "Triggers when speed > 10", mock_validated_params.model_dump.return_value)
 
+@patch('app.modules.alerts.routes.check_if_alert_rule_name_exists')
 @patch('app.modules.alerts.routes.build_sqlalchemy_expression')
 @patch('app.modules.alerts.routes.add_alert_rule_to_db')
 @patch('app.modules.alerts.routes.RuleTreeAdapter.validate_python')
-def test_add_alert_rule_combined_success(mock_validate, mock_add_db, mock_build_expr, client):
+def test_add_alert_rule_combined_success(mock_validate, mock_add_db, mock_build_expr, mock_check_name, client):
     '''
     Test adding a combined (OR/AND) alert rule
     '''
     mock_validated_params = MagicMock()
     mock_validated_params.model_dump.return_value = {"rules": [], "combinator": "or"}
     mock_validate.return_value = mock_validated_params
+
+    mock_check_name.return_value = False
     mock_build_expr.return_value = True
     mock_add_db.return_value = 43
 
@@ -252,10 +268,12 @@ def test_add_alert_rule_missing_name(client):
     data = json.loads(response.data)
     assert "Missing required fields: 'name'" in data['error']
 
-def test_add_alert_rule_missing_params(client):
+@patch('app.modules.alerts.routes.check_if_alert_rule_name_exists')
+def test_add_alert_rule_missing_params(mock_check_name, client):
     '''
     Test adding a rule without the required 'params' field
     '''
+    mock_check_name.return_value = False
     payload = {"name": "Test Rule", "description": "No params"}
     response = client.post('/api/v1/alerts/rule/add', json=payload)
 
@@ -263,11 +281,13 @@ def test_add_alert_rule_missing_params(client):
     data = json.loads(response.data)
     assert "Missing required fields: 'params'" in data['error']
 
+@patch('app.modules.alerts.routes.check_if_alert_rule_name_exists')
 @patch('app.modules.alerts.routes.RuleTreeAdapter.validate_python')
-def test_add_alert_rule_invalid_params(mock_validate, client):
+def test_add_alert_rule_invalid_params(mock_validate, mock_check_name, client):
     '''
     Test adding a rule where RuleTreeAdapter validation fails
     '''
+    mock_check_name.return_value = False
     mock_validate.side_effect = ValueError("Invalid operator")
 
     payload = {
@@ -280,17 +300,20 @@ def test_add_alert_rule_invalid_params(mock_validate, client):
     data = json.loads(response.data)
     assert "Invalid rule parameters" in data['error']
 
+@patch('app.modules.alerts.routes.check_if_alert_rule_name_exists')
 @patch('app.modules.alerts.routes.build_sqlalchemy_expression')
 @patch('app.modules.alerts.routes.write_audit_log')
 @patch('app.modules.alerts.routes.add_alert_rule_to_db')
 @patch('app.modules.alerts.routes.RuleTreeAdapter.validate_python')
-def test_add_alert_rule_internal_error(mock_validate, mock_add_db, mock_audit, mock_build_expr, client):
+def test_add_alert_rule_internal_error(mock_validate, mock_add_db, mock_audit, mock_build_expr, mock_check_name, client):
     '''
     Test that internal server errors are caught, logged, and return 500
     '''
     mock_validated_params = MagicMock()
     mock_validated_params.model_dump.return_value = {}
     mock_validate.return_value = mock_validated_params
+
+    mock_check_name.return_value = False
     mock_build_expr.return_value = True
 
     mock_add_db.side_effect = Exception("Database connection failed")
@@ -690,3 +713,59 @@ def test_delete_alert_rule_forbidden_id_2(client):
     assert response.status_code == 403
     data = json.loads(response.data)
     assert data['error'] == 'Forbidden.'
+
+# ==========================================
+# Tests for POST /api/v1/alerts/rescan
+# ==========================================
+
+@patch('app.modules.alerts.routes.check_all_vessels')
+@patch('app.modules.alerts.routes.threading.Thread')
+def test_rescan_alerts_success(mock_thread, mock_check_vessels, client):
+    '''
+    Test POST /api/v1/alerts/rescan with valid n
+    '''
+    mock_thread_instance = MagicMock()
+    mock_thread.return_value = mock_thread_instance
+
+    response = client.post('/api/v1/alerts/rescan', data={'n': '67'})
+
+    assert response.status_code == 202
+    data = json.loads(response.data)
+    assert data['status'] == 'success'
+
+    mock_thread.assert_called_once_with(target=mock_check_vessels, args=(67,))
+    mock_thread_instance.start.assert_called_once()
+
+def test_rescan_alerts_missing_n(client):
+    '''
+    Test POST /api/v1/alerts/rescan without providing n
+    '''
+    response = client.post('/api/v1/alerts/rescan', data={})
+
+    assert response.status_code == 400
+    data = json.loads(response.data)
+    assert data['error'] == "Integer n is required."
+
+def test_rescan_alerts_invalid_n(client):
+    '''
+    Test POST /api/v1/alerts/rescan with a non-integer value for n
+    '''
+    response = client.post('/api/v1/alerts/rescan', data={'n': 'not_a_number'})
+
+    assert response.status_code == 400
+    data = json.loads(response.data)
+    assert data['error'] == "Integer n is required."
+
+@patch('app.modules.alerts.routes.threading.Thread')
+def test_rescan_alerts_internal_error(mock_thread, client):
+    '''
+    Test POST /api/v1/alerts/rescan when an internal error occurs
+    '''
+    mock_thread.side_effect = Exception("Thread creation failed")
+
+    response = client.post('/api/v1/alerts/rescan', data={'n': '69'})
+
+    assert response.status_code == 500
+    data = json.loads(response.data)
+    assert data['error'] == "Internal server error"
+    assert "Thread creation failed" in data['details']

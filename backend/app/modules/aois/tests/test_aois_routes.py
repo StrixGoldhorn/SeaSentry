@@ -1,6 +1,8 @@
 import pytest
 import json
+from datetime import datetime, timezone
 from unittest.mock import patch, MagicMock
+from sqlalchemy.exc import IntegrityError
 from flask import Flask
 
 from app.modules.aois.routes import aois_bp
@@ -123,8 +125,9 @@ def test_get_aoi_by_id_not_found(mock_get_aoi, client):
     data = json.loads(response.data)
     assert data['error'] == "AOI with ID 999 not found."
 
+@patch('app.modules.aois.routes.write_audit_log')
 @patch('app.modules.aois.routes.get_aoi_by_id')
-def test_get_aoi_by_id_internal_error(mock_get_aoi, client):
+def test_get_aoi_by_id_internal_error(mock_get_aoi, mock_audit, client):
     '''
     Test GET /api/v1/aois/<int:aoi_id> when an exception occurs
     '''
@@ -248,11 +251,13 @@ def test_get_all_aois_success(mock_get_all, mock_get_verts, client):
 # ==========================================
 
 @patch('app.modules.aois.routes.write_audit_log')
+@patch('app.modules.aois.routes.check_if_aoi_name_exists')
 @patch('app.modules.aois.routes.update_aoi_in_db')
-def test_update_aoi_by_id_success_name_desc(mock_update, mock_audit, client):
+def test_update_aoi_by_id_success_name_desc(mock_update, mock_check_name, mock_audit, client):
     '''
     Test updating AOI with name and description
     '''
+    mock_check_name.return_value = False
     mock_update.return_value = True
 
     response = client.post('/api/v1/aois/1/update', data={
@@ -265,13 +270,13 @@ def test_update_aoi_by_id_success_name_desc(mock_update, mock_audit, client):
     assert data['aoi_id'] == 1
     mock_update.assert_called_once_with(aoi_id=1, name='NewName', desc='NewDesc', geometry_wkb=None)
 
+@patch('app.modules.aois.routes.write_audit_log')
 @patch('app.modules.aois.routes.update_aoi_in_db')
-def test_update_aoi_by_id_success_coords(mock_update, client):
+def test_update_aoi_by_id_success_coords(mock_update, mock_audit, client):
     '''
     Test updating AOI with new coordinates
     '''
     mock_update.return_value = True
-    # Use a valid polygon (a square) to avoid Shapely invalid geometry errors
     coords = json.dumps([[0.0, 0.0], [0.0, 1.0], [1.0, 1.0], [1.0, 0.0], [0.0, 0.0]])
 
     response = client.patch('/api/v1/aois/2/update', data={
@@ -286,8 +291,9 @@ def test_update_aoi_by_id_success_coords(mock_update, client):
     assert call_kwargs['desc'] is None
     assert call_kwargs['geometry_wkb'] is not None
 
+@patch('app.modules.aois.routes.write_audit_log')
 @patch('app.modules.aois.routes.update_aoi_in_db')
-def test_update_aoi_by_id_success_bbox(mock_update, client):
+def test_update_aoi_by_id_success_bbox(mock_update, mock_audit, client):
     '''
     Test updating AOI with new bounding box
     '''
@@ -350,11 +356,13 @@ def test_update_aoi_by_id_invalid_polygon_geometry(mock_update, mock_poly_class,
     assert response.status_code == 400
     assert 'Invalid polygon geometry' in json.loads(response.data)['error']
 
+@patch('app.modules.aois.routes.check_if_aoi_name_exists')
 @patch('app.modules.aois.routes.update_aoi_in_db')
-def test_update_aoi_by_id_not_found(mock_update, client):
+def test_update_aoi_by_id_not_found(mock_update, mock_check_name, client):
     '''
     Test updating AOI that does not exist
     '''
+    mock_check_name.return_value = False
     mock_update.return_value = False
 
     response = client.post('/api/v1/aois/999/update', data={
@@ -363,6 +371,22 @@ def test_update_aoi_by_id_not_found(mock_update, client):
 
     assert response.status_code == 404
     assert 'not found' in json.loads(response.data)['error']
+@patch('app.modules.aois.routes.write_audit_log')
+@patch('app.modules.aois.routes.check_if_aoi_name_exists')
+@patch('app.modules.aois.routes.update_aoi_in_db')
+def test_update_aoi_by_id_duplicate_name(mock_update, mock_check_name, mock_audit, client):
+    '''
+    Test updating AOI with a name that already exists in the database
+    '''
+    mock_check_name.return_value = True
+
+    response = client.post('/api/v1/aois/1/update', data={
+        'name': 'ExistingName'
+    })
+
+    assert response.status_code == 403
+    data = json.loads(response.data)
+    assert data['error'] == "AOI with name 'ExistingName' already exists."
 
 # ==========================================
 # Tests for DELETE /api/v1/aois/<int:aoi_id>/delete
@@ -458,4 +482,63 @@ def test_delete_aoi_internal_error(mock_get_aoi, mock_audit, client):
     data = json.loads(response.data)
     assert data['error'] == "Internal server error"
 
+    mock_audit.assert_called_once()
+
+# ==========================================
+# Tests for POST /api/v1/aois/<int:aoi_id>/scrape
+# ==========================================
+
+def create_mock_aoi():
+    '''Helper to create a mock AOI object'''
+    mock_aoi = MagicMock()
+    mock_aoi.area_of_interest_id = 1
+    return mock_aoi
+
+@patch('app.modules.aois.routes.run_force_all_scrapers_for_aoi')
+@patch('app.modules.aois.routes.get_aoi_by_id')
+def test_force_scrape_success(mock_get_aoi, mock_run_scrapers, client):
+    '''Test successful forced scrape of an AOI'''
+    mock_get_aoi.return_value = create_mock_aoi()
+    mock_run_scrapers.return_value = [MagicMock(), MagicMock()]
+
+    response = client.post('/api/v1/aois/1/scrape')
+    assert response.status_code == 200
+    data = json.loads(response.data)
+
+    assert data == {"status": "success"}
+
+    mock_get_aoi.assert_called_once_with(1)
+    mock_run_scrapers.assert_called_once()
+    args, _ = mock_run_scrapers.call_args
+    assert args[0] == 1
+
+@patch('app.modules.aois.routes.get_aoi_by_id')
+def test_force_scrape_not_found(mock_get_aoi, client):
+    '''Test scraping an AOI that does not exist returns 404'''
+    mock_get_aoi.return_value = None
+
+    response = client.post('/api/v1/aois/67/scrape')
+
+    assert response.status_code == 404
+    data = json.loads(response.data)
+    assert data['error'] == "AOI with ID 67 not found."
+
+    mock_get_aoi.assert_called_once_with(67)
+
+@patch('app.modules.aois.routes.write_audit_log')
+@patch('app.modules.aois.routes.logger')
+@patch('app.modules.aois.routes.run_force_all_scrapers_for_aoi')
+@patch('app.modules.aois.routes.get_aoi_by_id')
+def test_force_scrape_exception(mock_get_aoi, mock_run_scrapers, mock_logger, mock_audit, client):
+    '''Test internal server error handling during scrape'''
+    mock_get_aoi.return_value = create_mock_aoi()
+    mock_run_scrapers.side_effect = Exception("Scraper thread failed to start")
+
+    response = client.post('/api/v1/aois/1/scrape')
+
+    assert response.status_code == 500
+    data = json.loads(response.data)
+    assert data['error'] == "Internal server error"
+    assert "Scraper thread failed to start" in data['details']
+    mock_logger.error.assert_called_once()
     mock_audit.assert_called_once()

@@ -1,7 +1,11 @@
 # Project SeaSentry
 
+# Disclaimer
+Yes, the `.env.docker` and `.env.local` are purposefully uploaded. CHANGE TO YOUR OWN SETTINGS BEFORE USING!
+
 # Table of Contents
 - [Project SeaSentry](#project-seasentry)
+- [Disclaimer](#disclaimer)
 - [Table of Contents](#table-of-contents)
 - [Motivation](#motivation)
 - [Aim](#aim)
@@ -12,6 +16,9 @@
     - [Database](#database)
     - [Backend](#backend)
     - [Frontend](#frontend)
+  - [What to do after starting?](#what-to-do-after-starting)
+    - [ATAK integration](#atak-integration)
+    - [SDR Integration/UDP NMEA 0183 Socket](#sdr-integrationudp-nmea-0183-socket)
 - [API Endpoints](#api-endpoints)
 
 
@@ -22,19 +29,20 @@ Maritime traffic data is currently spread out across multiple sites, each with d
 
 # Aim 
 
-We hope to build a locally hosted server that provides an API endpoint and a UI where users can query for data such as current location, historical tracks, etc of different vessels.
+To build a locally hosted server that provides an API endpoint and a UI where users can query for data such as current location, historical tracks, etc of different vessels.
 
-Additional features such as geofencing, alerts, specific vessel tracking may follow later.
+Geofencing, custom alerts, satellite imagery integration, UDP stream of NMEA 0183 messages as data, and ATAK integration are available.
 
 In the backend, the application will be scraping data from different sites and formatting and inserting the details into a database that the user controls.
 
-We aim to provide a plugin based system for data sources, to allow users to add their own data sources to the DB.
+A plugin based system for data sources is available, to allow users to add their own data sources to the DB.
 
 # Tech Stack
 
 - Database: PostgreSQL (with PostGIS extension)
 - Backend + Web Server + API Server: Flask
-- Frontend: HTML, React.js, Tailwind CSS, Leaflet.js 
+- Frontend: HTML, React.js, Tailwind CSS, Leaflet.js
+- ATAK Server: FreeTakServer
 - Version Control: Git + GitHub
 
 # How to run
@@ -44,7 +52,7 @@ We aim to provide a plugin based system for data sources, to allow users to add 
 If this is your first time, you have to install Docker first.
 
 1. Ensure you have started Docker Desktop
-2. In the SeaSentry folder, run `docker compose build`
+2. In the SeaSentry folder, run `docker compose build --no-cache`
 3. In the SeaSentry folder, run `docker compose up`
 4. After it finishes starting,
   - Access http://127.0.0.1:3000/ for the frontend
@@ -59,8 +67,6 @@ After you start the backend and frontend services,
 
 
 ### Database
-YOU MUST DELETE THE EXISTING DATABASE, BREAKING CHANGES WERE MADE (If unsure, just drop all tables.)
-
 If this is your first time, install PostgreSQL and the PostGIS extension
 
 ### Backend
@@ -81,6 +87,18 @@ All commands are to be performed in the SeaSentry/frontend folder.
 1. `npm install`
 2. Run `npm start` to start the frontend service
 
+## What to do after starting?
+### ATAK integration
+1. Check your config.py and .env, ensure the ATAK options are enabled and server IP is correct.
+2. Open ATAK on your device, connect to the server.
+3. In ATAK, create a polygon and rename it such that it has `AOI` in the name. Ensure the polygon is within an existing polygon in the SeaSentry website.
+4. In ATAK, select the polygon, click send, then broadcast.
+5. New symbology will appear, indicating ships in the polygon. (Note that only ships with locations pinged within the last 15 minutes will appear.)
+
+### SDR Integration/UDP NMEA 0183 Socket
+1. Using [AIS-Catcher](https://github.com/jvde-github/AIS-catcher) or other programs, stream the captured NMEA 0183 messages into port 10110.
+
+Note: Ensure the UDP_IP and UDP_PORT in config.py matches your configuration before starting SeaSentry.
 
 # API Endpoints
 All APIs are accessed via localhost port 5000. Otherwise, CORS only allowed on http://localhost:3000 and http://127.0.0.1:3000 for the web application.

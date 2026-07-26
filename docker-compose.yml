@@ -7,6 +7,10 @@ services:
     env_file:
         - .env.docker
 
+    # Uncomment below 2 lines to expose db to host machine on port 5555
+    # ports:
+    #   - "5555:5432"
+
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./backend/db/init.sql:/docker-entrypoint-initdb.d/init.sql
@@ -30,6 +34,7 @@ services:
 
     ports:
       - "5000:5000"
+      - "10110:10110/udp"
 
     depends_on:
       db:
@@ -57,6 +62,42 @@ services:
       - backend
 
     restart: no
+  
+  freetakserver:
+    image: ghcr.io/freetakteam/freetakserver:latest
+    container_name: seasentry-freetakserver
+    restart: unless-stopped
+
+
+    ports:
+      - "8087:8087"
+      - "8089:8089"
+      - "8080:8080"
+      - "8443:8443"
+      - "19023:19023"
+
+    environment:
+      FTS_DATABASE_TYPE: SQLite
+      FTS_CONNECTION_MESSAGE: "Connected to SeaSentry ATAK-CIV Integration test server. QOTD: At the end of the day, the day ends."
+    
+    volumes:
+      - fts_data:/opt/fts
+
+  freetakserver-ui:
+    image: ghcr.io/freetakteam/ui:latest
+    container_name: seasentry-freetakserver-ui
+    restart: unless-stopped
+    depends_on:
+      - freetakserver
+    ports:
+      - "8000:8000"
+    environment:
+      APIIP: seasentry-freetakserver 
+      APIPORT: 19023
+      APIPROTOCOL: http
+    volumes:
+      - fts_data:/data/
 
 volumes:
   postgres_data:
+  fts_data:

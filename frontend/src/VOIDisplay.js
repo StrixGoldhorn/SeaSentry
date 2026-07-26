@@ -1,10 +1,17 @@
 import { useEffect, useState } from "react";
 import { get_all_VOI, delete_VOI } from "./utils";
 
-export default function VOIList() {
+export default function VOIList({
+    onEdit,
+    refreshKey,
+}) {
 
     const [vois, setVOIs] = useState([]);
     const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        refresh();
+    }, [refreshKey]);
 
     async function refresh() {
         setLoading(true);
@@ -80,6 +87,12 @@ export default function VOIList() {
                         <strong>IMO:</strong>{" "}
                         {voi.vessel_of_interest_imo ?? "None"}
                     </p>
+
+                    <button
+                        onClick={() => onEdit?.(voi)}
+                    >
+                        Edit
+                    </button>
 
                     <button
                         onClick={() => handleDelete(voi)}
