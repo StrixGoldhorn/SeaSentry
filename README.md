@@ -1,7 +1,11 @@
 # Project SeaSentry
 
+# Disclaimer
+Yes, the `.env.docker` and `.env.local` are purposefully uploaded. CHANGE TO YOUR OWN SETTINGS BEFORE USING!
+
 # Table of Contents
 - [Project SeaSentry](#project-seasentry)
+- [Disclaimer](#disclaimer)
 - [Table of Contents](#table-of-contents)
 - [Motivation](#motivation)
 - [Aim](#aim)
@@ -25,19 +29,20 @@ Maritime traffic data is currently spread out across multiple sites, each with d
 
 # Aim 
 
-We hope to build a locally hosted server that provides an API endpoint and a UI where users can query for data such as current location, historical tracks, etc of different vessels.
+To build a locally hosted server that provides an API endpoint and a UI where users can query for data such as current location, historical tracks, etc of different vessels.
 
-Additional features such as geofencing, alerts, specific vessel tracking may follow later.
+Geofencing, custom alerts, satellite imagery integration, UDP stream of NMEA 0183 messages as data, and ATAK integration are available.
 
 In the backend, the application will be scraping data from different sites and formatting and inserting the details into a database that the user controls.
 
-We aim to provide a plugin based system for data sources, to allow users to add their own data sources to the DB.
+A plugin based system for data sources is available, to allow users to add their own data sources to the DB.
 
 # Tech Stack
 
 - Database: PostgreSQL (with PostGIS extension)
 - Backend + Web Server + API Server: Flask
-- Frontend: HTML, React.js, Tailwind CSS, Leaflet.js 
+- Frontend: HTML, React.js, Tailwind CSS, Leaflet.js
+- ATAK Server: FreeTakServer
 - Version Control: Git + GitHub
 
 # How to run
@@ -47,7 +52,7 @@ We aim to provide a plugin based system for data sources, to allow users to add 
 If this is your first time, you have to install Docker first.
 
 1. Ensure you have started Docker Desktop
-2. In the SeaSentry folder, run `docker compose build`
+2. In the SeaSentry folder, run `docker compose build --no-cache`
 3. In the SeaSentry folder, run `docker compose up`
 4. After it finishes starting,
   - Access http://127.0.0.1:3000/ for the frontend
@@ -62,8 +67,6 @@ After you start the backend and frontend services,
 
 
 ### Database
-YOU MUST DELETE THE EXISTING DATABASE, BREAKING CHANGES WERE MADE (If unsure, just drop all tables.)
-
 If this is your first time, install PostgreSQL and the PostGIS extension
 
 ### Backend
