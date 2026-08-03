@@ -264,3 +264,133 @@ def test_detector_no_previous_location(mock_check_alert, mock_settings):
     detector(mock_session, vessel_data_id=1, vessel_location_id=1)
     
     mock_check_alert.assert_not_called()
+
+@patch('app.modules.bad_data_detection.detector.check_and_record_alert')
+def test_detector_multiple_alerts_spatial_and_teleport(mock_check_alert, mock_settings):
+    '''
+    Test that both a spatial mismatch alert and a teleport anomaly alert are triggered
+    when both conditions are violated for the same vessel location.
+    '''
+    t0 = datetime(2023, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
+    current_loc = create_mock_location(1, t0, 10.0, 100, 1)
+    conflicting_loc = create_mock_location(2, t0 + timedelta(seconds=10), 10.0, 200, 1)
+    prev_loc = create_mock_location(3, t0 - timedelta(minutes=1), 10.0, 100, 1)
+
+    mock_session = create_mock_detector_session(
+        get_return=[current_loc],
+        scalar_returns=[1, 2, 5000.0],
+        first_returns=[conflicting_loc, prev_loc]
+    )
+
+    detector(mock_session, vessel_data_id=1, vessel_location_id=1)
+
+    assert mock_check_alert.call_count == 2
+
+    args1, _ = mock_check_alert.call_args_list[0]
+    assert args1[0] == mock_session
+    assert args1[1] == 2
+    assert "spatial mismatch" in args1[2]["reason"].lower()
+    assert args1[2]["source 1"] == 1
+    assert args1[2]["source 2"] == 2
+
+    args2, _ = mock_check_alert.call_args_list[1]
+    assert args2[0] == mock_session
+    assert args2[1] == 2
+    assert "distance covered more than given speed" in args2[2]["reason"].lower()
+
+@patch('app.modules.bad_data_detection.detector.check_and_record_alert')
+def test_detector_teleport_missing_prev_speed(mock_check_alert, mock_settings):
+    '''
+    Test that no alert is triggered if prev_speed is None, even if current_speed is valid and implied speed is high.
+    The logic requires both current and previous speeds to be present to calculate a valid max reported speed.
+    '''
+    t0 = datetime(2023, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
+    current_loc = create_mock_location(1, t0, 10.0, 100, 1)
+    prev_loc = create_mock_location(2, t0 - timedelta(minutes=1), None, 100, 1)
+
+    mock_session = create_mock_detector_session(
+        get_return=[current_loc],
+        scalar_returns=[1, 5000.0],
+        first_returns=[None, prev_loc]
+    )
+
+    detector(mock_session, vessel_data_id=1, vessel_location_id=1)
+
+    mock_check_alert.assert_not_called()
+
+@patch('app.modules.bad_data_detection.detector.check_and_record_alert')
+def test_detector_teleport_zero_time_diff(mock_check_alert, mock_settings):
+    '''
+    Test that no alert is triggered and distance query is skipped if the time difference 
+    between current and previous location is zero.
+    '''
+    t0 = datetime(2023, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
+    current_loc = create_mock_location(1, t0, 10.0, 100, 1)
+    prev_loc = create_mock_location(2, t0, 10.0, 100, 1)
+
+    mock_session = create_mock_detector_session(
+        get_return=[current_loc],
+        scalar_returns=[1],
+        first_returns=[None, prev_loc]
+    )
+
+    detector(mock_session, vessel_data_id=1, vessel_location_id=1)
+
+    mock_check_alert.assert_not_called()
+
+@patch('app.modules.bad_data_detection.detector.check_and_record_alert')
+def test_detector_teleport_zero_distance(mock_check_alert, mock_settings):
+    '''
+    Test that no alert is triggered if the calculated distance between current and previous location is zero.
+    '''
+    t0 = datetime(2023, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
+    current_loc = create_mock_location(1, t0, 10.0, 100, 1)
+    prev_loc = create_mock_location(2, t0 - timedelta(minutes=1), 10.0, 100, 1)
+
+    mock_session = create_mock_detector_session(
+        get_return=[current_loc],
+        scalar_returns=[1, 0.0],
+        first_returns=[None, prev_loc]
+    )
+
+    detector(mock_session, vessel_data_id=1, vessel_location_id=1)
+
+    mock_check_alert.assert_not_called()
+
+@patch('app.modules.bad_data_detection.detector.check_and_record_alert')
+def test_detector_teleport_null_distance(mock_check_alert, mock_settings):
+    '''
+    Test that no alert is triggered if the distance query returns None (e.g., PostGIS null geometry).
+    '''
+    t0 = datetime(2023, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
+    current_loc = create_mock_location(1, t0, 10.0, 100, 1)
+    prev_loc = create_mock_location(2, t0 - timedelta(minutes=1), 10.0, 100, 1)
+
+    mock_session = create_mock_detector_session(
+        get_return=[current_loc],
+        scalar_returns=[1, None],
+        first_returns=[None, prev_loc]
+    )
+
+    detector(mock_session, vessel_data_id=1, vessel_location_id=1)
+
+    mock_check_alert.assert_not_called()
+
+@patch('app.modules.bad_data_detection.engine.write_audit_log')
+@patch('app.modules.bad_data_detection.engine.detector')
+@patch('app.modules.bad_data_detection.engine.DBConn.get_session')
+def test_bad_data_check_stops_processing_on_detector_error(mock_get_session, mock_detector, mock_audit_log):
+    '''
+    Test that if detector raises an exception on the first record,
+    the loop aborts and subsequent records are not processed.
+    '''
+    mock_session = create_mock_engine_session(query_all_return=[(1, 101), (2, 102), (3, 103)])
+    mock_get_session.return_value = mock_session
+
+    mock_detector.side_effect = [Exception("Fatal DB Error"), None, None]
+
+    bad_data_check(n=5)
+
+    assert mock_detector.call_count == 1
+    mock_detector.assert_called_once_with(mock_session, 1, 101)
+    mock_audit_log.assert_called_once()
