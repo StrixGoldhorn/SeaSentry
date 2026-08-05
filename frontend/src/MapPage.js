@@ -1,6 +1,6 @@
 import "leaflet/dist/leaflet.css";
 import './styles.css';
-import { MapContainer, TileLayer, Marker, Popup, Rectangle, Polygon, useMapEvent, useMapEvents, LayersControl, WMSTileLayer } from 'react-leaflet';
+import { MapContainer, TileLayer, LayerGroup, Marker, Popup, Rectangle, Polygon, useMap, useMapEvent, useMapEvents, LayersControl, WMSTileLayer } from 'react-leaflet';
 import { Icon } from "leaflet";
 import { useEffect, useState } from "react";
 import { ShipMarkers, CourseDirMarkers } from "./shipmarkers.js";
@@ -15,8 +15,9 @@ import GeofencePolygonDrawerNew from "./GeofencePolygonDrawerNew.js";
 import CopernicusImageryLayerControl from "./CopernicusImageryLayerControl.js";
 import ExportRectangleDrawer from "./ExportRectangleDrawer";
 import Cluster from 'react-leaflet-cluster';
-import 'react-leaflet-cluster/dist/assets/MarkerCluster.css'
-import 'react-leaflet-cluster/dist/assets/MarkerCluster.Default.css'
+import 'react-leaflet-cluster/dist/assets/MarkerCluster.css';
+import 'react-leaflet-cluster/dist/assets/MarkerCluster.Default.css';
+import VesselHeatmap from "./VesselHeatmap";
 
 const SHIP_TYPES = [
   "Cargo",
@@ -63,6 +64,8 @@ function MapPage() {
 
   const [instanceId, setInstanceId] = useState("");
   const [selectedLayer, setSelectedLayer] = useState("none");
+
+  const [showHeatmap, setShowHeatmap] = useState(false);
 
 
   const [refreshKey, setRefreshKey] = useState(0);
@@ -315,6 +318,7 @@ function MapPage() {
     <MapContainer center={initialCenter} zoom={initialZoom} maxZoom={20} scrollWheelZoom={true}>
 
       <MapStateSaver/>
+      <HeatmapOverlayWatcher onToggle={setShowHeatmap} />
       <ZoomTracker onZoomChange={setCurrentZoom} />
 
      <LayersControl position="topleft">
@@ -353,20 +357,35 @@ function MapPage() {
           />
         </LayersControl.Overlay>
 
+        <LayersControl.Overlay name="Vessel Heatmap">
+            <LayerGroup />
+        </LayersControl.Overlay>
+
+        <LayersControl.Overlay checked name="Vessel Markers">
+            <LayerGroup name="Vessel Markers">
+                <Cluster
+                    chunkedLoading
+                    showCoverageOnHover={false}
+                    maxClusterRadius={getClusterRadius(currentZoom)}
+                    disableClusteringAtZoom={14}
+                >
+                    {shipData?.data && (
+                        <ShipMarkers shipdata={shipData.data} />
+                    )}
+                    {shipData?.data && (
+                        <CourseDirMarkers shipdata={shipData.data} />
+                    )}
+                </Cluster>
+            </LayerGroup>
+        </LayersControl.Overlay>
+      
       </LayersControl>
 
       <MapBoundsTracker onBoundsChange={setmapBounds} />
 
-      {/* ENABLE CLUSTERING HERE IF NEEDED!!! @JUNLIANG */}
-      <Cluster 
-        chunkedLoading
-        showCoverageOnHover={false}
-        maxClusterRadius={getClusterRadius(currentZoom)}
-        disableClusteringAtZoom={14}
-      >
-        {shipData?.data && <ShipMarkers shipdata={shipData.data} />}
-        {shipData?.data && <CourseDirMarkers shipdata={shipData.data} />}
-      </Cluster>
+      {showHeatmap && shipData?.data && (
+          <VesselHeatmap shipdata={shipData.data} />
+      )}
 
       {aoiData?.data && (<RenderAOIs 
       aoicoordsdata={aoiData.data}
@@ -508,6 +527,35 @@ function MapPage() {
     </>
   );
 }
+
+function HeatmapOverlayWatcher({ onToggle }) {
+    const map = useMap();
+
+    useEffect(() => {
+        const handleAdd = (e) => {
+            if (e.name === "Vessel Heatmap") {
+                onToggle(true);
+            }
+        };
+
+        const handleRemove = (e) => {
+            if (e.name === "Vessel Heatmap") {
+                onToggle(false);
+            }
+        };
+
+        map.on("overlayadd", handleAdd);
+        map.on("overlayremove", handleRemove);
+
+        return () => {
+            map.off("overlayadd", handleAdd);
+            map.off("overlayremove", handleRemove);
+        };
+    }, [map, onToggle]);
+
+    return null;
+}
+
 
 export default MapPage;
 
