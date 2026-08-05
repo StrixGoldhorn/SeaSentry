@@ -459,8 +459,8 @@ function MapPage() {
       <div
           style={{
               position: "absolute",
-              top: 20,
-              right: 20,
+              top: 50,
+              right: 10,
               zIndex: 1000,
               background: "white",
               padding: 20,
