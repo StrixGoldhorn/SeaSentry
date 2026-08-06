@@ -10,25 +10,7 @@ export default function EditableAOILayer({
     useEffect(() => {
         if (!ref.current) return;
         const layer = ref.current;
-        map.pm.addControls({
-
-            position: "topleft",
-
-            drawMarker: false,
-            drawCircleMarker: false,
-            drawPolyline: false,
-            drawRectangle: false,
-            drawPolygon: false,
-            drawCircle: false,
-            drawText: false,
-
-            editMode: true,
-            dragMode: true,
-            rotateMode: true,
-            removalMode: false,
-            cutPolygon: false
-
-        });
+        
         layer.pm.enable({
             allowSelfIntersection: false
         });
@@ -51,7 +33,7 @@ export default function EditableAOILayer({
             layer.off("pm:edit", update);
             layer.off("pm:dragend", update);
             layer.off("pm:rotateend", update);
-            map.pm.removeControls();
+            layer.pm.disable();
         };
     }, []);
 
