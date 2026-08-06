@@ -363,19 +363,21 @@ function MapPage() {
 
         <LayersControl.Overlay checked name="Vessel Markers">
             <LayerGroup name="Vessel Markers">
-                <Cluster
-                    chunkedLoading
-                    showCoverageOnHover={false}
-                    maxClusterRadius={getClusterRadius(currentZoom)}
-                    disableClusteringAtZoom={14}
-                >
-                    {shipData?.data && (
-                        <ShipMarkers shipdata={shipData.data} />
-                    )}
-                    {shipData?.data && (
-                        <CourseDirMarkers shipdata={shipData.data} />
-                    )}
-                </Cluster>
+                {!drawing && !editing && (
+                    <Cluster
+                        chunkedLoading
+                        showCoverageOnHover={false}
+                        maxClusterRadius={getClusterRadius(currentZoom)}
+                        disableClusteringAtZoom={14}
+                    >
+                        {shipData?.data && (
+                            <ShipMarkers shipdata={shipData.data} />
+                        )}
+                        {shipData?.data && (
+                            <CourseDirMarkers shipdata={shipData.data} />
+                        )}
+                    </Cluster>
+                )}
             </LayerGroup>
         </LayersControl.Overlay>
       
