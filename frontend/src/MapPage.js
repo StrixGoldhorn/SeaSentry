@@ -1,6 +1,7 @@
 import "leaflet/dist/leaflet.css";
 import './styles.css';
-import { MapContainer, TileLayer, LayerGroup, Marker, Popup, Rectangle, Polygon, useMap, useMapEvent, useMapEvents, LayersControl, WMSTileLayer } from 'react-leaflet';
+import { MapContainer, TileLayer, LayerGroup, Marker, Popup, Rectangle, Polygon,
+     useMap, useMapEvent, useMapEvents, LayersControl, WMSTileLayer, ZoomControl } from 'react-leaflet';
 import { Icon } from "leaflet";
 import { useEffect, useState } from "react";
 import { ShipMarkers, CourseDirMarkers } from "./shipmarkers.js";
@@ -315,13 +316,14 @@ function MapPage() {
         appliedShiptype={appliedShiptype}
         setAppliedShiptype={setAppliedShiptype}
     />
-    <MapContainer center={initialCenter} zoom={initialZoom} maxZoom={20} scrollWheelZoom={true}>
+    <MapContainer center={initialCenter} zoom={initialZoom} maxZoom={20} scrollWheelZoom={true} zoomControl={false}>
 
       <MapStateSaver/>
       <HeatmapOverlayWatcher onToggle={setShowHeatmap} />
       <ZoomTracker onZoomChange={setCurrentZoom} />
+      <ZoomControl position="topright" />
 
-     <LayersControl position="topleft">
+     <LayersControl position="topright">
 
         <LayersControl.BaseLayer checked name="OpenStreetMap">
           <TileLayer

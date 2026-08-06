@@ -350,3 +350,11 @@ pre {
   height: 16px;
   cursor: pointer;
 }
+
+/* Geoman toolbar */
+.leaflet-pm-toolbar {
+    transform: scale(1.4);
+    transform-origin: top left;
+    top: 10px;
+    left: 340px;
+}

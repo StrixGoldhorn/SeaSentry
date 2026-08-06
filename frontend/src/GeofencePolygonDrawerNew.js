@@ -69,7 +69,7 @@ export default function GeofencePolygonDrawerNew({
             <GeomanControls
 
                 options={{
-                    position: "topright",
+                    position: "topleft",
 
                     drawMarker: false,
                     drawCircle: false,
