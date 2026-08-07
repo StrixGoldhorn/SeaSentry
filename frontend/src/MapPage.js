@@ -284,7 +284,7 @@ function MapPage() {
   //HTML return
   return (
     <>
-    <ThinSidebar onSelect={handleSidebarSelect} />
+    <ThinSidebar onSelect={handleSidebarSelect} selectedMode={sidebarMode} />
 
     <SlidingSidebar
         open={sidebarMode !== null}
