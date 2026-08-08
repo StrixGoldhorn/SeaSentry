@@ -30,11 +30,19 @@ export default function GeofenceSidebar({
 
         try {
 
-            await add_poly_geofence({
+            const res = await add_poly_geofence({
                 name,
                 desc,
                 coords: JSON.stringify(polygon)
             });
+
+            if (res?.error) {
+                alert(`Failed to create Geofence: ${res.error}`);
+                return;
+            } else if (res?.status && res.status >= 400) {
+                alert(`Failed to create Geofence: Status ${res.status}`);
+                return;
+            }
 
             alert("Geofence created");
 
@@ -45,7 +53,7 @@ export default function GeofenceSidebar({
         } catch (err) {
 
             console.error(err);
-            alert("Failed to create Geofence");
+            alert(`Failed to create Geofence: ${err}`);
 
         }
 

@@ -16,10 +16,19 @@ export default function VOIList({
     async function refresh() {
         setLoading(true);
 
-        const data = await get_all_VOI();
-
-        if (data?.data) {
-            setVOIs(data.data);
+        try {
+            const data = await get_all_VOI();
+            if (data?.error) {
+                alert(`Error loading VOIs: ${data.error}`);
+            } else if (data?.status && data.status >= 400) {
+                alert(`Error loading VOIs: Status ${data.status}`);
+            }
+            if (data?.data) {
+                setVOIs(data.data);
+            }
+        } catch (err) {
+            console.error(err);
+            alert(`Error loading VOIs: ${err}`);
         }
 
         setLoading(false);
@@ -37,12 +46,22 @@ export default function VOIList({
 
         if (!confirmed) return;
 
-        await delete_VOI({
-            voi_id: voi.vessel_of_interest_id,
-            voi_name: voi.vessel_of_interest_desc_name
-        });
-
-        refresh();
+        try {
+            const res = await delete_VOI({
+                voi_id: voi.vessel_of_interest_id,
+                voi_name: voi.vessel_of_interest_desc_name
+            });
+            if (res?.error) {
+                alert(`Error deleting VOI: ${res.error}`);
+            } else if (res?.status && res.status >= 400) {
+                alert(`Error deleting VOI: Status ${res.status}`);
+            } else {
+                refresh();
+            }
+        } catch (err) {
+            console.error(err);
+            alert(`Error deleting VOI: ${err}`);
+        }
     }
 
     if (loading) {

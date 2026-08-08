@@ -30,11 +30,19 @@ export default function AOISidebar({
 
         try {
 
-            await add_poly_AOI({
+            const res = await add_poly_AOI({
                 name,
                 desc,
                 coords: JSON.stringify(polygon)
             });
+
+            if (res?.error) {
+                alert(`Failed to create AOI: ${res.error}`);
+                return;
+            } else if (res?.status && res.status >= 400) {
+                alert(`Failed to create AOI: Status ${res.status}`);
+                return;
+            }
 
             alert("AOI created");
 
@@ -45,7 +53,7 @@ export default function AOISidebar({
         } catch (err) {
 
             console.error(err);
-            alert("Failed to create AOI");
+            alert(`Failed to create AOI: ${err}`);
 
         }
 

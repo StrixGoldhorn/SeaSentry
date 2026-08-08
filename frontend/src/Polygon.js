@@ -49,10 +49,18 @@ export function PolygonOverlay({
 
         try {
 
-            await deleteFunction({
+            const res = await deleteFunction({
                 id: item[idField],
                 name: item[nameField]
             });
+
+            if (res?.error) {
+                alert(`Delete failed: ${res.error}`);
+                return;
+            } else if (res?.status && res.status >= 400) {
+                alert(`Delete failed: Status ${res.status}`);
+                return;
+            }
 
             if (refreshFunction) {
                 refreshFunction();
@@ -62,7 +70,7 @@ export function PolygonOverlay({
 
             console.error(err);
 
-            alert("Delete failed");
+            alert(`Delete failed: ${err}`);
 
         }
     }
@@ -79,19 +87,29 @@ export function PolygonOverlay({
 
         try {
 
-            await scrapeFunction({
+            const res = await scrapeFunction({
                 id: item[idField]
             });
+
+            if (res?.error) {
+                alert(`Scrape failed: ${res.error}`);
+                return;
+            } else if (res?.status && res.status >= 400) {
+                alert(`Scrape failed: Status ${res.status}`);
+                return;
+            }
 
             if (refreshFunction) {
                 refreshFunction();
             }
 
+            alert("Scrape successful");
+
         } catch (err) {
 
             console.error(err);
 
-            alert("Force scrape failed");
+            alert(`Force scrape failed: ${err}`);
 
         }
     }

@@ -503,20 +503,31 @@ export default function AlertRuleForm({
 
     try {
       const backendParams = convertRule(query);
+      let res;
 
       if (initialRule) {
-          await update_alert_rule({
+          res = await update_alert_rule({
               alert_rule_id: initialRule.alert_rule_id,
               name,
               description,
               params: backendParams
           });
       } else {
-          await add_alert_rule({
+          res = await add_alert_rule({
               name,
               description,
               params: backendParams
           });
+      }
+
+      if (res?.error) {
+          alert(`Error saving alert rule: ${res.error}`);
+          setResponse(JSON.stringify(res, null, 2));
+          return;
+      } else if (res?.status && res.status >= 400) {
+          alert(`Error saving alert rule: Status ${res.status}`);
+          setResponse(JSON.stringify(res, null, 2));
+          return;
       }
 
       onSaved?.();
@@ -527,10 +538,12 @@ export default function AlertRuleForm({
           combinator: "and",
           rules: [],
       });
+      setResponse("");
       
     } catch (err) {
       console.error(err);
       setResponse(String(err));
+      alert(`Error saving alert rule: ${err}`);
     }
   }
 

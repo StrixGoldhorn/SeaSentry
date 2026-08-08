@@ -17,12 +17,21 @@ export default function AlertRulesList({
     const loadRules = async () => {
         setLoading(true);
 
-        const data = await get_all_alert_rules();
-
-        if (data?.data) {
-            setRules(data.data);
-        } else if (Array.isArray(data)) {
-            setRules(data);
+        try {
+            const data = await get_all_alert_rules();
+            if (data?.error) {
+                alert(`Error loading alert rules: ${data.error}`);
+            } else if (data?.status && data.status >= 400) {
+                alert(`Error loading alert rules: Status ${data.status}`);
+            }
+            if (data?.data) {
+                setRules(data.data);
+            } else if (Array.isArray(data)) {
+                setRules(data);
+            }
+        } catch (err) {
+            console.error(err);
+            alert(`Error loading alert rules: ${err}`);
         }
 
         setLoading(false);
@@ -33,22 +42,28 @@ export default function AlertRulesList({
     }, [refreshKey]);
 
     const toggleRule = async (rule) => {
-
-        if (rule.alert_rule_enabled) {
-
-            await disable_alert_rule({
-                alert_rule_id: rule.alert_rule_id
-            });
-
-        } else {
-
-            await enable_alert_rule({
-                alert_rule_id: rule.alert_rule_id
-            });
-
+        try {
+            let res;
+            if (rule.alert_rule_enabled) {
+                res = await disable_alert_rule({
+                    alert_rule_id: rule.alert_rule_id
+                });
+            } else {
+                res = await enable_alert_rule({
+                    alert_rule_id: rule.alert_rule_id
+                });
+            }
+            if (res?.error) {
+                alert(`Error toggling rule: ${res.error}`);
+            } else if (res?.status && res.status >= 400) {
+                alert(`Error toggling rule: Status ${res.status}`);
+            } else {
+                await loadRules();
+            }
+        } catch (err) {
+            console.error(err);
+            alert(`Error toggling rule: ${err}`);
         }
-
-        await loadRules();
     };
 
     async function handleDelete(rule) {
@@ -59,12 +74,22 @@ export default function AlertRulesList({
 
         if (!confirmed) return;
 
-        await delete_alert_rule({
-            alert_rule_id: rule.alert_rule_id,
-            alert_rule_name: rule.alert_rule_name
-        });
-
-        await loadRules();
+        try {
+            const res = await delete_alert_rule({
+                alert_rule_id: rule.alert_rule_id,
+                alert_rule_name: rule.alert_rule_name
+            });
+            if (res?.error) {
+                alert(`Error deleting rule: ${res.error}`);
+            } else if (res?.status && res.status >= 400) {
+                alert(`Error deleting rule: Status ${res.status}`);
+            } else {
+                await loadRules();
+            }
+        } catch (err) {
+            console.error(err);
+            alert(`Error deleting rule: ${err}`);
+        }
     }
 
     if (loading) {
