@@ -13,6 +13,7 @@ import GeofenceTablePage from "./GeofenceTablePage";
 import VesselHistoryMap from "./VesselHistoryMap";
 import VesselHistoryPage from "./VesselHistoryPage";
 import VesselMapPage from "./VesselMapPage";
+import HelpPage from "./HelpPage";
 
 
 function App() {
@@ -38,6 +39,7 @@ function App() {
           element={<VesselMapPage />}
       />
       <Route path="/alerts/history/all" element={<AllAlertHistoryPage/>} />
+      <Route path="/help" element={<HelpPage />} />
     </Routes>
     </>
   );

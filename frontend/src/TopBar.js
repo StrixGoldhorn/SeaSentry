@@ -15,12 +15,13 @@ export default function TopBar() {
     const pages = [
         { label: "Map", path: "/" },
         { label: "Vessels", path: "/vessels" },
+        { label: "VOIs", path: "/input/voi" },
         { label: "AOIs", path: "/aois" },
         { label: "Geofences", path: "/geofences" },
         { label: "Add via coords", path: "/input/aoigeofence" },
-        { label: "VOIs", path: "/input/voi" },
         { label: "Alert Rules", path: "/input/alert-rules" },
         { label: "All Alerts", path: "/alerts/history/all" },
+        { label: "Help", path: "/help" },
     ];
 
     const currentTab =
