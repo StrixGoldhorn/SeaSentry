@@ -16,23 +16,30 @@ export default function GeofencePanel(){
 
     async function submit(){
 
-        const data=await add_box_geofence({
+        try {
+            const data = await add_box_geofence({
+                name:form.name,
+                desc:form.desc||null,
+                lat_min:Number(form.lat_min),
+                lat_max:Number(form.lat_max),
+                long_min:Number(form.long_min),
+                long_max:Number(form.long_max)
+            });
 
-            name:form.name,
+            setResponse(JSON.stringify(data,null,2));
 
-            desc:form.desc||null,
-
-            lat_min:Number(form.lat_min),
-
-            lat_max:Number(form.lat_max),
-
-            long_min:Number(form.long_min),
-
-            long_max:Number(form.long_max)
-
-        });
-
-        setResponse(JSON.stringify(data,null,2));
+            if (data?.error) {
+                alert(`Error adding geofence: ${data.error}`);
+            } else if (data?.status && data.status >= 400) {
+                alert(`Error adding geofence: Status ${data.status}`);
+            } else {
+                alert("Geofence added successfully");
+            }
+        } catch (err) {
+            console.error(err);
+            setResponse(String(err));
+            alert(`Error adding geofence: ${err}`);
+        }
 
     }
 

@@ -26,9 +26,18 @@ export default function AOITablePage() {
 
         setLoading(true);
 
-        const result = await get_all_AOI();
-
-        setData(result?.data ?? []);
+        try {
+            const result = await get_all_AOI();
+            if (result?.error) {
+                alert(`Error loading AOIs: ${result.error}`);
+            } else if (result?.status && result.status >= 400) {
+                alert(`Error loading AOIs: Status ${result.status}`);
+            }
+            setData(result?.data ?? []);
+        } catch (err) {
+            console.error(err);
+            alert(`Error loading AOIs: ${err}`);
+        }
 
         setLoading(false);
 
@@ -48,12 +57,22 @@ export default function AOITablePage() {
             return;
         }
 
-        await delete_AOI({
-            aoi_id: row.area_of_interest_id,
-            aoi_name: row.area_of_interest_name,
-        });
-
-        loadData();
+        try {
+            const res = await delete_AOI({
+                aoi_id: row.area_of_interest_id,
+                aoi_name: row.area_of_interest_name,
+            });
+            if (res?.error) {
+                alert(`Error deleting AOI: ${res.error}`);
+            } else if (res?.status && res.status >= 400) {
+                alert(`Error deleting AOI: Status ${res.status}`);
+            } else {
+                loadData();
+            }
+        } catch (err) {
+            console.error(err);
+            alert(`Error deleting AOI: ${err}`);
+        }
 
     }
 

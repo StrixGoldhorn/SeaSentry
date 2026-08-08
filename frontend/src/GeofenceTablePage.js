@@ -26,9 +26,18 @@ export default function GeofenceTablePage() {
 
         setLoading(true);
 
-        const result = await get_all_geofences();
-
-        setData(result?.data ?? []);
+        try {
+            const result = await get_all_geofences();
+            if (result?.error) {
+                alert(`Error loading geofences: ${result.error}`);
+            } else if (result?.status && result.status >= 400) {
+                alert(`Error loading geofences: Status ${result.status}`);
+            }
+            setData(result?.data ?? []);
+        } catch (err) {
+            console.error(err);
+            alert(`Error loading geofences: ${err}`);
+        }
 
         setLoading(false);
 
@@ -48,12 +57,22 @@ export default function GeofenceTablePage() {
             return;
         }
 
-        await delete_geofence({
-            geofence_id: row.geofence_id,
-            geofence_name: row.geofence_name,
-        });
-
-        loadData();
+        try {
+            const res = await delete_geofence({
+                geofence_id: row.geofence_id,
+                geofence_name: row.geofence_name,
+            });
+            if (res?.error) {
+                alert(`Error deleting geofence: ${res.error}`);
+            } else if (res?.status && res.status >= 400) {
+                alert(`Error deleting geofence: Status ${res.status}`);
+            } else {
+                loadData();
+            }
+        } catch (err) {
+            console.error(err);
+            alert(`Error deleting geofence: ${err}`);
+        }
 
     }
 

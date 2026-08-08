@@ -28,15 +28,24 @@ export default function AllAlertHistoryPage() {
 
         setLoading(true);
 
-        const data = await get_all_alert_history({
-            limit: 1000000,
-            offset: 0
-        });
-
-        if (data?.data) {
-            setAlerts(data.data);
-        } else if (Array.isArray(data)) {
-            setAlerts(data);
+        try {
+            const data = await get_all_alert_history({
+                limit: 1000000,
+                offset: 0
+            });
+            if (data?.error) {
+                window.alert(`Error loading alert history: ${data.error}`);
+            } else if (data?.status && data.status >= 400) {
+                window.alert(`Error loading alert history: Status ${data.status}`);
+            }
+            if (data?.data) {
+                setAlerts(data.data);
+            } else if (Array.isArray(data)) {
+                setAlerts(data);
+            }
+        } catch (err) {
+            console.error(err);
+            window.alert(`Error loading alert history: ${err}`);
         }
 
         setLoading(false);
@@ -49,23 +58,30 @@ export default function AllAlertHistoryPage() {
 
 
     const toggleReadStatus = async (alert) => {
-
-        if (alert.alert_history_read) {
-
-            await mark_alert_unread({
-                alert_history_id:
-                    alert.alert_history_id
-            });
-
-        } else {
-
-            await mark_alert_read({
-                alert_history_id:
-                    alert.alert_history_id
-            });
+        try {
+            let res;
+            if (alert.alert_history_read) {
+                res = await mark_alert_unread({
+                    alert_history_id:
+                        alert.alert_history_id
+                });
+            } else {
+                res = await mark_alert_read({
+                    alert_history_id:
+                        alert.alert_history_id
+                });
+            }
+            if (res?.error) {
+                window.alert(`Error updating alert status: ${res.error}`);
+            } else if (res?.status && res.status >= 400) {
+                window.alert(`Error updating alert status: Status ${res.status}`);
+            } else {
+                await loadAlerts();
+            }
+        } catch (err) {
+            console.error(err);
+            window.alert(`Error updating alert status: ${err}`);
         }
-
-        await loadAlerts();
     };
 
 

@@ -28,28 +28,44 @@ export default function VOIPanel({
     const [response,setResponse]=useState("");
 
     const submit = async () => {
-        let data;
+        try {
+            let data;
 
-        if (initialVOI) {
-            data = await update_VOI({
-                voi_id: initialVOI.vessel_of_interest_id,
-                name: form.name,
-                desc: form.desc || null,
-                mmsi: form.mmsi || null,
-                imo: form.imo || null,
-            });
-        } else {
-            data = await add_VOI({
-                name: form.name,
-                desc: form.desc || null,
-                mmsi: form.mmsi || null,
-                imo: form.imo || null,
-            });
-        }
-        setResponse(JSON.stringify(data, null, 2));
-        onSaved?.();
-        if (!initialVOI) {
-            setForm(emptyForm);
+            if (initialVOI) {
+                data = await update_VOI({
+                    voi_id: initialVOI.vessel_of_interest_id,
+                    name: form.name,
+                    desc: form.desc || null,
+                    mmsi: form.mmsi || null,
+                    imo: form.imo || null,
+                });
+            } else {
+                data = await add_VOI({
+                    name: form.name,
+                    desc: form.desc || null,
+                    mmsi: form.mmsi || null,
+                    imo: form.imo || null,
+                });
+            }
+            
+            setResponse(JSON.stringify(data, null, 2));
+
+            if (data?.error) {
+                alert(`Error saving VOI: ${data.error}`);
+                return;
+            } else if (data?.status && data.status >= 400) {
+                alert(`Error saving VOI: Status ${data.status}`);
+                return;
+            }
+
+            onSaved?.();
+            if (!initialVOI) {
+                setForm(emptyForm);
+            }
+        } catch (err) {
+            console.error(err);
+            setResponse(String(err));
+            alert(`Error saving VOI: ${err}`);
         }
     };
 

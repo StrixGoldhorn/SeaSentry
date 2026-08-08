@@ -162,8 +162,9 @@ function MapPage() {
 
   async function finishEditing() {
       try {
+          let res;
           if (editingType === "aoi") {
-              await utils.update_AOI({
+              res = await utils.update_AOI({
                   aoi_id:
                       editingItem.area_of_interest_id,
                   name: editedName,
@@ -171,11 +172,18 @@ function MapPage() {
                   coords:
                       editedCoords
               });
+              if (res?.error) {
+                  alert(`Failed to update AOI: ${res.error}`);
+                  return;
+              } else if (res?.status && res.status >= 400) {
+                  alert(`Failed to update AOI: Status ${res.status}`);
+                  return;
+              }
               loadAOIs();
           }
 
           if (editingType === "geofence") {
-              await utils.update_geofence({
+              res = await utils.update_geofence({
                   geofence_id:
                       editingItem.geofence_id,
                   name: editedName,
@@ -183,6 +191,13 @@ function MapPage() {
                   coords:
                       editedCoords
               });
+              if (res?.error) {
+                  alert(`Failed to update geofence: ${res.error}`);
+                  return;
+              } else if (res?.status && res.status >= 400) {
+                  alert(`Failed to update geofence: Status ${res.status}`);
+                  return;
+              }
               loadGeofences();
           }
           cancelEditing();
@@ -190,7 +205,7 @@ function MapPage() {
 
       catch (err) {
           console.error(err);
-          alert("Failed to update.");
+          alert(`Failed to update: ${err}`);
       }
   }
 
@@ -562,6 +577,3 @@ function HeatmapOverlayWatcher({ onToggle }) {
 
 
 export default MapPage;
-
-
-
