@@ -1,7 +1,7 @@
 import "leaflet/dist/leaflet.css";
 import './styles.css';
 import { MapContainer, TileLayer, LayerGroup, Marker, Popup, Rectangle, Polygon,
-     useMap, useMapEvent, useMapEvents, LayersControl, WMSTileLayer, ZoomControl } from 'react-leaflet';
+     useMap, useMapEvent, useMapEvents, LayersControl, WMSTileLayer, ZoomControl, CircleMarker } from 'react-leaflet';
 import { Icon } from "leaflet";
 import { useEffect, useState } from "react";
 import { ShipMarkers, CourseDirMarkers } from "./shipmarkers.js";
@@ -70,6 +70,7 @@ function MapPage() {
   const [showHeatmap, setShowHeatmap] = useState(false);
 
 
+  const [alertVessels, setAlertVessels] = useState(new Map());
   const [refreshKey, setRefreshKey] = useState(0);
   const { showSnackbar } = useSnackbar();
   
@@ -255,7 +256,63 @@ function MapPage() {
         }
     }, []);
 
+  const fetchAlerts = () => {
+      utils.get_all_alert_history({ limit: 500 }).then(fetchdata => {
+          let alertsArray = [];
+          if (fetchdata?.data) {
+              alertsArray = fetchdata.data;
+          } else if (Array.isArray(fetchdata)) {
+              alertsArray = fetchdata;
+          }
+          
+          const unread = alertsArray.filter(a => !a.alert_history_read);
+          const mmsis = new Map();
+          
+          unread.forEach(alert => {
+              if (alert.alert_history_context?.matched_vessels) {
+                  alert.alert_history_context.matched_vessels.forEach(v => {
+                      if (v.mmsi) {
+                          const mmsiStr = String(v.mmsi);
+                          if (!mmsis.has(mmsiStr)) {
+                              mmsis.set(mmsiStr, []);
+                          }
+                          mmsis.get(mmsiStr).push(alert);
+                      }
+                  });
+              }
+          });
+          
+          setAlertVessels(mmsis);
+      }).catch(err => console.error("Error fetching alert vessels:", err));
+  };
 
+  useEffect(() => {
+      fetchAlerts();
+      const interval = setInterval(fetchAlerts, 15000);
+      return () => clearInterval(interval);
+  }, []);
+
+  const markAlertAsRead = async (alert_history_id) => {
+      try {
+          await utils.mark_alert_read({ alert_history_id });
+          showSnackbar("Alert marked as read", "success");
+          fetchAlerts();
+      } catch (err) {
+          console.error(err);
+          showSnackbar(`Error marking alert as read: ${err}`);
+      }
+  };
+
+  const markAllAlertsForShipAsRead = async (alerts) => {
+      try {
+          await Promise.all(alerts.map(a => utils.mark_alert_read({ alert_history_id: a.alert_history_id })));
+          showSnackbar("All alerts marked as read for vessel", "success");
+          fetchAlerts();
+      } catch (err) {
+          console.error(err);
+          showSnackbar(`Error marking alerts as read: ${err}`);
+      }
+  };
 
   const loadAOIs = () => {
     utils.get_all_AOI()
@@ -390,7 +447,11 @@ function MapPage() {
                         disableClusteringAtZoom={14}
                     >
                         {shipData?.data && (
-                            <ShipMarkers shipdata={shipData.data} />
+                            <ShipMarkers 
+                                shipdata={shipData.data} 
+                                alertVessels={alertVessels}
+                                onMarkAlertRead={markAlertAsRead}
+                            />
                         )}
                         {shipData?.data && (
                             <CourseDirMarkers shipdata={shipData.data} />
@@ -400,6 +461,81 @@ function MapPage() {
             </LayerGroup>
         </LayersControl.Overlay>
       
+        <LayersControl.Overlay checked name="Alert Highlights">
+            <LayerGroup name="Alert Highlights">
+                {!drawing && !editing && shipData?.data && shipData.data
+                    .filter(ship => alertVessels.has(String(ship.mmsi)))
+                    .map(ship => {
+                        const lat = ship.lat ?? ship.latitude;
+                        const lng = ship.long ?? ship.longitude ?? ship.lng;
+                        if (lat == null || lng == null) return null;
+                        const alertsForShip = alertVessels.get(String(ship.mmsi));
+                        
+                        return (
+                            <CircleMarker
+                                key={`alert-${ship.mmsi}`}
+                                center={[lat, lng]}
+                                radius={25}
+                                pathOptions={{
+                                    color: "#ff0000",
+                                    fillColor: "#ff0000",
+                                    fillOpacity: 0.3,
+                                    weight: 3,
+                                    dashArray: "4, 6",
+                                }}
+                            >
+                                <Popup autoPan={false}>
+                                    <div style={{ minWidth: "250px" }}>
+                                        <h3 style={{ color: "#cc0000" }}>
+                                            Alerts: {ship.ship_name || ship.mmsi}
+                                        </h3>
+                                        {alertsForShip.length > 1 && (
+                                            <div style={{ marginBottom: "10px", marginTop: "5px" }}>
+                                                <button 
+                                                    style={{ margin: "0px", width: "100%" }}
+                                                    onClick={() => markAllAlertsForShipAsRead(alertsForShip)}
+                                                >
+                                                    Acknowledge All
+                                                </button>
+                                            </div>
+                                        )}
+                                        <hr />
+                                        {alertsForShip.map((alert, index) => (
+                                            <div key={alert.alert_history_id}>
+                                                <p>
+                                                    <strong>Rule:</strong>{" "}
+                                                    {alert.alert_history_context?.rule_name}
+                                                </p>
+                                                <p>
+                                                    <strong>Triggered:</strong><br />
+                                                    {new Date(alert.alert_history_timestamp).toLocaleString()}
+                                                </p>
+                                                <div style={{
+                                                    display: 'grid',
+                                                    gridTemplateColumns: '1fr',
+                                                    padding: '0px',
+                                                    marginTop: '10px',
+                                                    marginBottom: '10px'
+                                                }}>
+                                                    <button 
+                                                        style={{ margin: "0px" }}
+                                                        onClick={() => markAlertAsRead(alert.alert_history_id)}
+                                                    >
+                                                        Mark as Read
+                                                    </button>
+                                                </div>
+                                                {index < alertsForShip.length - 1 && <hr />}
+                                            </div>
+                                        ))}
+                                    </div>
+                                </Popup>
+                            </CircleMarker>
+                        );
+                    })
+                }
+            </LayerGroup>
+        </LayersControl.Overlay>
+
       </LayersControl>
 
       <MapBoundsTracker onBoundsChange={setmapBounds} />

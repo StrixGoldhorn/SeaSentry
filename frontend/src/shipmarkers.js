@@ -161,6 +161,13 @@ const isShipEqual = (prevProps, nextProps) => {
 
     if (prev.vessel_data_id !== next.vessel_data_id) return false;
 
+    const prevAlerts = prevProps.alerts || [];
+    const nextAlerts = nextProps.alerts || [];
+    if (prevAlerts.length !== nextAlerts.length) return false;
+    for (let i = 0; i < prevAlerts.length; i++) {
+        if (prevAlerts[i].alert_history_id !== nextAlerts[i].alert_history_id) return false;
+    }
+
     return (
         prev.latitude === next.latitude &&
         prev.longitude === next.longitude &&
@@ -187,7 +194,7 @@ const isCourseEqual = (prevProps, nextProps) => {
     );
 };
 
-const ShipMarker = memo(function ShipMarker({ ship }) {
+const ShipMarker = memo(function ShipMarker({ ship, alerts, onMarkAlertRead }) {
     const navigate = useNavigate();
     const [isEditOpen, setIsEditOpen] = useState(false);
 
@@ -274,7 +281,7 @@ const CourseLineMarker = memo(function CourseLineMarker({ ship }) {
     );
 }, isCourseEqual);
 
-export function ShipMarkers({ shipdata }) {
+export function ShipMarkers({ shipdata, alertVessels, onMarkAlertRead }) {
     if (!Array.isArray(shipdata)) {
         return null;
     }
@@ -283,6 +290,8 @@ export function ShipMarkers({ shipdata }) {
         <ShipMarker
             key={ship.vessel_data_id}
             ship={ship}
+            alerts={alertVessels ? alertVessels.get(String(ship.mmsi)) : null}
+            onMarkAlertRead={onMarkAlertRead}
         />
     ));
 }
