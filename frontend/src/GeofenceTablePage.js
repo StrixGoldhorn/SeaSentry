@@ -113,6 +113,9 @@ export default function GeofenceTablePage() {
     });
 
     return (
-        <MaterialReactTable table={table} />
+        <div style={{ padding: "20px" }}>
+            <h1>Geofences</h1>
+            <MaterialReactTable table={table} />
+        </div>
     );
 }

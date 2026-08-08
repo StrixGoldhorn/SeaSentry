@@ -48,7 +48,7 @@ export default function ExportAreaSidebar({
             <h2>Export Area</h2>
 
             <p>
-                Draw a rectangle on the map.
+                Draw a rectangle on the map, representing area to be exported.
             </p>
 
             <input

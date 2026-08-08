@@ -113,6 +113,9 @@ export default function AOITablePage() {
     });
 
     return (
-        <MaterialReactTable table={table} />
+        <div style={{ padding: "20px" }}>
+            <h1>Areas of Interest</h1>
+            <MaterialReactTable table={table} />
+        </div>
     );
 }

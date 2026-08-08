@@ -64,7 +64,7 @@ export default function GeofenceSidebar({
             <h2>Draw Geofence</h2>
 
             <p>
-                <strong>Use Polygon tools on the map.</strong>
+                <strong>Use Polygon tools on the right of this box.</strong>
                 
             </p>
 
