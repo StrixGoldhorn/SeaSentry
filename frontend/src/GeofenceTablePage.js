@@ -16,11 +16,13 @@ import {
     get_all_geofences,
     delete_geofence,
 } from "./utils";
+import { useSnackbar } from "./SnackbarContext";
 
 export default function GeofenceTablePage() {
 
     const [data, setData] = useState([]);
     const [loading, setLoading] = useState(false);
+    const { showSnackbar } = useSnackbar();
 
     async function loadData() {
 
@@ -29,14 +31,14 @@ export default function GeofenceTablePage() {
         try {
             const result = await get_all_geofences();
             if (result?.error) {
-                alert(`Error loading geofences: ${result.error}`);
+                showSnackbar(`Error loading geofences: ${result.error}`);
             } else if (result?.status && result.status >= 400) {
-                alert(`Error loading geofences: Status ${result.status}`);
+                showSnackbar(`Error loading geofences: Status ${result.status}`);
             }
             setData(result?.data ?? []);
         } catch (err) {
             console.error(err);
-            alert(`Error loading geofences: ${err}`);
+            showSnackbar(`Error loading geofences: ${err}`);
         }
 
         setLoading(false);
@@ -63,15 +65,16 @@ export default function GeofenceTablePage() {
                 geofence_name: row.geofence_name,
             });
             if (res?.error) {
-                alert(`Error deleting geofence: ${res.error}`);
+                showSnackbar(`Error deleting geofence: ${res.error}`);
             } else if (res?.status && res.status >= 400) {
-                alert(`Error deleting geofence: Status ${res.status}`);
+                showSnackbar(`Error deleting geofence: Status ${res.status}`);
             } else {
+                showSnackbar("Geofence deleted successfully", "success");
                 loadData();
             }
         } catch (err) {
             console.error(err);
-            alert(`Error deleting geofence: ${err}`);
+            showSnackbar(`Error deleting geofence: ${err}`);
         }
 
     }

@@ -10,6 +10,7 @@ import {
 } from "@mui/material";
 
 import { update_ship_using_data_id } from "./utils";
+import { useSnackbar } from "./SnackbarContext";
 
 export default function VesselEditDialog({
   ship,
@@ -31,6 +32,7 @@ export default function VesselEditDialog({
   );
 
   const [saving, setSaving] = useState(false);
+  const { showSnackbar } = useSnackbar();
 
   async function save() {
     setSaving(true);
@@ -70,15 +72,16 @@ export default function VesselEditDialog({
       });
 
       if (res?.error) {
-        alert(`Error updating vessel: ${res.error}`);
+        showSnackbar(`Error updating vessel: ${res.error}`);
       } else if (res?.status && res.status >= 400) {
-        alert(`Error updating vessel: Status ${res.status}`);
+        showSnackbar(`Error updating vessel: Status ${res.status}`);
       } else {
+        showSnackbar("Vessel updated successfully", "success");
         onSaved();
       }
     } catch (err) {
       console.error(err);
-      alert(`Error updating vessel: ${err}`);
+      showSnackbar(`Error updating vessel: ${err}`);
     }
 
     setSaving(false);

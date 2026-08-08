@@ -1,4 +1,5 @@
 import { Polygon, Popup } from "react-leaflet";
+import { useSnackbar } from "./SnackbarContext";
 
 export function PolygonOverlay({
     item,
@@ -21,6 +22,7 @@ export function PolygonOverlay({
     deleteLabel = "Delete",
     scrapeLabel = "Scrape"
 }) {
+    const { showSnackbar } = useSnackbar();
 
     const polyOptions = {
         color,
@@ -55,10 +57,10 @@ export function PolygonOverlay({
             });
 
             if (res?.error) {
-                alert(`Delete failed: ${res.error}`);
+                showSnackbar(`Delete failed: ${res.error}`);
                 return;
             } else if (res?.status && res.status >= 400) {
-                alert(`Delete failed: Status ${res.status}`);
+                showSnackbar(`Delete failed: Status ${res.status}`);
                 return;
             }
 
@@ -70,7 +72,7 @@ export function PolygonOverlay({
 
             console.error(err);
 
-            alert(`Delete failed: ${err}`);
+            showSnackbar(`Delete failed: ${err}`);
 
         }
     }
@@ -92,10 +94,10 @@ export function PolygonOverlay({
             });
 
             if (res?.error) {
-                alert(`Scrape failed: ${res.error}`);
+                showSnackbar(`Scrape failed: ${res.error}`);
                 return;
             } else if (res?.status && res.status >= 400) {
-                alert(`Scrape failed: Status ${res.status}`);
+                showSnackbar(`Scrape failed: Status ${res.status}`);
                 return;
             }
 
@@ -103,13 +105,13 @@ export function PolygonOverlay({
                 refreshFunction();
             }
 
-            alert("Scrape successful");
+            showSnackbar("Scrape successful", "success");
 
         } catch (err) {
 
             console.error(err);
 
-            alert(`Force scrape failed: ${err}`);
+            showSnackbar(`Force scrape failed: ${err}`);
 
         }
     }

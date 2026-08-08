@@ -16,11 +16,13 @@ import {
     get_all_AOI,
     delete_AOI,
 } from "./utils";
+import { useSnackbar } from "./SnackbarContext";
 
 export default function AOITablePage() {
 
     const [data, setData] = useState([]);
     const [loading, setLoading] = useState(false);
+    const { showSnackbar } = useSnackbar();
 
     async function loadData() {
 
@@ -29,14 +31,14 @@ export default function AOITablePage() {
         try {
             const result = await get_all_AOI();
             if (result?.error) {
-                alert(`Error loading AOIs: ${result.error}`);
+                showSnackbar(`Error loading AOIs: ${result.error}`);
             } else if (result?.status && result.status >= 400) {
-                alert(`Error loading AOIs: Status ${result.status}`);
+                showSnackbar(`Error loading AOIs: Status ${result.status}`);
             }
             setData(result?.data ?? []);
         } catch (err) {
             console.error(err);
-            alert(`Error loading AOIs: ${err}`);
+            showSnackbar(`Error loading AOIs: ${err}`);
         }
 
         setLoading(false);
@@ -63,15 +65,16 @@ export default function AOITablePage() {
                 aoi_name: row.area_of_interest_name,
             });
             if (res?.error) {
-                alert(`Error deleting AOI: ${res.error}`);
+                showSnackbar(`Error deleting AOI: ${res.error}`);
             } else if (res?.status && res.status >= 400) {
-                alert(`Error deleting AOI: Status ${res.status}`);
+                showSnackbar(`Error deleting AOI: Status ${res.status}`);
             } else {
+                showSnackbar("AOI deleted successfully", "success");
                 loadData();
             }
         } catch (err) {
             console.error(err);
-            alert(`Error deleting AOI: ${err}`);
+            showSnackbar(`Error deleting AOI: ${err}`);
         }
 
     }

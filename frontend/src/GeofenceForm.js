@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { add_box_geofence } from "./utils";
+import { useSnackbar } from "./SnackbarContext";
 
 export default function GeofencePanel(){
 
@@ -13,6 +14,7 @@ export default function GeofencePanel(){
     });
 
     const [response,setResponse]=useState("");
+    const { showSnackbar } = useSnackbar();
 
     async function submit(){
 
@@ -29,16 +31,16 @@ export default function GeofencePanel(){
             setResponse(JSON.stringify(data,null,2));
 
             if (data?.error) {
-                alert(`Error adding geofence: ${data.error}`);
+                showSnackbar(`Error adding geofence: ${data.error}`);
             } else if (data?.status && data.status >= 400) {
-                alert(`Error adding geofence: Status ${data.status}`);
+                showSnackbar(`Error adding geofence: Status ${data.status}`);
             } else {
-                alert("Geofence added successfully");
+                showSnackbar("Geofence added successfully", "success");
             }
         } catch (err) {
             console.error(err);
             setResponse(String(err));
-            alert(`Error adding geofence: ${err}`);
+            showSnackbar(`Error adding geofence: ${err}`);
         }
 
     }

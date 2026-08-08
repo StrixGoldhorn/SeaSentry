@@ -5,6 +5,7 @@ import {
     disable_alert_rule,
     delete_alert_rule
 } from "./utils";
+import { useSnackbar } from "./SnackbarContext";
 
 export default function AlertRulesList({
     onEdit,
@@ -13,6 +14,7 @@ export default function AlertRulesList({
 
     const [rules, setRules] = useState([]);
     const [loading, setLoading] = useState(true);
+    const { showSnackbar } = useSnackbar();
 
     const loadRules = async () => {
         setLoading(true);
@@ -20,9 +22,9 @@ export default function AlertRulesList({
         try {
             const data = await get_all_alert_rules();
             if (data?.error) {
-                alert(`Error loading alert rules: ${data.error}`);
+                showSnackbar(`Error loading alert rules: ${data.error}`);
             } else if (data?.status && data.status >= 400) {
-                alert(`Error loading alert rules: Status ${data.status}`);
+                showSnackbar(`Error loading alert rules: Status ${data.status}`);
             }
             if (data?.data) {
                 setRules(data.data);
@@ -31,7 +33,7 @@ export default function AlertRulesList({
             }
         } catch (err) {
             console.error(err);
-            alert(`Error loading alert rules: ${err}`);
+            showSnackbar(`Error loading alert rules: ${err}`);
         }
 
         setLoading(false);
@@ -54,15 +56,16 @@ export default function AlertRulesList({
                 });
             }
             if (res?.error) {
-                alert(`Error toggling rule: ${res.error}`);
+                showSnackbar(`Error toggling rule: ${res.error}`);
             } else if (res?.status && res.status >= 400) {
-                alert(`Error toggling rule: Status ${res.status}`);
+                showSnackbar(`Error toggling rule: Status ${res.status}`);
             } else {
+                showSnackbar(`Rule ${rule.alert_rule_enabled ? "disabled" : "enabled"} successfully`, "success");
                 await loadRules();
             }
         } catch (err) {
             console.error(err);
-            alert(`Error toggling rule: ${err}`);
+            showSnackbar(`Error toggling rule: ${err}`);
         }
     };
 
@@ -80,15 +83,16 @@ export default function AlertRulesList({
                 alert_rule_name: rule.alert_rule_name
             });
             if (res?.error) {
-                alert(`Error deleting rule: ${res.error}`);
+                showSnackbar(`Error deleting rule: ${res.error}`);
             } else if (res?.status && res.status >= 400) {
-                alert(`Error deleting rule: Status ${res.status}`);
+                showSnackbar(`Error deleting rule: Status ${res.status}`);
             } else {
+                showSnackbar("Rule deleted successfully", "success");
                 await loadRules();
             }
         } catch (err) {
             console.error(err);
-            alert(`Error deleting rule: ${err}`);
+            showSnackbar(`Error deleting rule: ${err}`);
         }
     }
 

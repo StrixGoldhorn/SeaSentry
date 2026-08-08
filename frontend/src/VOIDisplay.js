@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { get_all_VOI, delete_VOI } from "./utils";
+import { useSnackbar } from "./SnackbarContext";
 
 export default function VOIList({
     onEdit,
@@ -8,6 +9,7 @@ export default function VOIList({
 
     const [vois, setVOIs] = useState([]);
     const [loading, setLoading] = useState(true);
+    const { showSnackbar } = useSnackbar();
 
     useEffect(() => {
         refresh();
@@ -19,16 +21,16 @@ export default function VOIList({
         try {
             const data = await get_all_VOI();
             if (data?.error) {
-                alert(`Error loading VOIs: ${data.error}`);
+                showSnackbar(`Error loading VOIs: ${data.error}`);
             } else if (data?.status && data.status >= 400) {
-                alert(`Error loading VOIs: Status ${data.status}`);
+                showSnackbar(`Error loading VOIs: Status ${data.status}`);
             }
             if (data?.data) {
                 setVOIs(data.data);
             }
         } catch (err) {
             console.error(err);
-            alert(`Error loading VOIs: ${err}`);
+            showSnackbar(`Error loading VOIs: ${err}`);
         }
 
         setLoading(false);
@@ -52,15 +54,16 @@ export default function VOIList({
                 voi_name: voi.vessel_of_interest_desc_name
             });
             if (res?.error) {
-                alert(`Error deleting VOI: ${res.error}`);
+                showSnackbar(`Error deleting VOI: ${res.error}`);
             } else if (res?.status && res.status >= 400) {
-                alert(`Error deleting VOI: Status ${res.status}`);
+                showSnackbar(`Error deleting VOI: Status ${res.status}`);
             } else {
+                showSnackbar("VOI deleted successfully", "success");
                 refresh();
             }
         } catch (err) {
             console.error(err);
-            alert(`Error deleting VOI: ${err}`);
+            showSnackbar(`Error deleting VOI: ${err}`);
         }
     }
 

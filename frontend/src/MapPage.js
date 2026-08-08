@@ -19,6 +19,7 @@ import Cluster from 'react-leaflet-cluster';
 import 'react-leaflet-cluster/dist/assets/MarkerCluster.css';
 import 'react-leaflet-cluster/dist/assets/MarkerCluster.Default.css';
 import VesselHeatmap from "./VesselHeatmap";
+import { useSnackbar } from "./SnackbarContext";
 
 const SHIP_TYPES = [
   "Cargo",
@@ -70,6 +71,7 @@ function MapPage() {
 
 
   const [refreshKey, setRefreshKey] = useState(0);
+  const { showSnackbar } = useSnackbar();
   
   const [currentZoom, setCurrentZoom] = useState(getMapZoom() || 14);
   function ZoomTracker({ onZoomChange }) {
@@ -173,10 +175,10 @@ function MapPage() {
                       editedCoords
               });
               if (res?.error) {
-                  alert(`Failed to update AOI: ${res.error}`);
+                  showSnackbar(`Failed to update AOI: ${res.error}`);
                   return;
               } else if (res?.status && res.status >= 400) {
-                  alert(`Failed to update AOI: Status ${res.status}`);
+                  showSnackbar(`Failed to update AOI: Status ${res.status}`);
                   return;
               }
               loadAOIs();
@@ -192,10 +194,10 @@ function MapPage() {
                       editedCoords
               });
               if (res?.error) {
-                  alert(`Failed to update geofence: ${res.error}`);
+                  showSnackbar(`Failed to update geofence: ${res.error}`);
                   return;
               } else if (res?.status && res.status >= 400) {
-                  alert(`Failed to update geofence: Status ${res.status}`);
+                  showSnackbar(`Failed to update geofence: Status ${res.status}`);
                   return;
               }
               loadGeofences();
@@ -205,7 +207,7 @@ function MapPage() {
 
       catch (err) {
           console.error(err);
-          alert(`Failed to update: ${err}`);
+          showSnackbar(`Failed to update: ${err}`);
       }
   }
 

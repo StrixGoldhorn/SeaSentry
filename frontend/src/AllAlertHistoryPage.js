@@ -14,6 +14,7 @@ import {
 } from "material-react-table";
 
 import { Button } from "@mui/material";
+import { useSnackbar } from "./SnackbarContext";
 
 
 export default function AllAlertHistoryPage() {
@@ -22,6 +23,7 @@ export default function AllAlertHistoryPage() {
     const [loading, setLoading] = useState(false);
 
     const [ruleFilter, setRuleFilter] = useState("");
+    const { showSnackbar } = useSnackbar();
 
 
     const loadAlerts = async () => {
@@ -34,9 +36,9 @@ export default function AllAlertHistoryPage() {
                 offset: 0
             });
             if (data?.error) {
-                window.alert(`Error loading alert history: ${data.error}`);
+                showSnackbar(`Error loading alert history: ${data.error}`);
             } else if (data?.status && data.status >= 400) {
-                window.alert(`Error loading alert history: Status ${data.status}`);
+                showSnackbar(`Error loading alert history: Status ${data.status}`);
             }
             if (data?.data) {
                 setAlerts(data.data);
@@ -45,7 +47,7 @@ export default function AllAlertHistoryPage() {
             }
         } catch (err) {
             console.error(err);
-            window.alert(`Error loading alert history: ${err}`);
+            showSnackbar(`Error loading alert history: ${err}`);
         }
 
         setLoading(false);
@@ -72,15 +74,16 @@ export default function AllAlertHistoryPage() {
                 });
             }
             if (res?.error) {
-                window.alert(`Error updating alert status: ${res.error}`);
+                showSnackbar(`Error updating alert status: ${res.error}`);
             } else if (res?.status && res.status >= 400) {
-                window.alert(`Error updating alert status: Status ${res.status}`);
+                showSnackbar(`Error updating alert status: Status ${res.status}`);
             } else {
+                showSnackbar(`Alert marked as ${alert.alert_history_read ? "unread" : "read"}`, "success");
                 await loadAlerts();
             }
         } catch (err) {
             console.error(err);
-            window.alert(`Error updating alert status: ${err}`);
+            showSnackbar(`Error updating alert status: ${err}`);
         }
     };
 
