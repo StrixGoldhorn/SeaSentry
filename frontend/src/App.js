@@ -1,7 +1,9 @@
 import { Routes, Route } from "react-router";
 import TopBar from "./TopBar";
 import MapPage from "./MapPage";
-import { RequestInputPage } from "./RequestInputPage";
+import AOIGeofenceInputPage from "./AOIGeofenceInputPage";
+import VOIPage from "./VOIPage";
+import AlertRulesPage from "./AlertRulesPage";
 import SidebarAOIDrawPage from "./SidebarAOIDraw";
 import SidebarGeofenceDrawPage from "./SidebarGeofenceDraw";
 import AllAlertHistoryPage from "./AllAlertHistoryPage";
@@ -21,7 +23,9 @@ function App() {
       <Route path="/" element={<MapPage />} />
       <Route path="/drawAOIsidebar" element={<SidebarAOIDrawPage />} />
       <Route path="/drawGeofenceSidebar" element={<SidebarGeofenceDrawPage />} />
-      <Route path="/inputs" element={<RequestInputPage />} />
+      <Route path="/input/aoigeofence" element={<AOIGeofenceInputPage />} />
+      <Route path="/input/voi" element={<VOIPage />} />
+      <Route path="/input/alert-rules" element={<AlertRulesPage />} />
       <Route path="/aois" element={<AOITablePage />} />
       <Route path="/geofences" element={<GeofenceTablePage />} />
       <Route path="/vessels" element={<VesselTablePage />} />

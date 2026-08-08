@@ -17,7 +17,9 @@ export default function TopBar() {
         { label: "Vessels", path: "/vessels" },
         { label: "AOIs", path: "/aois" },
         { label: "Geofences", path: "/geofences" },
-        { label: "Inputs", path: "/inputs" },
+        { label: "Add via coords", path: "/input/aoigeofence" },
+        { label: "VOIs", path: "/input/voi" },
+        { label: "Alert Rules", path: "/input/alert-rules" },
         { label: "All Alerts", path: "/alerts/history/all" },
     ];
 
