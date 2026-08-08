@@ -500,33 +500,35 @@ function MapPage() {
                                             </div>
                                         )}
                                         <hr />
-                                        {alertsForShip.map((alert, index) => (
-                                            <div key={alert.alert_history_id}>
-                                                <p>
-                                                    <strong>Rule:</strong>{" "}
-                                                    {alert.alert_history_context?.rule_name}
-                                                </p>
-                                                <p>
-                                                    <strong>Triggered:</strong><br />
-                                                    {new Date(alert.alert_history_timestamp).toLocaleString()}
-                                                </p>
-                                                <div style={{
-                                                    display: 'grid',
-                                                    gridTemplateColumns: '1fr',
-                                                    padding: '0px',
-                                                    marginTop: '10px',
-                                                    marginBottom: '10px'
-                                                }}>
-                                                    <button 
-                                                        style={{ margin: "0px" }}
-                                                        onClick={() => markAlertAsRead(alert.alert_history_id)}
-                                                    >
-                                                        Mark as Read
-                                                    </button>
+                                        <div style={{ maxHeight: "400px", overflowY: "auto", paddingRight: "5px" }}>
+                                            {alertsForShip.map((alert, index) => (
+                                                <div key={alert.alert_history_id}>
+                                                    <p>
+                                                        <strong>Rule:</strong>{" "}
+                                                        {alert.alert_history_context?.rule_name}
+                                                    </p>
+                                                    <p>
+                                                        <strong>Triggered:</strong><br />
+                                                        {new Date(alert.alert_history_timestamp).toLocaleString()}
+                                                    </p>
+                                                    <div style={{
+                                                        display: 'grid',
+                                                        gridTemplateColumns: '1fr',
+                                                        padding: '0px',
+                                                        marginTop: '10px',
+                                                        marginBottom: '10px'
+                                                    }}>
+                                                        <button 
+                                                            style={{ margin: "0px" }}
+                                                            onClick={() => markAlertAsRead(alert.alert_history_id)}
+                                                        >
+                                                            Mark as Read
+                                                        </button>
+                                                    </div>
+                                                    {index < alertsForShip.length - 1 && <hr />}
                                                 </div>
-                                                {index < alertsForShip.length - 1 && <hr />}
-                                            </div>
-                                        ))}
+                                            ))}
+                                        </div>
                                     </div>
                                 </Popup>
                             </CircleMarker>
