@@ -941,3 +941,31 @@ export async function scrape_aoi(aoi_id) {
     .then(res => res.json())
     .catch(err => console.error(err))
 }
+
+export const force_scan_alerts = async (minutes = 15) => {
+    try {
+        const formData = new FormData();
+        formData.append("n", minutes.toString());
+
+        const url = config.api_url + `/api/v1/alerts/rescan`;
+
+        const response = await fetch(url, {
+            method: 'POST',
+            body: formData
+        });
+
+        let data = null;
+        try {
+            data = await response.json();
+        } catch (e) {
+        }
+
+        return { 
+            status: response.status, 
+            data: data, 
+            error: data?.error 
+        };
+    } catch (err) {
+        return { error: err.message };
+    }
+};
