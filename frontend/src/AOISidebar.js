@@ -1,4 +1,5 @@
 import { add_poly_AOI } from "./utils";
+import { useSnackbar } from "./SnackbarContext";
 
 export default function AOISidebar({
     coords,
@@ -8,11 +9,12 @@ export default function AOISidebar({
     desc,
     setDesc
 }) {
+    const { showSnackbar } = useSnackbar();
 
     const submitPolygon = async () => {
 
         if (coords.length < 3) {
-            alert("Please draw an AOI first.");
+            showSnackbar("Please draw an AOI first.", "error");
             return;
         }
 
@@ -30,13 +32,21 @@ export default function AOISidebar({
 
         try {
 
-            await add_poly_AOI({
+            const res = await add_poly_AOI({
                 name,
                 desc,
                 coords: JSON.stringify(polygon)
             });
 
-            alert("AOI created");
+            if (res?.error) {
+                showSnackbar(`Failed to create AOI: ${res.error}`);
+                return;
+            } else if (res?.status && res.status >= 400) {
+                showSnackbar(`Failed to create AOI: Status ${res.status}`);
+                return;
+            }
+
+            showSnackbar("AOI created", "success");
 
             setCoords([]);
             setName("");
@@ -45,7 +55,7 @@ export default function AOISidebar({
         } catch (err) {
 
             console.error(err);
-            alert("Failed to create AOI");
+            showSnackbar(`Failed to create AOI: ${err}`);
 
         }
 
@@ -64,7 +74,7 @@ export default function AOISidebar({
             <h2>Draw AOI</h2>
 
             <p>
-                <strong>Use Polygon tools on the map.</strong>
+                <strong>Use Polygon tools on the right of this box.</strong>
                 
             </p>
 

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { export_area } from "./utils";
+import { useSnackbar } from "./SnackbarContext";
 
 export default function ExportAreaSidebar({
     bounds,
@@ -9,11 +10,12 @@ export default function ExportAreaSidebar({
     const [startTime, setStartTime] = useState("");
     const [endTime, setEndTime] = useState("");
     const [format, setFormat] = useState("geojson");
+    const { showSnackbar } = useSnackbar();
 
     const handleExport = async () => {
 
         if (!bounds) {
-            alert("Please draw a rectangle.");
+            showSnackbar("Please draw a rectangle.", "error");
             return;
         }
 
@@ -48,7 +50,7 @@ export default function ExportAreaSidebar({
             <h2>Export Area</h2>
 
             <p>
-                Draw a rectangle on the map.
+                Draw a rectangle on the map, representing area to be exported.
             </p>
 
             <input

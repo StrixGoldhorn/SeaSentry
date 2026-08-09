@@ -5,7 +5,8 @@ import { useEffect, useMemo, useState } from "react";
 import {
     get_all_alert_history,
     mark_alert_read,
-    mark_alert_unread
+    mark_alert_unread,
+    force_scan_alerts
 } from "./utils";
 
 import {
@@ -13,7 +14,8 @@ import {
     useMaterialReactTable,
 } from "material-react-table";
 
-import { Button } from "@mui/material";
+import { Button, Switch, FormControlLabel } from "@mui/material";
+import { useSnackbar } from "./SnackbarContext";
 
 
 export default function AllAlertHistoryPage() {
@@ -22,21 +24,32 @@ export default function AllAlertHistoryPage() {
     const [loading, setLoading] = useState(false);
 
     const [ruleFilter, setRuleFilter] = useState("");
+    const [showUnreadOnly, setShowUnreadOnly] = useState(false);
+    const { showSnackbar } = useSnackbar();
 
 
     const loadAlerts = async () => {
 
         setLoading(true);
 
-        const data = await get_all_alert_history({
-            limit: 1000000,
-            offset: 0
-        });
-
-        if (data?.data) {
-            setAlerts(data.data);
-        } else if (Array.isArray(data)) {
-            setAlerts(data);
+        try {
+            const data = await get_all_alert_history({
+                limit: 1000000,
+                offset: 0
+            });
+            if (data?.error) {
+                showSnackbar(`Error loading alert history: ${data.error}`);
+            } else if (data?.status && data.status >= 400) {
+                showSnackbar(`Error loading alert history: Status ${data.status}`);
+            }
+            if (data?.data) {
+                setAlerts(data.data);
+            } else if (Array.isArray(data)) {
+                setAlerts(data);
+            }
+        } catch (err) {
+            console.error(err);
+            showSnackbar(`Error loading alert history: ${err}`);
         }
 
         setLoading(false);
@@ -49,26 +62,72 @@ export default function AllAlertHistoryPage() {
 
 
     const toggleReadStatus = async (alert) => {
-
-        if (alert.alert_history_read) {
-
-            await mark_alert_unread({
-                alert_history_id:
-                    alert.alert_history_id
-            });
-
-        } else {
-
-            await mark_alert_read({
-                alert_history_id:
-                    alert.alert_history_id
-            });
+        try {
+            let res;
+            if (alert.alert_history_read) {
+                res = await mark_alert_unread({
+                    alert_history_id:
+                        alert.alert_history_id
+                });
+            } else {
+                res = await mark_alert_read({
+                    alert_history_id:
+                        alert.alert_history_id
+                });
+            }
+            if (res?.error) {
+                showSnackbar(`Error updating alert status: ${res.error}`);
+            } else if (res?.status && res.status >= 400) {
+                showSnackbar(`Error updating alert status: Status ${res.status}`);
+            } else {
+                showSnackbar(`Alert marked as ${alert.alert_history_read ? "unread" : "read"}`, "success");
+                await loadAlerts();
+            }
+        } catch (err) {
+            console.error(err);
+            showSnackbar(`Error updating alert status: ${err}`);
         }
+    };
 
+    const markAllAsRead = async () => {
+        const unreadAlerts = filteredAlerts.filter(a => !a.alert_history_read);
+        if (unreadAlerts.length === 0) return;
+        
+        if (!window.confirm(`Are you sure you want to mark all ${unreadAlerts.length} alerts as read?`)) {
+            return;
+        }
+        
+        setLoading(true);
+        try {
+            await Promise.all(unreadAlerts.map(alert => 
+                mark_alert_read({ alert_history_id: alert.alert_history_id })
+            ));
+            showSnackbar("All alerts marked as read", "success");
+        } catch (err) {
+            console.error(err);
+            showSnackbar(`Error marking all as read: ${err}`);
+        }
         await loadAlerts();
     };
 
-
+    const forceScan = async () => {
+        setLoading(true);
+        try {
+            const res = await force_scan_alerts();
+            if (res?.error) {
+                showSnackbar(`Error forcing scan: ${res.error}`);
+            } else if (res?.status && res.status >= 400) {
+                showSnackbar(`Error forcing scan: Status ${res.status}`);
+            } else {
+                showSnackbar("Alert scan triggered successfully", "success");
+                await loadAlerts();
+            }
+        } catch (err) {
+            console.error(err);
+            showSnackbar(`Error forcing scan: ${err}`);
+        }
+        setLoading(false);
+    };
 
     const ruleOptions = useMemo(() => {
 
@@ -88,17 +147,24 @@ export default function AllAlertHistoryPage() {
 
     const filteredAlerts = useMemo(() => {
 
-        if (!ruleFilter) {
-            return alerts;
+        let result = alerts;
+
+        if (showUnreadOnly) {
+            result = result.filter(alert => !alert.alert_history_read);
         }
 
-        return alerts.filter(alert =>
-            alert.alert_history_context?.rule_name === ruleFilter
-        );
+        if (ruleFilter) {
+            result = result.filter(alert =>
+                alert.alert_history_context?.rule_name === ruleFilter
+            );
+        }
+
+        return result;
 
     }, [
         alerts,
-        ruleFilter
+        ruleFilter,
+        showUnreadOnly
     ]);
 
 
@@ -272,10 +338,15 @@ const columns = [
 
             <div
                 style={{
-                    marginBottom: "15px"
+                    marginBottom: "15px",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "15px",
+                    flexWrap: "wrap"
                 }}
             >
 
+                <div>
                 <label>
                     Filter by Rule:
                 </label>
@@ -289,7 +360,8 @@ const columns = [
                         )
                     }
                     style={{
-                        marginLeft: "10px"
+                        marginLeft: "10px",
+                        padding: "5px"
                     }}
                 >
 
@@ -309,7 +381,37 @@ const columns = [
                     }
 
                 </select>
+                </div>
 
+                <FormControlLabel
+                    control={
+                        <Switch
+                            checked={showUnreadOnly}
+                            onChange={(e) => setShowUnreadOnly(e.target.checked)}
+                            color="primary"
+                        />
+                    }
+                    label="Show Unread Only"
+                    style={{ margin: 0 }}
+                />
+
+                <Button
+                    variant="contained"
+                    color="primary"
+                    onClick={markAllAsRead}
+                    disabled={filteredAlerts.filter(a => !a.alert_history_read).length === 0}
+                >
+                    Mark All Visible As Read
+                </Button>
+
+                <Button
+                    variant="outlined"
+                    color="secondary"
+                    onClick={forceScan}
+                    disabled={loading}
+                >
+                    Force Scan
+                </Button>
             </div>
 
 

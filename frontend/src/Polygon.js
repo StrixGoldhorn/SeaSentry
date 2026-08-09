@@ -1,4 +1,5 @@
 import { Polygon, Popup } from "react-leaflet";
+import { useSnackbar } from "./SnackbarContext";
 
 export function PolygonOverlay({
     item,
@@ -21,6 +22,7 @@ export function PolygonOverlay({
     deleteLabel = "Delete",
     scrapeLabel = "Scrape"
 }) {
+    const { showSnackbar } = useSnackbar();
 
     const polyOptions = {
         color,
@@ -49,10 +51,18 @@ export function PolygonOverlay({
 
         try {
 
-            await deleteFunction({
+            const res = await deleteFunction({
                 id: item[idField],
                 name: item[nameField]
             });
+
+            if (res?.error) {
+                showSnackbar(`Delete failed: ${res.error}`);
+                return;
+            } else if (res?.status && res.status >= 400) {
+                showSnackbar(`Delete failed: Status ${res.status}`);
+                return;
+            }
 
             if (refreshFunction) {
                 refreshFunction();
@@ -62,7 +72,7 @@ export function PolygonOverlay({
 
             console.error(err);
 
-            alert("Delete failed");
+            showSnackbar(`Delete failed: ${err}`);
 
         }
     }
@@ -79,19 +89,29 @@ export function PolygonOverlay({
 
         try {
 
-            await scrapeFunction({
+            const res = await scrapeFunction({
                 id: item[idField]
             });
+
+            if (res?.error) {
+                showSnackbar(`Scrape failed: ${res.error}`);
+                return;
+            } else if (res?.status && res.status >= 400) {
+                showSnackbar(`Scrape failed: Status ${res.status}`);
+                return;
+            }
 
             if (refreshFunction) {
                 refreshFunction();
             }
 
+            showSnackbar("Scrape successful", "success");
+
         } catch (err) {
 
             console.error(err);
 
-            alert("Force scrape failed");
+            showSnackbar(`Force scrape failed: ${err}`);
 
         }
     }

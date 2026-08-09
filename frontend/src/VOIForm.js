@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { add_VOI } from "./utils";
 import { update_VOI } from "./utils";
+import { useSnackbar } from "./SnackbarContext";
 
 export default function VOIPanel({
     initialVOI = null,
@@ -26,30 +27,48 @@ export default function VOIPanel({
     );
 
     const [response,setResponse]=useState("");
+    const { showSnackbar } = useSnackbar();
 
     const submit = async () => {
-        let data;
+        try {
+            let data;
 
-        if (initialVOI) {
-            data = await update_VOI({
-                voi_id: initialVOI.vessel_of_interest_id,
-                name: form.name,
-                desc: form.desc || null,
-                mmsi: form.mmsi || null,
-                imo: form.imo || null,
-            });
-        } else {
-            data = await add_VOI({
-                name: form.name,
-                desc: form.desc || null,
-                mmsi: form.mmsi || null,
-                imo: form.imo || null,
-            });
-        }
-        setResponse(JSON.stringify(data, null, 2));
-        onSaved?.();
-        if (!initialVOI) {
-            setForm(emptyForm);
+            if (initialVOI) {
+                data = await update_VOI({
+                    voi_id: initialVOI.vessel_of_interest_id,
+                    name: form.name,
+                    desc: form.desc || null,
+                    mmsi: form.mmsi || null,
+                    imo: form.imo || null,
+                });
+            } else {
+                data = await add_VOI({
+                    name: form.name,
+                    desc: form.desc || null,
+                    mmsi: form.mmsi || null,
+                    imo: form.imo || null,
+                });
+            }
+            
+            setResponse(JSON.stringify(data, null, 2));
+
+            if (data?.error) {
+                showSnackbar(`Error saving VOI: ${data.error}`);
+                return;
+            } else if (data?.status && data.status >= 400) {
+                showSnackbar(`Error saving VOI: Status ${data.status}`);
+                return;
+            }
+
+            showSnackbar("VOI saved successfully", "success");
+            onSaved?.();
+            if (!initialVOI) {
+                setForm(emptyForm);
+            }
+        } catch (err) {
+            console.error(err);
+            setResponse(String(err));
+            showSnackbar(`Error saving VOI: ${err}`);
         }
     };
 

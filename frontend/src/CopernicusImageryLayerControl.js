@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { WMSTileLayer } from 'react-leaflet';
+import { useSnackbar } from "./SnackbarContext";
 
 const CopernicusImageryLayerControl = ({
     instanceId,
@@ -7,6 +8,8 @@ const CopernicusImageryLayerControl = ({
     selectedLayer,
     setSelectedLayer,
 }) => {
+  const { showSnackbar } = useSnackbar();
+
   const handleResetId = () => {
     localStorage.removeItem('sentinelHubInstanceId');
     setInstanceId('');
@@ -15,6 +18,7 @@ const CopernicusImageryLayerControl = ({
     if (newId != "") {
       localStorage.setItem('sentinelHubInstanceId', newId);
       setInstanceId(newId);
+      showSnackbar("Instance ID set successfully", "success");
     }
   };
 
@@ -37,6 +41,7 @@ const CopernicusImageryLayerControl = ({
                               newId
                           );
                           setInstanceId(newId);
+                          showSnackbar("Instance ID set successfully", "success");
                       }
                   }}
               >

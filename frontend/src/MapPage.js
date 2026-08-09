@@ -1,6 +1,7 @@
 import "leaflet/dist/leaflet.css";
 import './styles.css';
-import { MapContainer, TileLayer, Marker, Popup, Rectangle, Polygon, useMapEvent, useMapEvents, LayersControl, WMSTileLayer } from 'react-leaflet';
+import { MapContainer, TileLayer, LayerGroup, Marker, Popup, Rectangle, Polygon,
+     useMap, useMapEvent, useMapEvents, LayersControl, WMSTileLayer, ZoomControl, CircleMarker } from 'react-leaflet';
 import { Icon } from "leaflet";
 import { useEffect, useState } from "react";
 import { ShipMarkers, CourseDirMarkers } from "./shipmarkers.js";
@@ -15,8 +16,10 @@ import GeofencePolygonDrawerNew from "./GeofencePolygonDrawerNew.js";
 import CopernicusImageryLayerControl from "./CopernicusImageryLayerControl.js";
 import ExportRectangleDrawer from "./ExportRectangleDrawer";
 import Cluster from 'react-leaflet-cluster';
-import 'react-leaflet-cluster/dist/assets/MarkerCluster.css'
-import 'react-leaflet-cluster/dist/assets/MarkerCluster.Default.css'
+import 'react-leaflet-cluster/dist/assets/MarkerCluster.css';
+import 'react-leaflet-cluster/dist/assets/MarkerCluster.Default.css';
+import VesselHeatmap from "./VesselHeatmap";
+import { useSnackbar } from "./SnackbarContext";
 
 const SHIP_TYPES = [
   "Cargo",
@@ -64,8 +67,12 @@ function MapPage() {
   const [instanceId, setInstanceId] = useState("");
   const [selectedLayer, setSelectedLayer] = useState("none");
 
+  const [showHeatmap, setShowHeatmap] = useState(false);
 
+
+  const [alertVessels, setAlertVessels] = useState(new Map());
   const [refreshKey, setRefreshKey] = useState(0);
+  const { showSnackbar } = useSnackbar();
   
   const [currentZoom, setCurrentZoom] = useState(getMapZoom() || 14);
   function ZoomTracker({ onZoomChange }) {
@@ -158,8 +165,9 @@ function MapPage() {
 
   async function finishEditing() {
       try {
+          let res;
           if (editingType === "aoi") {
-              await utils.update_AOI({
+              res = await utils.update_AOI({
                   aoi_id:
                       editingItem.area_of_interest_id,
                   name: editedName,
@@ -167,11 +175,18 @@ function MapPage() {
                   coords:
                       editedCoords
               });
+              if (res?.error) {
+                  showSnackbar(`Failed to update AOI: ${res.error}`);
+                  return;
+              } else if (res?.status && res.status >= 400) {
+                  showSnackbar(`Failed to update AOI: Status ${res.status}`);
+                  return;
+              }
               loadAOIs();
           }
 
           if (editingType === "geofence") {
-              await utils.update_geofence({
+              res = await utils.update_geofence({
                   geofence_id:
                       editingItem.geofence_id,
                   name: editedName,
@@ -179,6 +194,13 @@ function MapPage() {
                   coords:
                       editedCoords
               });
+              if (res?.error) {
+                  showSnackbar(`Failed to update geofence: ${res.error}`);
+                  return;
+              } else if (res?.status && res.status >= 400) {
+                  showSnackbar(`Failed to update geofence: Status ${res.status}`);
+                  return;
+              }
               loadGeofences();
           }
           cancelEditing();
@@ -186,7 +208,7 @@ function MapPage() {
 
       catch (err) {
           console.error(err);
-          alert("Failed to update.");
+          showSnackbar(`Failed to update: ${err}`);
       }
   }
 
@@ -234,7 +256,63 @@ function MapPage() {
         }
     }, []);
 
+  const fetchAlerts = () => {
+      utils.get_all_alert_history({ limit: 500 }).then(fetchdata => {
+          let alertsArray = [];
+          if (fetchdata?.data) {
+              alertsArray = fetchdata.data;
+          } else if (Array.isArray(fetchdata)) {
+              alertsArray = fetchdata;
+          }
+          
+          const unread = alertsArray.filter(a => !a.alert_history_read);
+          const mmsis = new Map();
+          
+          unread.forEach(alert => {
+              if (alert.alert_history_context?.matched_vessels) {
+                  alert.alert_history_context.matched_vessels.forEach(v => {
+                      if (v.mmsi) {
+                          const mmsiStr = String(v.mmsi);
+                          if (!mmsis.has(mmsiStr)) {
+                              mmsis.set(mmsiStr, []);
+                          }
+                          mmsis.get(mmsiStr).push(alert);
+                      }
+                  });
+              }
+          });
+          
+          setAlertVessels(mmsis);
+      }).catch(err => console.error("Error fetching alert vessels:", err));
+  };
 
+  useEffect(() => {
+      fetchAlerts();
+      const interval = setInterval(fetchAlerts, 15000);
+      return () => clearInterval(interval);
+  }, []);
+
+  const markAlertAsRead = async (alert_history_id) => {
+      try {
+          await utils.mark_alert_read({ alert_history_id });
+          showSnackbar("Alert marked as read", "success");
+          fetchAlerts();
+      } catch (err) {
+          console.error(err);
+          showSnackbar(`Error marking alert as read: ${err}`);
+      }
+  };
+
+  const markAllAlertsForShipAsRead = async (alerts) => {
+      try {
+          await Promise.all(alerts.map(a => utils.mark_alert_read({ alert_history_id: a.alert_history_id })));
+          showSnackbar("All alerts marked as read for vessel", "success");
+          fetchAlerts();
+      } catch (err) {
+          console.error(err);
+          showSnackbar(`Error marking alerts as read: ${err}`);
+      }
+  };
 
   const loadAOIs = () => {
     utils.get_all_AOI()
@@ -280,7 +358,7 @@ function MapPage() {
   //HTML return
   return (
     <>
-    <ThinSidebar onSelect={handleSidebarSelect} />
+    <ThinSidebar onSelect={handleSidebarSelect} selectedMode={sidebarMode} />
 
     <SlidingSidebar
         open={sidebarMode !== null}
@@ -312,12 +390,14 @@ function MapPage() {
         appliedShiptype={appliedShiptype}
         setAppliedShiptype={setAppliedShiptype}
     />
-    <MapContainer center={initialCenter} zoom={initialZoom} maxZoom={20} scrollWheelZoom={true}>
+    <MapContainer center={initialCenter} zoom={initialZoom} maxZoom={20} scrollWheelZoom={true} zoomControl={false}>
 
       <MapStateSaver/>
+      <HeatmapOverlayWatcher onToggle={setShowHeatmap} />
       <ZoomTracker onZoomChange={setCurrentZoom} />
+      <ZoomControl position="topright" />
 
-     <LayersControl position="topleft">
+     <LayersControl position="topright">
 
         <LayersControl.BaseLayer checked name="OpenStreetMap">
           <TileLayer
@@ -353,20 +433,118 @@ function MapPage() {
           />
         </LayersControl.Overlay>
 
+        <LayersControl.Overlay name="Vessel Heatmap">
+            <LayerGroup />
+        </LayersControl.Overlay>
+
+        <LayersControl.Overlay checked name="Vessel Markers">
+            <LayerGroup name="Vessel Markers">
+                {!drawing && !editing && (
+                    <Cluster
+                        chunkedLoading
+                        showCoverageOnHover={false}
+                        maxClusterRadius={getClusterRadius(currentZoom)}
+                        disableClusteringAtZoom={14}
+                    >
+                        {shipData?.data && (
+                            <ShipMarkers 
+                                shipdata={shipData.data} 
+                                alertVessels={alertVessels}
+                                onMarkAlertRead={markAlertAsRead}
+                            />
+                        )}
+                        {shipData?.data && (
+                            <CourseDirMarkers shipdata={shipData.data} />
+                        )}
+                    </Cluster>
+                )}
+            </LayerGroup>
+        </LayersControl.Overlay>
+      
+        <LayersControl.Overlay checked name="Alert Highlights">
+            <LayerGroup name="Alert Highlights">
+                {!drawing && !editing && shipData?.data && shipData.data
+                    .filter(ship => alertVessels.has(String(ship.mmsi)))
+                    .map(ship => {
+                        const lat = ship.lat ?? ship.latitude;
+                        const lng = ship.long ?? ship.longitude ?? ship.lng;
+                        if (lat == null || lng == null) return null;
+                        const alertsForShip = alertVessels.get(String(ship.mmsi));
+                        
+                        return (
+                            <CircleMarker
+                                key={`alert-${ship.mmsi}`}
+                                center={[lat, lng]}
+                                radius={25}
+                                pathOptions={{
+                                    color: "#ff0000",
+                                    fillColor: "#ff0000",
+                                    fillOpacity: 0.3,
+                                    weight: 3,
+                                    dashArray: "4, 6",
+                                }}
+                            >
+                                <Popup autoPan={false}>
+                                    <div style={{ minWidth: "250px" }}>
+                                        <h3 style={{ color: "#cc0000" }}>
+                                            Alerts: {ship.ship_name || ship.mmsi}
+                                        </h3>
+                                        {alertsForShip.length > 1 && (
+                                            <div style={{ marginBottom: "10px", marginTop: "5px" }}>
+                                                <button 
+                                                    style={{ margin: "0px", width: "100%" }}
+                                                    onClick={() => markAllAlertsForShipAsRead(alertsForShip)}
+                                                >
+                                                    Acknowledge All
+                                                </button>
+                                            </div>
+                                        )}
+                                        <hr />
+                                        <div style={{ maxHeight: "400px", overflowY: "auto", paddingRight: "5px" }}>
+                                            {alertsForShip.map((alert, index) => (
+                                                <div key={alert.alert_history_id}>
+                                                    <p>
+                                                        <strong>Rule:</strong>{" "}
+                                                        {alert.alert_history_context?.rule_name}
+                                                    </p>
+                                                    <p>
+                                                        <strong>Triggered:</strong><br />
+                                                        {new Date(alert.alert_history_timestamp).toLocaleString()}
+                                                    </p>
+                                                    <div style={{
+                                                        display: 'grid',
+                                                        gridTemplateColumns: '1fr',
+                                                        padding: '0px',
+                                                        marginTop: '10px',
+                                                        marginBottom: '10px'
+                                                    }}>
+                                                        <button 
+                                                            style={{ margin: "0px" }}
+                                                            onClick={() => markAlertAsRead(alert.alert_history_id)}
+                                                        >
+                                                            Mark as Read
+                                                        </button>
+                                                    </div>
+                                                    {index < alertsForShip.length - 1 && <hr />}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </Popup>
+                            </CircleMarker>
+                        );
+                    })
+                }
+            </LayerGroup>
+        </LayersControl.Overlay>
+
       </LayersControl>
 
       <MapBoundsTracker onBoundsChange={setmapBounds} />
 
-      {/* ENABLE CLUSTERING HERE IF NEEDED!!! @JUNLIANG */}
-      <Cluster 
-        chunkedLoading
-        showCoverageOnHover={false}
-        maxClusterRadius={getClusterRadius(currentZoom)}
-        disableClusteringAtZoom={14}
-      >
-        {shipData?.data && <ShipMarkers shipdata={shipData.data} />}
-        {shipData?.data && <CourseDirMarkers shipdata={shipData.data} />}
-      </Cluster>
+      {showHeatmap && shipData?.data && (
+          <VesselHeatmap shipdata={shipData.data} />
+      )}
 
       {aoiData?.data && (<RenderAOIs 
       aoicoordsdata={aoiData.data}
@@ -440,8 +618,8 @@ function MapPage() {
       <div
           style={{
               position: "absolute",
-              top: 20,
-              right: 20,
+              top: 50,
+              right: 10,
               zIndex: 1000,
               background: "white",
               padding: 20,
@@ -509,7 +687,33 @@ function MapPage() {
   );
 }
 
+function HeatmapOverlayWatcher({ onToggle }) {
+    const map = useMap();
+
+    useEffect(() => {
+        const handleAdd = (e) => {
+            if (e.name === "Vessel Heatmap") {
+                onToggle(true);
+            }
+        };
+
+        const handleRemove = (e) => {
+            if (e.name === "Vessel Heatmap") {
+                onToggle(false);
+            }
+        };
+
+        map.on("overlayadd", handleAdd);
+        map.on("overlayremove", handleRemove);
+
+        return () => {
+            map.off("overlayadd", handleAdd);
+            map.off("overlayremove", handleRemove);
+        };
+    }, [map, onToggle]);
+
+    return null;
+}
+
+
 export default MapPage;
-
-
-
