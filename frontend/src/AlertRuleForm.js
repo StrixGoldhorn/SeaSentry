@@ -7,6 +7,7 @@ import {
   update_alert_rule,
   get_all_geofences,
 } from "./utils";
+import { useSnackbar } from "./SnackbarContext";
 
 export const fields = [
   { name: "shipname", label: "Ship Name" },
@@ -458,6 +459,8 @@ export default function AlertRuleForm({
 
   const [response, setResponse] = useState("");
 
+  const { showSnackbar } = useSnackbar();
+
   useEffect(() => {
     async function loadGeofences() {
       try {
@@ -492,33 +495,45 @@ export default function AlertRuleForm({
 
   async function submit() {
     if (!name.trim()) {
-      alert("Rule name is required.");
+      showSnackbar("Rule name is required.", "error");
       return;
     }
 
     if (query.rules.length === 0) {
-      alert("Please add at least one rule.");
+      showSnackbar("Please add at least one rule.", "error");
       return;
     }
 
     try {
       const backendParams = convertRule(query);
+      let res;
 
       if (initialRule) {
-          await update_alert_rule({
+          res = await update_alert_rule({
               alert_rule_id: initialRule.alert_rule_id,
               name,
               description,
               params: backendParams
           });
       } else {
-          await add_alert_rule({
+          res = await add_alert_rule({
               name,
               description,
               params: backendParams
           });
       }
 
+      if (res?.error) {
+          showSnackbar(`Error saving alert rule: ${res.error}`);
+          setResponse(JSON.stringify(res, null, 2));
+          return;
+      } else if (res?.status && res.status >= 400) {
+          showSnackbar(`Error saving alert rule: Status ${res.status}`);
+          setResponse(JSON.stringify(res, null, 2));
+          return;
+      }
+
+      showSnackbar("Alert rule saved successfully", "success");
       onSaved?.();
 
       setName("");
@@ -527,10 +542,12 @@ export default function AlertRuleForm({
           combinator: "and",
           rules: [],
       });
+      setResponse("");
       
     } catch (err) {
       console.error(err);
       setResponse(String(err));
+      showSnackbar(`Error saving alert rule: ${err}`);
     }
   }
 

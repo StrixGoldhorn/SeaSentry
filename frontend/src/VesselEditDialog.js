@@ -10,6 +10,7 @@ import {
 } from "@mui/material";
 
 import { update_ship_using_data_id } from "./utils";
+import { useSnackbar } from "./SnackbarContext";
 
 export default function VesselEditDialog({
   ship,
@@ -31,46 +32,59 @@ export default function VesselEditDialog({
   );
 
   const [saving, setSaving] = useState(false);
+  const { showSnackbar } = useSnackbar();
 
   async function save() {
     setSaving(true);
 
-    await update_ship_using_data_id({
-      vessel_data_id: ship.vessel_data_id,
+    try {
+      const res = await update_ship_using_data_id({
+        vessel_data_id: ship.vessel_data_id,
 
-      ship_name:
-        name !== ship.ship_name ? name : null,
+        ship_name:
+          name !== ship.ship_name ? name : null,
 
-      ship_type:
-        type !== ship.ship_type ? type : null,
+        ship_type:
+          type !== ship.ship_type ? type : null,
 
-      flag:
-        flag !== ship.flag ? flag : null,
+        flag:
+          flag !== ship.flag ? flag : null,
 
-      length_meters:
-        Number(length) !== ship.length_meters
-          ? Number(length)
-          : null,
+        length_meters:
+          Number(length) !== ship.length_meters
+            ? Number(length)
+            : null,
 
-      beam_meters:
-        Number(beam) !== ship.beam_meters
-          ? Number(beam)
-          : null,
+        beam_meters:
+          Number(beam) !== ship.beam_meters
+            ? Number(beam)
+            : null,
 
-      user_tags:
-        JSON.stringify(tags.split(",").map(x => x.trim()).filter(Boolean))
-        !==
-        JSON.stringify(ship.user_tags ?? [])
-          ? tags
-              .split(",")
-              .map(x => x.trim())
-              .filter(Boolean)
-          : null,
-    });
+        user_tags:
+          JSON.stringify(tags.split(",").map(x => x.trim()).filter(Boolean))
+          !==
+          JSON.stringify(ship.user_tags ?? [])
+            ? tags
+                .split(",")
+                .map(x => x.trim())
+                .filter(Boolean)
+            : null,
+      });
+
+      if (res?.error) {
+        showSnackbar(`Error updating vessel: ${res.error}`);
+      } else if (res?.status && res.status >= 400) {
+        showSnackbar(`Error updating vessel: Status ${res.status}`);
+      } else {
+        showSnackbar("Vessel updated successfully", "success");
+        onSaved();
+      }
+    } catch (err) {
+      console.error(err);
+      showSnackbar(`Error updating vessel: ${err}`);
+    }
 
     setSaving(false);
-
-    onSaved();
   }
 
   return (

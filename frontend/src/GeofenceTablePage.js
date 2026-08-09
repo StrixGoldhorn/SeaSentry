@@ -16,19 +16,30 @@ import {
     get_all_geofences,
     delete_geofence,
 } from "./utils";
+import { useSnackbar } from "./SnackbarContext";
 
 export default function GeofenceTablePage() {
 
     const [data, setData] = useState([]);
     const [loading, setLoading] = useState(false);
+    const { showSnackbar } = useSnackbar();
 
     async function loadData() {
 
         setLoading(true);
 
-        const result = await get_all_geofences();
-
-        setData(result?.data ?? []);
+        try {
+            const result = await get_all_geofences();
+            if (result?.error) {
+                showSnackbar(`Error loading geofences: ${result.error}`);
+            } else if (result?.status && result.status >= 400) {
+                showSnackbar(`Error loading geofences: Status ${result.status}`);
+            }
+            setData(result?.data ?? []);
+        } catch (err) {
+            console.error(err);
+            showSnackbar(`Error loading geofences: ${err}`);
+        }
 
         setLoading(false);
 
@@ -48,12 +59,23 @@ export default function GeofenceTablePage() {
             return;
         }
 
-        await delete_geofence({
-            geofence_id: row.geofence_id,
-            geofence_name: row.geofence_name,
-        });
-
-        loadData();
+        try {
+            const res = await delete_geofence({
+                geofence_id: row.geofence_id,
+                geofence_name: row.geofence_name,
+            });
+            if (res?.error) {
+                showSnackbar(`Error deleting geofence: ${res.error}`);
+            } else if (res?.status && res.status >= 400) {
+                showSnackbar(`Error deleting geofence: Status ${res.status}`);
+            } else {
+                showSnackbar("Geofence deleted successfully", "success");
+                loadData();
+            }
+        } catch (err) {
+            console.error(err);
+            showSnackbar(`Error deleting geofence: ${err}`);
+        }
 
     }
 
@@ -113,6 +135,9 @@ export default function GeofenceTablePage() {
     });
 
     return (
-        <MaterialReactTable table={table} />
+        <div style={{ padding: "20px" }}>
+            <h1>Geofences</h1>
+            <MaterialReactTable table={table} />
+        </div>
     );
 }

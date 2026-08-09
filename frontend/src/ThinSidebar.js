@@ -22,7 +22,7 @@ const menuItems = [
     { id: "filter", icon: <FilterAltIcon  />, label: "Filter Shiptypes" },
 ];
 
-export default function ThinSidebar({ onSelect }) {
+export default function ThinSidebar({ onSelect, selectedMode }) {
     return (
         <Drawer
             variant="permanent"
@@ -36,7 +36,7 @@ export default function ThinSidebar({ onSelect }) {
                     <ListItemButton
                         key={item.id}
                         onClick={() => onSelect(item.id)}
-                        className="thin-sidebar-button"
+                        className={`thin-sidebar-button ${selectedMode === item.id ? 'selected' : ''}`}
                     >
                         <ListItemIcon className="thin-sidebar-icon">
                         {item.icon}

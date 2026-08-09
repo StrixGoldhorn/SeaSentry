@@ -16,19 +16,30 @@ import {
     get_all_AOI,
     delete_AOI,
 } from "./utils";
+import { useSnackbar } from "./SnackbarContext";
 
 export default function AOITablePage() {
 
     const [data, setData] = useState([]);
     const [loading, setLoading] = useState(false);
+    const { showSnackbar } = useSnackbar();
 
     async function loadData() {
 
         setLoading(true);
 
-        const result = await get_all_AOI();
-
-        setData(result?.data ?? []);
+        try {
+            const result = await get_all_AOI();
+            if (result?.error) {
+                showSnackbar(`Error loading AOIs: ${result.error}`);
+            } else if (result?.status && result.status >= 400) {
+                showSnackbar(`Error loading AOIs: Status ${result.status}`);
+            }
+            setData(result?.data ?? []);
+        } catch (err) {
+            console.error(err);
+            showSnackbar(`Error loading AOIs: ${err}`);
+        }
 
         setLoading(false);
 
@@ -48,12 +59,23 @@ export default function AOITablePage() {
             return;
         }
 
-        await delete_AOI({
-            aoi_id: row.area_of_interest_id,
-            aoi_name: row.area_of_interest_name,
-        });
-
-        loadData();
+        try {
+            const res = await delete_AOI({
+                aoi_id: row.area_of_interest_id,
+                aoi_name: row.area_of_interest_name,
+            });
+            if (res?.error) {
+                showSnackbar(`Error deleting AOI: ${res.error}`);
+            } else if (res?.status && res.status >= 400) {
+                showSnackbar(`Error deleting AOI: Status ${res.status}`);
+            } else {
+                showSnackbar("AOI deleted successfully", "success");
+                loadData();
+            }
+        } catch (err) {
+            console.error(err);
+            showSnackbar(`Error deleting AOI: ${err}`);
+        }
 
     }
 
@@ -113,6 +135,9 @@ export default function AOITablePage() {
     });
 
     return (
-        <MaterialReactTable table={table} />
+        <div style={{ padding: "20px" }}>
+            <h1>Areas of Interest</h1>
+            <MaterialReactTable table={table} />
+        </div>
     );
 }

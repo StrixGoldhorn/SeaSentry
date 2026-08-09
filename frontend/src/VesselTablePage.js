@@ -176,8 +176,8 @@ renderRowActions: ({ row }) => (
   });
 
   return (
-    <>
-
+    <div style={{ padding: "20px" }}>
+      <h1>Vessels</h1>
       <MaterialReactTable table={table} />
 
       {editingShip && (
@@ -197,7 +197,7 @@ renderRowActions: ({ row }) => (
 
       )}
 
-    </>
+    </div>
   );
 }
 

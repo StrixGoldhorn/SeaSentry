@@ -1,4 +1,5 @@
 import { add_poly_geofence } from "./utils";
+import { useSnackbar } from "./SnackbarContext";
 
 export default function GeofenceSidebar({
     coords,
@@ -8,11 +9,12 @@ export default function GeofenceSidebar({
     desc,
     setDesc
 }) {
+    const { showSnackbar } = useSnackbar();
 
     const submitPolygon = async () => {
 
         if (coords.length < 3) {
-            alert("Please draw a Geofence first.");
+            showSnackbar("Please draw a Geofence first.", "error");
             return;
         }
 
@@ -30,13 +32,21 @@ export default function GeofenceSidebar({
 
         try {
 
-            await add_poly_geofence({
+            const res = await add_poly_geofence({
                 name,
                 desc,
                 coords: JSON.stringify(polygon)
             });
 
-            alert("Geofence created");
+            if (res?.error) {
+                showSnackbar(`Failed to create Geofence: ${res.error}`);
+                return;
+            } else if (res?.status && res.status >= 400) {
+                showSnackbar(`Failed to create Geofence: Status ${res.status}`);
+                return;
+            }
+
+            showSnackbar("Geofence created", "success");
 
             setCoords([]);
             setName("");
@@ -45,7 +55,7 @@ export default function GeofenceSidebar({
         } catch (err) {
 
             console.error(err);
-            alert("Failed to create Geofence");
+            showSnackbar(`Failed to create Geofence: ${err}`);
 
         }
 
@@ -64,7 +74,7 @@ export default function GeofenceSidebar({
             <h2>Draw Geofence</h2>
 
             <p>
-                <strong>Use Polygon tools on the map.</strong>
+                <strong>Use Polygon tools on the right of this box.</strong>
                 
             </p>
 

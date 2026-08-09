@@ -1,6 +1,11 @@
 import {
     Drawer,
+    IconButton,
+    Box
 } from "@mui/material";
+import CloseIcon from "@mui/icons-material/Close";
+
+import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 
 import AOISidebar from "./AOISidebar";
 import GeofenceSidebar from "./GeofenceSidebar";
@@ -28,9 +33,17 @@ export default function SlidingSidebar({
                     height: "calc(100% - 40px)",
                     padding: 2,
                     zIndex: 1100,
+                    boxShadow: "4px 0 15px rgba(0,0,0,0.2)",
+                    overflowY: "auto",
                 },
             }}
         >
+            <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 1 }}>
+                <IconButton onClick={close} size="small">
+                    <CloseIcon />
+                </IconButton>
+            </Box>
+
             {mode === "aoi" && (
                 <AOISidebar
                     {...props}

@@ -4,14 +4,15 @@ import App from './App';
 import { BrowserRouter } from 'react-router';
 import '@geoman-io/leaflet-geoman-free';
 import '@geoman-io/leaflet-geoman-free/dist/leaflet-geoman.css';
+import { SnackbarProvider } from './SnackbarContext';
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 
 root.render(
   <BrowserRouter>
-    <App />
+    <SnackbarProvider>
+      <App />
+    </SnackbarProvider>
   </BrowserRouter>
   
 );
-
-
