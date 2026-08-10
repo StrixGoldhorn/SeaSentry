@@ -58,7 +58,7 @@ export default function ExportRectangleDrawer({
 
             <GeomanControls
                 options={{
-                    position: "topright",
+                    position: "topleft",
 
                     drawRectangle: true,
 
